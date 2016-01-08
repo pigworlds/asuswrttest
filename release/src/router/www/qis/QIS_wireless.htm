@@ -747,7 +747,7 @@ function reset_wl_hwaddr(prefix){
 
 function show_prev_button(){
 	if(parent.$("flag").value == "wireless"){
-		$("prevButton").value = '<#CTL_AdvSetting#>';
+		$("prevButton").value = '<#menu5#>';
 		document.form.prev_page.value = "/Advanced_Wireless_Content.asp";
 	}
 	else if(parent.$("flag").value == "adv_ap_mode")
@@ -1342,7 +1342,7 @@ function detect_LANStatus(_flag){
 				</div>
 				<div class="row_end">
 					<label>Key</label>
-					<input id="wl0_wpa_psk_m" name="wl0_wpa_psk_m" type="password" onBlur="switchType(this, false);" onFocus="switchType(this, true);" placeholder="<#QIS_finish_wireless_item3#>" autocapitalization="off" maxlength="64">	
+					<input id="wl0_wpa_psk_m" name="wl0_wpa_psk_m" type="password" onBlur="switchType(this, false);" onFocus="switchType(this, true);" placeholder="<#Network_key#>" autocapitalization="off" maxlength="64">	
 				</div>
 	</fieldset>	
 	<br />
@@ -1357,7 +1357,7 @@ function detect_LANStatus(_flag){
 					</div>
 					<div class="row_end">
 						<label>Key</label>
-						<input id="wl1_wpa_psk_m" name="wl1_wpa_psk_m" type="password" onBlur="switchType(this, false);" onFocus="switchType(this, true);" placeholder="<#QIS_finish_wireless_item3#>" autocapitalization="off" maxlength="64">
+						<input id="wl1_wpa_psk_m" name="wl1_wpa_psk_m" type="password" onBlur="switchType(this, false);" onFocus="switchType(this, true);" placeholder="<#Network_key#>" autocapitalization="off" maxlength="64">
 					</div>
 		</fieldset>
 	</div>
@@ -1373,7 +1373,7 @@ function detect_LANStatus(_flag){
 					</div>
 					<div class="row_end">
 						<label>Key</label>
-						<input id="wl2_wpa_psk_m" name="wl2_wpa_psk_m" type="password" onBlur="switchType(this, false);" onFocus="switchType(this, true);" placeholder="<#QIS_finish_wireless_item3#>" autocapitalization="off" maxlength="64">
+						<input id="wl2_wpa_psk_m" name="wl2_wpa_psk_m" type="password" onBlur="switchType(this, false);" onFocus="switchType(this, true);" placeholder="<#Network_key#>" autocapitalization="off" maxlength="64">
 					</div>
 		</fieldset>
 	</div>

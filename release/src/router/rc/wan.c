@@ -1959,14 +1959,18 @@ int update_resolvconf(void)
 			fprintf(fp, "nameserver %s\n", tmp);
 
 		wan_domain = nvram_safe_get(strcat_r(prefix, "domain", tmp));
-		if (*wan_domain && *wan_dns)
-			foreach(tmp, wan_dns, next)
+		foreach(tmp, wan_dns, next) {
+			if (*wan_domain)
 				fprintf(fp_servers, "server=/%s/%s\n", wan_domain, tmp);
+			fprintf(fp_servers, "server=/%s/%s\n", "local", tmp);
+		}
 
 		wan_xdomain = nvram_safe_get(strcat_r(prefix, "xdomain", tmp));
-		if (*wan_xdomain && *wan_xdns && strcmp(wan_xdomain, wan_domain) != 0)
-			foreach(tmp, wan_xdns, next)
+		foreach(tmp, wan_xdns, next) {
+			if (*wan_xdomain && strcmp(wan_xdomain, wan_domain) != 0)
 				fprintf(fp_servers, "server=/%s/%s\n", wan_xdomain, tmp);
+			fprintf(fp_servers, "server=/%s/%s\n", "local", tmp);
+		}
 	}
 #ifdef RTCONFIG_OPENVPN
 	}

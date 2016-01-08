@@ -1385,6 +1385,8 @@ struct nvram_tuple router_defaults[] = {
 
 #ifndef RTCONFIG_BCMARM
 	{ "apps_ipkg_old", "1" },
+#else
+	{ "apps_ipkg_old", "0" },
 #endif
 	{ "apps_ipkg_server", "" },
 	{ "apps_wget_timeout", "30" },
@@ -1469,7 +1471,6 @@ struct nvram_tuple router_defaults[] = {
 #else
 	{ "modem_autoapn", "0"}, // 0: disabled, 1: enabled, 2: don't change modem nvrams.
 #endif
-	{ "modem_autoapn_imsi", ""},
 	{ "modem_roaming", "0"}, // 0: disabled, 1: enabled.
 	{ "modem_roaming_mode", "0"}, // 0: automatically, 1: manually.
 	{ "modem_roaming_isp", ""}, // operator at the long format.

@@ -1444,9 +1444,8 @@ int switch_wan_line(const int wan_unit, const int restart_other){
 			if(unit == wan_unit)
 				continue;
 
-			memset(cmd, 0, 32);
-			sprintf(cmd, "restart_wan_if %d", unit);
-TRACE_PT("%s.\n", cmd);
+			csprintf("wanduck1: restart_wan_if %d.\n", unit);
+			snprintf(cmd, 32, "restart_wan_if %d", unit);
 			notify_rc_and_wait(cmd);
 			sleep(1);
 		}
@@ -1460,9 +1459,8 @@ TRACE_PT("%s.\n", cmd);
 			if(dualwan_unit__nonusbif(unit))
 				continue;
 
-			memset(cmd, 0, 32);
-			sprintf(cmd, "stop_wan_if %d", unit);
-TRACE_PT("%s.\n", cmd);
+			csprintf("wanduck1: stop_wan_if %d.\n", unit);
+			snprintf(cmd, 32, "stop_wan_if %d", unit);
 			notify_rc_and_wait(cmd);
 			sleep(1);
 		}
@@ -1470,12 +1468,11 @@ TRACE_PT("%s.\n", cmd);
 #endif
 
 	// restart the primary line.
-	memset(cmd, 0, 32);
 	if(get_wan_state(wan_unit) == WAN_STATE_CONNECTED)
-		sprintf(cmd, "restart_wan_line %d", wan_unit);
+		snprintf(cmd, 32, "restart_wan_line %d", wan_unit);
 	else
-		sprintf(cmd, "restart_wan_if %d", wan_unit);
-TRACE_PT("%s.\n", cmd);
+		snprintf(cmd, 32, "restart_wan_if %d", wan_unit);
+	csprintf("wanduck2: %s.\n", cmd);
 	notify_rc_and_wait(cmd);
 
 #ifdef RTCONFIG_DUALWAN
@@ -1831,7 +1828,7 @@ _dprintf("wanduck(%d): detect the modem to be reset...\n", wan_unit);
 						continue;
 					}
 					else if(!link_wan[wan_unit] && current_state[wan_unit] != WAN_STATE_INITIALIZING){
-						csprintf("wanduck: stop_wan_if %d.\n", wan_unit);
+						csprintf("wanduck2: stop_wan_if %d.\n", wan_unit);
 						snprintf(cmd, 32, "stop_wan_if %d", wan_unit);
 						notify_rc(cmd);
 						continue;
@@ -2447,7 +2444,8 @@ _dprintf("wanduck(%d) 6: conn_state %d, conn_state_old %d, conn_changed_state %d
 							switch_wan_line(other_wan_unit, 0);
 						}
 						else if(current_state[current_wan_unit] != WAN_STATE_INITIALIZING){
-							csprintf("wanduck: stop_wan_if %d.\n", current_wan_unit);
+							csprintf("wanduck3: stop_wan_if %d.\n", current_wan_unit);
+							clean_modem_state(2);
 							snprintf(cmd, 32, "stop_wan_if %d", current_wan_unit);
 							notify_rc(cmd);
 						}

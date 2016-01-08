@@ -5360,7 +5360,8 @@ apply_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg,
 	char *action_para;
 	char *current_url;
 	char command[32];
-
+	int i=0, j=0, len=0;
+	
 	action_mode = websGetVar(wp, "action_mode","");
 	current_url = websGetVar(wp, "current_page", "");
 	_dprintf("apply: %s %s\n", action_mode, current_url);
@@ -5384,12 +5385,19 @@ apply_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg,
 	{
 		char *system_cmd;
 		system_cmd = websGetVar(wp, "SystemCmd","");
+		len = strlen(system_cmd);
 
-		if(strchr(system_cmd, '&') || strchr(system_cmd, ';') || strchr(system_cmd, '%') || strchr(system_cmd, '|') || strchr(system_cmd, '\n') || strchr(system_cmd, '\r')){
-			_dprintf("[httpd] Invalid SystemCmd!\n");
-			strcpy(SystemCmd, "");
+		for(i=0;i<len;i++){
+			if (isalnum(system_cmd[i]) != 0 || system_cmd[i] == ':' || system_cmd[i] == '-' || system_cmd[i] == '_' || system_cmd[i] == '.' || isspace(system_cmd[i]) != 0)
+				j++;
+			else{
+				_dprintf("[httpd] Invalid SystemCmd!\n");
+				strcpy(SystemCmd, "");	
+				websRedirect(wp, current_url);
+				return 0;
+			}				
 		}
-		else if(!strcmp(current_url, "Main_Netstat_Content.asp") && (
+		if(!strcmp(current_url, "Main_Netstat_Content.asp") && (
 			strncasecmp(system_cmd, "netstat", 7) == 0
 		)){
 			strncpy(SystemCmd, system_cmd, sizeof(SystemCmd));

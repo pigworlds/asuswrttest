@@ -151,7 +151,7 @@ function change_dla(enable){
 			</tr>
 			<tr>
 				<th>
-					<a class="hintstyle" href="javascript:void(0);" onClick="openHint(25,1);">Stability Adjustment (ADSL)</a>
+					<a class="hintstyle" href="javascript:void(0);" onClick="openHint(25,1);"><#dslsetting_Stability_Adj#> (ADSL)</a>
 				</th>
 				<td>
 					<select id="" class="input_option" name="dslx_snrm_offset">
@@ -181,7 +181,7 @@ function change_dla(enable){
 			</tr>
 			<tr>
 				<th>
-					<a class="hintstyle" href="javascript:void(0);" onClick="openHint(25,4);">Stability Adjustment (VDSL)</a>
+					<a class="hintstyle" href="javascript:void(0);" onClick="openHint(25,4);"><#dslsetting_Stability_Adj#> (VDSL)</a>
 				</th>
 				<td>
 					<select id="" class="input_option" name="dslx_vdsl_target_snrm">
@@ -257,7 +257,7 @@ function change_dla(enable){
 			<!--upbo stands for upstream power back off-->
 			<tr>
 				<th>
-					<a class="hintstyle" href="javascript:void(0);" onClick="openHint(25,7);">UPBO - upstream power back off (VDSL)</a>
+					<a class="hintstyle" href="javascript:void(0);" onClick="openHint(25,7);">UPBO - Upstream Power Back Off (VDSL)</a>
 				</th>
 				<td>
 					<select id="" class="input_option" name="dslx_vdsl_upbo">
@@ -269,7 +269,7 @@ function change_dla(enable){
 			</tr>
 			<tr>
 				<th>
-					<a class="hintstyle" href="javascript:void(0);" onClick="openHint(25,2);">SRA (Seamless Rate Adaptation)</a>
+					<a class="hintstyle" href="javascript:void(0);" onClick="openHint(25,2);"><#dslsetting_SRA#></a>
 				</th>
 				<td>
 					<select id="" class="input_option" name="dslx_sra">

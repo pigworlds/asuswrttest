@@ -238,14 +238,14 @@ ifeq ($(CONFIG_RALINK),y)
 		echo -n "PA/LNA: " ; \
 		if [ "`grep -c \"^CONFIG_INTERNAL_PA_INTERNAL_LNA\>\" $(LINUXDIR)/.config`" -gt 0 ] ; then \
 			echo "Internal PA + Internal LNA" ; \
-			if [ "$(BUILD_NAME)" = "RT-N14U" ] || [ "$(BUILD_NAME)" = "RT-AC51U" ] || [ "$(BUILD_NAME)" = "RT-N11P" ] || [ "$(BUILD_NAME)" = "RT-N54U" ] ; then \
+			if [ "$(BUILD_NAME)" = "RT-N14U" ] || [ "$(BUILD_NAME)" = "RT-AC51U" ] || [ "$(BUILD_NAME)" = "RT-N11P" ]  || [ "$(BUILD_NAME)" = "RT-N54U" ] ; then \
 				echo "Check PA/LNA: OK" ; \
 			else \
 				mv -f image/$(IMGNAME).trx image/$(IMGNAME)_int_PA_int_LNA.trx ; \
 			fi ; \
 		elif [ "`grep -c \"^CONFIG_INTERNAL_PA_EXTERNAL_LNA\>\" $(LINUXDIR)/.config`" -gt 0 ] ; then \
 			echo "Internal PA + External LNA" ; \
-			if [ "$(BUILD_NAME)" = "N/A" ]; then \
+			if [ "$(BUILD_NAME)" = "RT-AC1200HP" ]; then \
 				echo "Check PA/LNA: OK" ; \
 			else \
 				mv -f image/$(IMGNAME).trx image/$(IMGNAME)_int_PA_ext_LNA.trx ; \
@@ -1341,6 +1341,10 @@ define BusyboxOptions
 			sed -i "/CONFIG_FEATURE_UDHCP_VIVSO/d" $(1); \
 			echo "CONFIG_FEATURE_UDHCP_VIVSO=y" >>$(1); \
 		fi; \
+	fi; \
+	if [ "$(HTTPS)" = "y" ]; then \
+		sed -i "/CONFIG_WGET/d" $(1); \
+		echo "# CONFIG_WGET is not set" >>$(1); \
 	fi; \
 	)
 	$(call platformBusyboxOptions, $(1))

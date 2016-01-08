@@ -1814,16 +1814,16 @@ function onDropBoxLogin(token, uid){
 							<a href="cloud_main.asp"><div class="tab"><span>AiCloud 2.0</span></div></a>
 						</td>
 						<td>
-							<div class="tabclick"><span>Smart Sync</span></div>
+							<div class="tabclick"><span><#smart_sync#></span></div>
 						</td>
 						<td>
-							<a id="rrsLink" href="cloud_router_sync.asp"><div class="tab"><span>Sync Server</span></div></a>
+							<a id="rrsLink" href="cloud_router_sync.asp"><div class="tab"><span><#Server_Sync#></span></div></a>
 						</td>
 						<td>
-							<a href="cloud_settings.asp"><div class="tab"><span>Settings</span></div></a>
+							<a href="cloud_settings.asp"><div class="tab"><span><#Settings#></span></div></a>
 						</td>
 						<td>
-							<a href="cloud_syslog.asp"><div class="tab"><span>Log</span></div></a>
+							<a href="cloud_syslog.asp"><div class="tab"><span><#Log#></span></div></a>
 						</td>
 					</tr>
 					</tbody>
@@ -1840,7 +1840,7 @@ function onDropBoxLogin(token, uid){
 						  <td bgcolor="#4D595D" valign="top">
 
 						<div>&nbsp;</div>
-						<div class="formfonttitle">AiCloud 2.0 - Smart Sync</div>
+						<div class="formfonttitle">AiCloud 2.0 - <#smart_sync#></div>
 						<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 
 						<div>
@@ -1873,8 +1873,7 @@ function onDropBoxLogin(token, uid){
 									<td>&nbsp;&nbsp;</td>
 									<td>
 										<div style="padding:10px;width:95%;font-style:italic;font-size:14px;word-break:break-all;">
-											Enables Smart Sync functionality. For step-by-step instructions, go to 
-											<a href="http://aicloud-faq.asuscomm.com/aicloud-faq/" style="text-decoration:underline;font-weight:bolder;">http://aicloud-faq.asuscomm.com/aicloud-faq/</a>
+											<#smart_sync_help#> <a href="http://aicloud-faq.asuscomm.com/aicloud-faq/" style="text-decoration:underline;font-weight:bolder;">http://aicloud-faq.asuscomm.com/aicloud-faq/</a>
 										</div>
 									</td>
 								</tr>

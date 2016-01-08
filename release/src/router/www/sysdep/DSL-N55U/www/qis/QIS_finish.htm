@@ -107,7 +107,7 @@ function QKfinish_load_body(){
 	}*/
 	else if(auth_mode2 == "psk2"){
 		$("#security2")[0].innerHTML = "WPA2-Personal - AES";
-		$("#key2_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+		$("#key2_item")[0].innerHTML = "<#Network_key#>";
 		$("#key2")[0].innerHTML = decodeURIComponent("<% nvram_char_to_ascii("", "wl0_wpa_psk"); %>");
 	}
 	else{
@@ -164,7 +164,7 @@ function QKfinish_load_body(){
 		}*/
 		else if(auth_mode == "psk2"){
 			$("#security5")[0].innerHTML = "WPA2-Personal - AES";
-			$("#key5_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+			$("#key5_item")[0].innerHTML = "<#Network_key#>";
 			$("#key5")[0].innerHTML = decodeURIComponent("<% nvram_char_to_ascii("", "wl1_wpa_psk"); %>");
 		}
 		else{

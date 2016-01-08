@@ -21,7 +21,10 @@ var odmpid = '<% nvram_get("odmpid"); %>';
 var color = '<% nvram_get("color"); %>';
 color = color.toUpperCase();
 var MP_png_path = "/images/Model_product_"+ color +".png";
-
+var wanstate = -1;
+var wansbstate = -1;
+var wanauxstate = -1;
+<% wanstate(); %>
 <% wanlink(); %>
 
 function LinkCheck(url)
@@ -32,7 +35,23 @@ function LinkCheck(url)
     return http.status!="404";
 }
  
+function gotoPage(dst_url, flag, isParent){
+	if(isParent && isParent == 1)
+		document.redirectForm.target = "_parent";
+	else
+		document.redirectForm.target = "";
+	document.redirectForm.action = dst_url;
+	document.redirectForm.flag.value = flag;
+	document.redirectForm.submit();
+}
+
 function QKinternettype_load_body(){
+
+	if(wanstate == 4 && wansbstate == 4){
+		gotoPage("/error_page.htm", "6", 1);
+		return;
+	}
+
 	parent.document.title = "<#Web_Title#> - Welcome!";
 	parent.set_step("t0");		
 

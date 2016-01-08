@@ -351,17 +351,17 @@ function QKfinish_load_body(){
 		}
 		else if(auth_mode2 == "psk"){
 			$("#security2")[0].innerHTML = "WPA-Personal - TKIP";
-			$("#key2_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+			$("#key2_item")[0].innerHTML = "<#Network_key#>";
 			shown_str = '<% nvram_char_to_ascii("", "wl0_wpa_psk"); %>';
 		}
 		else if(auth_mode2 == "psk2"){
 			$("#security2")[0].innerHTML = "WPA2-Personal - AES";
-			$("#key2_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+			$("#key2_item")[0].innerHTML = "<#Network_key#>";
 			shown_str = '<% nvram_char_to_ascii("", "wl0_wpa_psk"); %>';
 		}	
 		else if(auth_mode2 == "pskpsk2"){
 			$("#security2")[0].innerHTML = "WPA-Auto-Personal - TKIP + AES";
-			$("#key2_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+			$("#key2_item")[0].innerHTML = "<#Network_key#>";
 			shown_str = '<% nvram_char_to_ascii("", "wl0_wpa_psk"); %>';
 		}
 		else{
@@ -411,17 +411,17 @@ function QKfinish_load_body(){
 			}
 			else if(auth_mode == "psk"){
 				$("#security5")[0].innerHTML = "WPA-Personal - TKIP";
-				$("#key5_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+				$("#key5_item")[0].innerHTML = "<#Network_key#>";
 				shown_str = '<% nvram_char_to_ascii("", "wl1_wpa_psk"); %>';
 			}
 			else if(auth_mode == "psk2"){
 				$("#security5")[0].innerHTML = "WPA2-Personal - AES";
-				$("#key5_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+				$("#key5_item")[0].innerHTML = "<#Network_key#>";
 				shown_str = '<% nvram_char_to_ascii("", "wl1_wpa_psk"); %>';
 			}
 			else if(auth_mode == "pskpsk2"){
 				$("#security5")[0].innerHTML = "WPA-Auto-Personal - TKIP + AES";
-				$("#key5_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+				$("#key5_item")[0].innerHTML = "<#Network_key#>";
 				shown_str = '<% nvram_char_to_ascii("", "wl1_wpa_psk"); %>';
 			}
 			else{	
@@ -472,17 +472,17 @@ function QKfinish_load_body(){
 			}
 			else if(auth_mode_5_2 == "psk"){
 				$("#security5_2")[0].innerHTML = "WPA-Personal - TKIP";
-				$("#key5_2_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+				$("#key5_2_item")[0].innerHTML = "<#Network_key#>";
 				shown_str = '<% nvram_char_to_ascii("", "wl2_wpa_psk"); %>';
 			}
 			else if(auth_mode_5_2 == "psk2"){
 				$("#security5_2")[0].innerHTML = "WPA2-Personal - AES";
-				$("#key5_2_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+				$("#key5_2_item")[0].innerHTML = "<#Network_key#>";
 				shown_str = '<% nvram_char_to_ascii("", "wl2_wpa_psk"); %>';
 			}
 			else if(auth_mode_5_2 == "pskpsk2"){
 				$("#security5_2")[0].innerHTML = "WPA-Auto-Personal - TKIP + AES";
-				$("#key5_2_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+				$("#key5_2_item")[0].innerHTML = "<#Network_key#>";
 				shown_str = '<% nvram_char_to_ascii("", "wl2_wpa_psk"); %>';
 			}
 			else{	
@@ -535,17 +535,17 @@ function QKfinish_load_body(){
 			}
 			else if(auth_mode2 == "psk"){
 					$("#security2")[0].innerHTML = "WPA-Personal - TKIP";
-					$("#key2_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+					$("#key2_item")[0].innerHTML = "<#Network_key#>";
 					$("#key2")[0].innerHTML = decodeURIComponent('<% nvram_char_to_ascii("", "wl0.1_wpa_psk"); %>');
 			}
 			else if(auth_mode2 == "psk2"){
 					$("#security2")[0].innerHTML = "WPA2-Personal - AES";
-					$("#key2_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+					$("#key2_item")[0].innerHTML = "<#Network_key#>";
 					$("#key2")[0].innerHTML = decodeURIComponent('<% nvram_char_to_ascii("", "wl0.1_wpa_psk"); %>');
 			}	
 			else if(auth_mode2 == "pskpsk2"){
 					$("#security2")[0].innerHTML = "WPA-Auto-Personal - TKIP + AES";
-					$("#key2_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+					$("#key2_item")[0].innerHTML = "<#Network_key#>";
 					$("#key2")[0].innerHTML = decodeURIComponent('<% nvram_char_to_ascii("", "wl0.1_wpa_psk"); %>');
 			}
 			else{
@@ -603,17 +603,17 @@ function QKfinish_load_body(){
 						}
 						else if(auth_mode == "psk"){
 								$("#security5")[0].innerHTML = "WPA-Personal - TKIP";
-								$("#key5_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+								$("#key5_item")[0].innerHTML = "<#Network_key#>";
 								$("#key5")[0].innerHTML = decodeURIComponent('<% nvram_char_to_ascii("", "wl1.1_wpa_psk"); %>');
 						}
 						else if(auth_mode == "psk2"){
 								$("#security5")[0].innerHTML = "WPA2-Personal - AES";
-								$("#key5_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+								$("#key5_item")[0].innerHTML = "<#Network_key#>";
 								$("#key5")[0].innerHTML = decodeURIComponent('<% nvram_char_to_ascii("", "wl1.1_wpa_psk"); %>');
 						}
 						else if(auth_mode == "pskpsk2"){
 								$("#security5")[0].innerHTML = "WPA-Auto-Personal - TKIP + AES";
-								$("#key5_item")[0].innerHTML = "<#QIS_finish_wireless_item3#>";
+								$("#key5_item")[0].innerHTML = "<#Network_key#>";
 								$("#key5")[0].innerHTML = decodeURIComponent('<% nvram_char_to_ascii("", "wl1.1_wpa_psk"); %>');
 						}
 						else{	
@@ -1123,7 +1123,7 @@ function showclock(){
 	<br />
 	
 	<fieldset>
-		<div class="row_end"><a class="iuiA" onclick="parent.location.href='/index.asp';"><#CTL_AdvSetting#></a></div>
+		<div class="row_end"><a class="iuiA" onclick="parent.location.href='/index.asp';"><#menu5#></a></div>
 	</fieldset>
 	<br />
 	<fieldset>

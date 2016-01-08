@@ -436,6 +436,7 @@ obj-$(RTCONFIG_L2TP) += rp-l2tp
 obj-$(RTCONFIG_PPTP) += accel-pptp
 obj-$(RTCONFIG_EAPOL) += wpa_supplicant
 obj-$(RTCONFIG_HTTPS) += openssl
+obj-$(RTCONFIG_HTTPS) += wget
 obj-$(RTCONFIG_SSH) += dropbear
 #obj-$(RTCONFIG_ZEBRA) += zebra
 #	obj-$(RTCONFIG_IPP2P) += ipp2p
@@ -460,6 +461,7 @@ obj-$(RTCONFIG_IXIAEP) += ixia_endpoint$(BCMEX)
 # Add for ASUS Components
 obj-y += miniupnpd
 obj-y += igmpproxy
+obj-y += snooper
 ifeq ($(RTCONFIG_BCMWL6),y)
 ifneq ($(RTCONFIG_BCMARM),y)
 obj-y += netconf
@@ -2591,6 +2593,28 @@ igmpproxy-clean:
 	-@$(MAKE) -C igmpproxy/src clean
 	@rm -f igmpproxy/stamp-h1
 
+snooper:
+ifeq ($(RTCONFIG_RALINK),y)
+	@true
+else ifeq ($(RTCONFIG_QCA),y)
+	@true
+else
+	$(MAKE) -C snooper SWITCH=broadcom EXTRACFLAGS="-I$(SRCBASE)/include $(EXTRACFLAGS)"
+endif
+
+snooper-install:
+ifeq ($(RTCONFIG_RALINK),y)
+	@true
+else ifeq ($(RTCONFIG_QCA),y)
+	@true
+else
+	install -D snooper/snooper $(INSTALLDIR)/snooper/usr/sbin/snooper
+	$(STRIP) $(INSTALLDIR)/snooper/usr/sbin/snooper
+endif
+
+snooper-clean:
+	$(MAKE) -C snooper clean
+
 ifneq ($(or $(findstring linux-2.6.36,$(LINUXDIR)),$(findstring linux-3.x,$(LINUXDIR))),)
 netconf: iptables-1.4.x
 else
@@ -3468,6 +3492,19 @@ GeoIP-1.6.2-install: GeoIP-1.6.2
 GeoIP-1.6.2-clean:
 	-@[ ! -f GeoIP-1.6.2/Makefile ] || $(MAKE) -C GeoIP-1.6.2 distclean
 	@rm -f GeoIP-1.6.2/stamp-h1
+
+wget/Makefile: openssl zlib
+	cd wget && autoreconf -i -f && $(CONFIGURE) --with-ssl=openssl --disable-opie --disable-ntlm --disable-debug --disable-nls --disable-iri --disable-dependency-tracking CFLAGS="-I$(TOP)/openssl/include -I$(TOP)/zlib" LDFLAGS="-L$(TOP)/openssl -lssl -lcrypto -L$(TOP)/zlib -lz"
+
+wget: wget/Makefile
+	$(MAKE) -C wget CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -Wl,--gc-sections -I$(TOP)/openssl/include -I$(TOP)/zlib"
+
+wget-clean:
+	-@[ ! -f wget/Makefile ] || $(MAKE) -C wget distclean
+
+wget-install:
+	install -D wget/src/wget $(INSTALLDIR)/wget/usr/sbin/wget
+	$(STRIP) $(INSTALLDIR)/wget/usr/sbin/wget
 
 #
 # Generic rules

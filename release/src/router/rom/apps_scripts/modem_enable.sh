@@ -9,6 +9,7 @@ modem_roaming_mode=`nvram get modem_roaming_mode`
 modem_roaming_isp=`nvram get modem_roaming_isp`
 modem_roaming_imsi=`nvram get modem_roaming_imsi`
 modem_autoapn=`nvram get modem_autoapn`
+modem_auto_spn=`nvram get usb_modem_auto_spn`
 modem_act_path=`nvram get usb_modem_act_path`
 modem_type=`nvram get usb_modem_act_type`
 act_node1="usb_modem_act_int"
@@ -161,6 +162,14 @@ if [ "$modem_type" == "" ]; then
 	fi
 fi
 
+if [ "$modem_enable" == "0" ]; then
+	echo "Don't enable the USB Modem."
+	exit 0
+elif [ "$modem_enable" == "4" ]; then
+	echo "Running the WiMAX procedure..."
+	exit 0
+fi
+
 act_node=
 #if [ "$modem_type" == "tty" -o "$modem_type" == "mbim" ]; then
 #	if [ "$modem_type" == "tty" -a "$modem_vid" == "6610" ]; then # e.q. ZTE MF637U
@@ -184,11 +193,6 @@ if [ "$modem_act_node" == "" ]; then
 fi
 
 echo "VAR: modem_enable($modem_enable) modem_autoapn($modem_autoapn) modem_act_node($modem_act_node) modem_type($modem_type) modem_vid($modem_vid) modem_pid($modem_pid) modem_pin($modem_pin) modem_apn($modem_apn) modem_isp($modem_isp)";
-
-if [ "$modem_enable" == "0" ]; then
-	echo "Don't enable the USB Modem."
-	exit 0
-fi
 
 if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim" -o "$modem_type" == "gobi" ]; then
 	nvram_reset=`nvram get modem_act_reset`
@@ -311,7 +315,7 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 	modem_status.sh hwver
 
 	# Auto-APN
-	if [ "$modem_isp" == "" -a "$modem_autoapn" != "" -a "$modem_autoapn" != "0" ]; then
+	if [ "$modem_autoapn" != "" -a "$modem_autoapn" != "0" -a "$modem_auto_spn" == "" ]; then
 		modem_autoapn.sh
 
 		modem_isp=`nvram get modem_isp`
@@ -325,8 +329,8 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 	# Home service.
 	if [ "$modem_roaming" != "1" ]; then
 		at_ret=`$at_lock modem_at.sh '+COPS?' 2>/dev/null`
-		ret=`echo "$at_ret" |grep "COMMAND NOT SUPPORT"`
-		if [ "$ret" == "" ]; then
+		ret=`echo "$at_ret" |grep "OK"`
+		if [ "$ret" == "OK" ]; then
 			echo "COPS: Can execute +COPS..."
 			ret=`echo "$at_ret" |grep "+COPS: 0"`
 			if [ "$ret" == "" ]; then
@@ -337,7 +341,7 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 					exit 6
 				fi
 			fi
-		else
+		else # the result from CDMA2000 can be "COMMAND NOT SUPPORT", "ERROR".
 			echo "COPS: Don't support +COPS."
 		fi
 	elif [ "$modem_roaming_mode" == "1" ]; then
@@ -360,8 +364,8 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 	fi
 
 	at_ret=`$at_lock modem_at.sh '+CGATT?' 2>/dev/null`
-	ret=`echo "$at_ret" |grep "COMMAND NOT SUPPORT"`
-	if [ "$ret" == "" ]; then
+	ret=`echo "$at_ret" |grep "OK"`
+	if [ "$ret" == "OK" ]; then
 		echo "CGATT: Can execute +CGATT..."
 		tries=1
 		at_ret=`echo "$at_ret" |grep "+CGATT: 1"`
@@ -379,7 +383,7 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 		else
 			echo "CGATT: Successfull to register network."
 		fi
-	else
+	else # the result from CDMA2000 can be "COMMAND NOT SUPPORT", "ERROR".
 		echo "CGATT: Don't support +CGATT."
 	fi
 

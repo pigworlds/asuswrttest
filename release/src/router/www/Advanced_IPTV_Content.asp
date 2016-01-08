@@ -156,6 +156,15 @@ function load_ISP_profile() {
                 document.form.mr_enable_x.value = "1";
                 document.form.emf_enable.value = "1";
         }
+        else if(document.form.switch_wantag.value == "movistar") {
+			document.form.switch_stb_x.value = "6";
+			document.form.switch_wan0tagid.value = "6";
+			document.form.switch_wan0prio.value = "0";
+			document.form.switch_wan1tagid.value = "2";
+			document.form.switch_wan1prio.value = "0";
+			document.form.switch_wan2tagid.value = "3";
+			document.form.switch_wan2prio.value = "0";
+        }
 
 }
 
@@ -196,14 +205,14 @@ function ISP_Profile_Selection(isp){
 		document.getElementById("mr_enable_field").style.display = "";
 		document.getElementById("enable_eff_multicast_forward").style.display = "";
 	}
-	else if(isp == "singtel_mio"){
+	else if(isp == "singtel_mio" || isp == "movistar"){
 		$("wan_stb_x").style.display = "none";
 		$("wan_iptv_x").style.display = "";
 		$("wan_voip_x").style.display = "";
 		$("wan_internet_x").style.display = "none";
 		$("wan_iptv_port4_x").style.display = "none";
 		$("wan_voip_port3_x").style.display = "none";	
-		document.form.switch_wantag.value = "singtel_mio";
+		document.form.switch_wantag.value = isp;
 		document.form.switch_stb_x.value = "6";
 		document.getElementById("mr_enable_field").style.display = "";
 		document.getElementById("enable_eff_multicast_forward").style.display = "";
@@ -504,6 +513,7 @@ function change_rmvlan(){
 						<option value="m1_fiber" <% nvram_match("switch_wantag", "m1_fiber", "selected"); %>>M1-Fiber</option>
 						<option value="maxis_fiber" <% nvram_match("switch_wantag", "maxis_fiber", "selected"); %>>Maxis-Fiber</option>
 						<option value="maxis_fiber_sp" <% nvram_match("switch_wantag", "maxis_fiber_sp", "selected"); %>>Maxis-Fiber-Special</option>
+						<option value="movistar" <% nvram_match("switch_wantag", "movistar", "selected"); %>>Movistar</option>
                                                 <option value="maxis_fiber_iptv" <% nvram_match("switch_wantag", "maxis_fiber_iptv", "selected"); %>>Maxis-Fiber-IPTV</option>
                                                 <option value="maxis_fiber_sp_iptv" <% nvram_match("switch_wantag", "maxis_fiber_sp_iptv", "selected"); %>>Maxis-Fiber-Special-IPTV</option>
 						<option value="manual" <% nvram_match( "switch_wantag", "manual", "selected"); %>>Manual</option>

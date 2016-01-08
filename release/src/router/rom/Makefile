@@ -65,7 +65,9 @@ ifeq ($(RTCONFIG_USB),y)
 	install -m 0755 apps_scripts/app_*.sh $(INSTALLDIR)/usr/sbin
 	install -m 0755 apps_scripts/check_spectrum.sh $(INSTALLDIR)/usr/sbin
 ifeq ($(RTCONFIG_USB_MODEM),y)
+ifneq ($(RTCONFIG_USB_LESSMODEM),y)
 	install -m 0644 apn_*.dat $(INSTALLDIR)/rom
+endif
 	install -m 0755 apps_scripts/find_modem_*.sh $(INSTALLDIR)/usr/sbin
 	install -m 0755 apps_scripts/modem_*.sh $(INSTALLDIR)/usr/sbin
 	install -m 0755 apps_scripts/3ginfo.sh $(INSTALLDIR)/usr/sbin
@@ -87,11 +89,23 @@ ifeq ($(RTCONFIG_HTTPS),y)
 	cp -f webs_scripts/public.pem $(INSTALLDIR)/usr/sbin/public.pem
 endif
 else
+ifeq ($(RTCONFIG_HTTPS),y)
+	cp -f webs_scripts/ssl_webs_upgrade.sh $(INSTALLDIR)/usr/sbin/webs_upgrade.sh
+else
 	cp -f webs_scripts/nozip_webs_upgrade.sh $(INSTALLDIR)/usr/sbin/webs_upgrade.sh
+endif
 ifeq ($(RTAC68U),y)
+ifeq ($(RTCONFIG_HTTPS),y)
+	cp -f webs_scripts/ssl_webs_update_ac68u.sh $(INSTALLDIR)/usr/sbin/webs_update.sh
+else
 	cp -f webs_scripts/nozip_webs_update_ac68u.sh $(INSTALLDIR)/usr/sbin/webs_update.sh
+endif	
+else
+ifeq ($(RTCONFIG_HTTPS),y)
+	cp -f webs_scripts/ssl_webs_update.sh $(INSTALLDIR)/usr/sbin/webs_update.sh
 else
 	cp -f webs_scripts/nozip_webs_update.sh $(INSTALLDIR)/usr/sbin/webs_update.sh
+endif
 endif
 ifeq ($(RTCONFIG_BWDPI),y)
 	cp -f webs_scripts/sig_upgrade.sh $(INSTALLDIR)/usr/sbin/sig_upgrade.sh

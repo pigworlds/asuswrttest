@@ -741,7 +741,7 @@ function genBWTable(_unit){
 							</tr>	  
 						<!-- Hidden and disable item, start -->
 							<tr style="display:none">
-								<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 4);"><#WLANConfig11b_x_Mode11g_itemname#></a></th>
+								<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 4);"><#WLANConfig11b_x_Mode_itemname#></a></th>
 								<td>									
 									<select name="wl_nmode_x" class="input_option" onChange="wireless_mode_change(this);" disabled>
 										<option value="0" <% nvram_match("wl_nmode_x", "0","selected"); %>><#Auto#></option>

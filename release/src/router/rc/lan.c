@@ -631,6 +631,26 @@ static void stop_emf(char *lan_ifname)
 }
 #endif
 
+static void start_snooper(char *lan_ifname)
+{
+	char word[64], *next;
+
+	if (!nvram_match("emf_enable", "1"))
+		return;
+
+#ifdef CONFIG_BCMWL5
+	foreach (word, nvram_safe_get("lan_ifnames"), next) {
+		if (eval("/usr/sbin/snooper", "-b", lan_ifname, "-s", word) == 0);
+			break;
+	}
+#endif
+}
+
+static void stop_snooper(void)
+{
+	killall_tk("snooper");
+}
+
 // -----------------------------------------------------------------------------
 
 /* Set initial QoS mode for all et interfaces that are up. */
@@ -1677,6 +1697,7 @@ gmac3_no_swbr:
 #ifdef RTCONFIG_EMF
 	start_emf(lan_ifname);
 #endif
+	start_snooper(lan_ifname);
 
 	if(nvram_match("lan_proto", "dhcp"))
 	{
@@ -1910,6 +1931,7 @@ void stop_lan(void)
 #ifdef RTCONFIG_EMF
 		stop_emf(lan_ifname);
 #endif
+		stop_snooper();
 		eval("brctl", "delbr", lan_ifname);
 	}
 	else if (*lan_ifname) {
@@ -2190,6 +2212,13 @@ NEITHER_WDS_OR_PSTA:
 				return;
 			}
 
+#ifdef RT4GAC55U
+			if((nvram_get_int("usb_gobi") == 1 && strcmp(port_path, "2"))
+					|| (nvram_get_int("usb_gobi") != 1 && !strcmp(port_path, "2"))
+					)
+				return;
+#endif
+
 			snprintf(buf, 32, "%s", nvram_safe_get("usb_modem_act_path"));
 			if(strcmp(buf, "") && strcmp(buf, usb_node)){
 				_dprintf("hotplug net(%s): skip 4. port_path %s.\n", interface, port_path);
@@ -2216,11 +2245,6 @@ NEITHER_WDS_OR_PSTA:
 			pid = get_usb_pid(usb_node);
 			logmessage("hotplug", "Got net %s, vid 0x%x, pid 0x%x.", interface, vid, pid);
 			_dprintf("hotplug net: Got net %s, vid 0x%x, pid 0x%x.\n", interface, vid, pid);
-
-#ifdef RT4GAC55U
-			if(vid == 0x05c6 && pid == 0x9026 && !strcmp(port_path, "2") && nvram_get_int("usb_gobi") != 1)
-				return;
-#endif
 
 			if(!strcmp(interface, "usb0")){
 				_dprintf("hotplug net(%s): let usb0 wait for usb1.\n", interface);
@@ -2298,15 +2322,12 @@ NEITHER_WDS_OR_PSTA:
 				return;
 
 			snprintf(nvram_name, 32, "usb_path%s_act", port_path);
-
-			if(!strcmp(nvram_safe_get(nvram_name), interface)) {
-				nvram_unset(nvram_name);
-
-				clean_modem_state(1);
-			}
-
-			if(strlen(port_path) <= 0)
+			if(strcmp(nvram_safe_get(nvram_name), interface))
 				return;
+
+			nvram_unset(nvram_name);
+
+			clean_modem_state(1);
 
 			nvram_set(strcat_r(prefix, "ifname", tmp), "");
 
@@ -2318,7 +2339,7 @@ NEITHER_WDS_OR_PSTA:
 			kill_pidfile_s(dhcp_pid_file, SIGTERM);
 		}
 	}
-	// Beceem dongle, ASIX USB to RJ45 converter, ECM.
+	// Beceem dongle, ASIX USB to RJ45 converter, ECM, rndis(LU-150: ethX with RNDIS).
 	else if(!strncmp(interface, "eth", 3)) {
 		if(nvram_get_int("sw_mode") != SW_MODE_ROUTER)
 			return;
@@ -2458,15 +2479,11 @@ NEITHER_WDS_OR_PSTA:
 			_dprintf("hotplug net INTERFACE=%s ACTION=%s: wait 2 seconds...\n", interface, action);
 			sleep(2);
 
-#ifdef RTCONFIG_DUALWAN
-			// avoid the busy time of every start_wan when booting.
-			if(!strcmp(nvram_safe_get("success_start_service"), "0")
-					&& (unit == WAN_UNIT_FIRST || nvram_match("wans_mode", "lb"))
-					){
-				_dprintf("%s: start_wan_if(%d)!\n", __FUNCTION__, unit);
-				start_wan_if(unit);
-			}
-#endif
+			// This is the second step of start_wan_if().
+			// First start_wan_if(): call the WiMAX process up.
+			// Second start_wan_if(): call the udhcpc up.
+			_dprintf("%s: start_wan_if(%d)!\n", __FUNCTION__, unit);
+			start_wan_if(unit);
 		}
 		else // remove: do nothing.
 			;
@@ -3097,6 +3114,7 @@ void stop_lan_wl(void)
 #ifdef RTCONFIG_EMF
 	stop_emf(lan_ifname);
 #endif
+	stop_snooper();
 
 #ifdef RTCONFIG_BCMWL6
 #if defined(RTAC66U) || defined(BCM4352)
@@ -3375,6 +3393,7 @@ void start_lan_wl(void)
 #ifdef RTCONFIG_EMF
 	start_emf(lan_ifname);
 #endif
+	start_snooper(lan_ifname);
 
 #ifdef RTCONFIG_BCMWL6
 	set_acs_ifnames();

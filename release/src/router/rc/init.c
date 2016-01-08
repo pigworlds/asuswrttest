@@ -706,6 +706,26 @@ void usbctrl_default()
 
 #ifdef RTCONFIG_USB_MODEM
 void clean_modem_state(int flag){
+	// Need to unset after the SIM is removed.
+	// auto APN
+	nvram_unset("usb_modem_auto_running");
+	nvram_unset("usb_modem_auto_imsi");
+	nvram_unset("usb_modem_auto_country");
+	nvram_unset("usb_modem_auto_isp");
+	nvram_unset("usb_modem_auto_apn");
+	nvram_unset("usb_modem_auto_spn");
+	nvram_unset("usb_modem_auto_dialnum");
+	nvram_unset("usb_modem_auto_user");
+	nvram_unset("usb_modem_auto_pass");
+
+	nvram_unset("usb_modem_act_signal");
+	nvram_unset("usb_modem_act_operation");
+	nvram_unset("usb_modem_act_imsi");
+	nvram_unset("usb_modem_act_iccid");
+
+	if(flag == 2)
+		return;
+
 	if(flag){
 		nvram_unset("usb_modem_act_path");
 		nvram_unset("usb_modem_act_type");
@@ -718,26 +738,12 @@ void clean_modem_state(int flag){
 	nvram_unset("usb_modem_act_vid");
 	nvram_unset("usb_modem_act_pid");
 	nvram_unset("usb_modem_act_sim");
-	nvram_unset("usb_modem_act_signal");
-	nvram_unset("usb_modem_act_operation");
-	nvram_unset("usb_modem_act_imsi");
 	nvram_unset("usb_modem_act_imei");
-	nvram_unset("usb_modem_act_iccid");
 	nvram_unset("usb_modem_act_tx");
 	nvram_unset("usb_modem_act_rx");
 	nvram_unset("usb_modem_act_hwver");
 	nvram_unset("usb_modem_act_band");
 	nvram_unset("usb_modem_act_scanning");
-
-	// auto APN
-	nvram_unset("usb_modem_auto_running");
-	nvram_unset("usb_modem_auto_country");
-	nvram_unset("usb_modem_auto_isp");
-	nvram_unset("usb_modem_auto_apn");
-	nvram_unset("usb_modem_auto_spn");
-	nvram_unset("usb_modem_auto_dialnum");
-	nvram_unset("usb_modem_auto_user");
-	nvram_unset("usb_modem_auto_pass");
 
 	// modem state.
 	nvram_unset("g3state_pin");
@@ -2087,7 +2093,7 @@ int init_nvram(void)
 		add_rc_support("rawifi");
 		add_rc_support("switchctrl");
 		add_rc_support("manual_stb");
-		add_rc_support("11AC");
+		//add_rc_support("11AC");
 		//either txpower or singlesku supports rc.
 		//add_rc_support("pwrctrl");
 		// the following values is model dep. so move it from default.c to here
@@ -2262,7 +2268,10 @@ int init_nvram(void)
 				nvram_set("sb/1/regrev", "16");
 			}
 		}
-		nvram_set("sb/1/eu_edthresh2g", "-69"); //for CE adaptivity certification
+		if (nvram_match("wl0_country_code", "EU"))
+		{
+			nvram_set("sb/1/eu_edthresh2g", "-69"); //for CE adaptivity certification
+		}
 		/* go to common N12* init */
 		goto case_MODEL_RTN12X;
 
@@ -2296,7 +2305,9 @@ int init_nvram(void)
 				nvram_set("sb/1/regrev", "2");
 			}
 		}
-		nvram_set("sb/1/eu_edthresh2g", "-69"); //for CE adaptivity certification
+		if(nvram_match("wl0_country_code", "XU")){
+			nvram_set("sb/1/eu_edthresh2g", "-69"); //for CE adaptivity certification
+		}
 		/* go to common N12* init */
 		goto case_MODEL_RTN12X;
 
@@ -3590,7 +3601,9 @@ int init_nvram(void)
 		nvram_set("ohci_ports", "2-1");
 		if (!nvram_get("ct_max"))
 			nvram_set("ct_max", "2048");
-		nvram_set("sb/1/eu_edthresh2g", "-69"); //for CE adaptivity certification
+		if (nvram_match("wl0_country_code", "XU")){
+			nvram_set("sb/1/eu_edthresh2g", "-69"); //for CE adaptivity certification
+		}
 		add_rc_support("2.4G mssid usbX1 nomedia small_fw");
 		break;
 
@@ -3664,7 +3677,9 @@ int init_nvram(void)
 			if (model == MODEL_RTN10D1)
 				nvram_set_int("ct_max", 1024);
 		}
-		nvram_set("sb/1/eu_edthresh2g", "-69"); //for CE adaptivity certification
+		if (nvram_match("wl0_country_code", "XU")){
+			nvram_set("sb/1/eu_edthresh2g", "-69"); //for CE adaptivity certification
+		}
 
 		add_rc_support("2.4G mssid");
 #ifdef RTCONFIG_KYIVSTAR
@@ -3928,25 +3943,6 @@ int init_nvram(void)
 
 #ifdef RTCONFIG_SNMPD
 	add_rc_support("snmp");
-#endif
-
-#if defined(RTCONFIG_APP_PREINSTALLED) || defined(RTCONFIG_APP_NETINSTALLED)
-#ifdef RTCONFIG_BCMARM
-	nvram_set("apps_install_folder", "asusware.arm");
-	nvram_set("apps_ipkg_server", "http://nw-dlcdnet.asus.com/asusware/arm/stable");
-#else
-	if (!strcmp(get_productid(), "VSL-N66U")) {
-		nvram_set("apps_install_folder", "asusware.mipsbig");
-		nvram_set("apps_ipkg_server", "http://nw-dlcdnet.asus.com/asusware/mipsbig/stable");
-	}
-	else{ // mipsel
-		nvram_set("apps_install_folder", "asusware");
-		if (nvram_match("apps_ipkg_old", "1"))
-			nvram_set("apps_ipkg_server", "http://dlcdnet.asus.com/pub/ASUS/wireless/ASUSWRT");
-		else
-			nvram_set("apps_ipkg_server", "http://nw-dlcdnet.asus.com/asusware/mipsel/stable");
-	}
-#endif
 #endif
 
 #ifdef RTCONFIG_DISK_MONITOR
@@ -4853,6 +4849,32 @@ static void sysinit(void)
 
 	init_nvram();  // for system indepent part after getting model
 	restore_defaults(); // restore default if necessary
+
+#if defined(RTCONFIG_APP_PREINSTALLED) || defined(RTCONFIG_APP_NETINSTALLED)
+#ifdef RTCONFIG_BCMARM
+	nvram_set("apps_ipkg_old", "0");
+	nvram_set("apps_install_folder", "asusware.arm");
+	nvram_set("apps_ipkg_server", "http://nw-dlcdnet.asus.com/asusware/arm/stable");
+#elif defined(RTCONFIG_QCA)
+	nvram_set("apps_ipkg_old", "0");
+	nvram_set("apps_install_folder", "asusware.mipsbig");
+	nvram_set("apps_ipkg_server", "http://nw-dlcdnet.asus.com/asusware/mipsbig/stable");
+#else
+	if(!strcmp(get_productid(), "VSL-N66U")){
+		nvram_set("apps_ipkg_old", "0");
+		nvram_set("apps_install_folder", "asusware.mipsbig");
+		nvram_set("apps_ipkg_server", "http://nw-dlcdnet.asus.com/asusware/mipsbig/stable");
+	}
+	else{ // mipsel
+		nvram_set("apps_install_folder", "asusware");
+		if (nvram_match("apps_ipkg_old", "1"))
+			nvram_set("apps_ipkg_server", "http://dlcdnet.asus.com/pub/ASUS/wireless/ASUSWRT");
+		else
+			nvram_set("apps_ipkg_server", "http://nw-dlcdnet.asus.com/asusware/mipsel/stable");
+	}
+#endif
+#endif
+
 	init_gpio();   // for system dependent part
 #ifdef RTCONFIG_SWMODE_SWITCH
 	init_swmode(); // need to check after gpio initized

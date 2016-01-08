@@ -1895,11 +1895,16 @@ void init_others(void)
 				fwd_cpumap = nvram_get("fwd_cpumap");
 
 				if (fwd_cpumap == NULL) {
-					/* BCM4709acdcrh: Network interface GMAC on Core#1
+					/* BCM4709acdcrh: Network interface GMAC on Core#1(if !usb3)
 					 * [5G+2G:163 on Core#0] and [5G:169 on Core#1].
-					 * Bind et2:vlan1:eth0:181 to Core#1
+					 * Bind et2:vlan1:eth0:181 to Core#1(if !usb3)
+					 * USB3 xhci_hcd's irq#112 binds Core#1
+					 * bind eth0:181 to Core#1 impacts USB3 performance
 					 */
-					system("echo 2 > /proc/irq/181/smp_affinity");
+					if (nvram_get_int("usb_usb3") == 1)
+						system("echo 1 > /proc/irq/181/smp_affinity");
+					else
+						system("echo 2 > /proc/irq/181/smp_affinity");
 
 				} else {
 
@@ -1930,22 +1935,35 @@ void init_others(void)
 				}
 			} else
 #endif
+			{
 #ifdef ASUS_TWEAK
-			if (nvram_match("enable_samba", "0")) {  // not set txworkq
+#ifndef RTCONFIG_BCM7
+				if (nvram_match("asus_tweak", "1")) {
+					system("echo 1 > /proc/irq/179/smp_affinity");	// eth0
+					system("echo 2 > /proc/irq/163/smp_affinity");	// eth1 or eth1/eth2
+					system("echo 2 > /proc/irq/169/smp_affinity");	// eth2 or eth3
+				}
+#endif	// RTCONFIG_BCM7
+//				if (nvram_match("enable_samba", "0"))  // not set txworkq
 #else
-			if (!nvram_match("txworkq", "1")) {
-#endif
-				system("echo 2 > /proc/irq/163/smp_affinity");
-				system("echo 2 > /proc/irq/169/smp_affinity");
+				if (!nvram_match("txworkq", "1"))
+#endif	// ASUS_TWEAK
+				{
+					system("echo 2 > /proc/irq/163/smp_affinity");
+					system("echo 2 > /proc/irq/169/smp_affinity");
+				}
 			}
 #ifdef ASUS_TWEAK
-			system("echo 2 > /proc/irq/111/smp_affinity");
+			system("echo 2 > /proc/irq/111/smp_affinity");		// ehci, ohci
 #endif
-			system("echo 2 > /proc/irq/112/smp_affinity");
+			system("echo 2 > /proc/irq/112/smp_affinity");		// xhci
 		}
-#endif
+#endif // SMP
 #ifdef ASUS_TWEAK
-		nvram_set("txworkq", "1");
+		if (nvram_match("usb_usb3", "1"))
+			nvram_set("txworkq", "1");
+		else
+			nvram_unset("txworkq");
 #endif
 	}
 }
