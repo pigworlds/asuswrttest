@@ -448,7 +448,7 @@ function guest_divctrl(flag){
 
 function mbss_display_ctrl(){
 	// generate options
-	if(wl_vifnames != ""){
+	if(multissid_support){
 		document.getElementById("wl_channel_field").style.display = "none";
 		document.getElementById("wl_nctrlsb_field").style.display = "none";
 		for(var i=1; i<multissid_support+1; i++)
@@ -606,7 +606,7 @@ function genBWTable(_unit){
 		<td>
 			<div class="drword" id="drword"><#Main_alert_proceeding_desc4#> <#Main_alert_proceeding_desc1#>...
 				<br/>
-			<div id="disconnect_hint" style="display:none;">This may interrupt your internet connection.</div>	
+			<div id="disconnect_hint" style="display:none;"><#Main_alert_proceeding_desc2#></div>	
 				<br/>
 		    </div>
 			<div id="wireless_client_detect" style="margin-left:10px;position:absolute;display:none">
@@ -614,7 +614,7 @@ function genBWTable(_unit){
 				<div style="margin:-45px 0 0 75px;"><#QKSet_Internet_Setup_fail_method1#></div>
 			</div>
 			<div class="drImg"><img src="images/alertImg.png"></div>
-			<div style="height:70px; "></div>
+			<div style="height:100px; "></div>
 		</td>
 		</tr>
 	</table>

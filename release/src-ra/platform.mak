@@ -1,5 +1,23 @@
 export LINUXDIR := $(SRCBASE)/linux/linux-2.6.21.x
 
+ifeq ($(EXTRACFLAGS),)
+export EXTRACFLAGS := -DBCMWPA2 -fno-delete-null-pointer-checks -mips32 -mtune=mips32
+endif
+
+export KERNEL_BINARY=$(LINUXDIR)/vmlinux
+export PLATFORM := mipsel-uclibc
+export CROSS_COMPILE := mipsel-uclibc-
+export CROSS_COMPILER := $(CROSS_COMPILE)
+export READELF := mipsel-linux-readelf
+export CONFIGURE := ./configure --host=mipsel-linux --build=$(BUILD)
+export HOSTCONFIG := linux-mipsel
+export ARCH := mips
+export HOST := mipsel-linux
+export KERNELCC := /opt/buildroot-gcc342/bin/mipsel-linux-uclibc-gcc
+export KERNELLD := /opt/buildroot-gcc342/bin/mipsel-linux-uclibc-ld
+export TOOLS := $(SRCBASE)/../../tools/brcm/hndtools-mipsel-linux
+export RTVER := 0.9.30.1
+
 EXTRA_CFLAGS := -DLINUX26 -DCONFIG_RALINK -pipe -DDEBUG_NOISY -DDEBUG_RCTEST
 
 export CONFIG_LINUX26=y

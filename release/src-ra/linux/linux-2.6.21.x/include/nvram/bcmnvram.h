@@ -136,6 +136,13 @@ extern int nvram_commit(void);
  */
 extern int nvram_getall(char *buf, int count);
 
+/*
+ * Get get buff translated
+ * @param	buf	string buffer would like to be translated
+ * @return	translated string buffer
+ */
+extern char * nvram_xfr(const char *buf);
+
 #endif /* _LANGUAGE_ASSEMBLY */
 
 #ifdef ASUS_NVRAM

@@ -46,9 +46,6 @@ function initial(){
 	if(!parent.media_support)
 		$("mediaserver_hyperlink").style.display = "none";
 	
-	if(!WebDav_support)
-		$("clouddiskstr").style.display = "none";
-
 	// Hide disk utility temporarily.
 	if(parent.diskUtility_support){
 		$("diskTab").style.display = "";
@@ -132,12 +129,12 @@ function remove_disk(){
 	<td>		
 		<table id="diskTab" width="100px" border="0" align="left" style="margin-left:5px;display:none;" cellpadding="0" cellspacing="0">
   		<td>
-				<div id="t0" class="tabclick_NW" align="center" style="font-weight: bolder;margin-right:2px; width:100px;" onclick="">
+				<div id="t0" class="tabclick_NW" align="center" style="font-weight: bolder;margin-right:2px;" onclick="">
 					<span id="span1" style="cursor:pointer;font-weight: bolder;"><#diskUtility_information#></span>
 				</div>
 			</td>
   		<td>
-				<div id="t1" class="tab_NW" align="center" style="font-weight: bolder;margin-right:2px; width:100px;" onclick="location.href='disk_utility.asp'">
+				<div id="t1" class="tab_NW" align="center" style="font-weight: bolder;margin-right:2px;" onclick="location.href='disk_utility.asp'">
 					<span id="span1" style="cursor:pointer;font-weight: bolder;"><#diskUtility#></span>
 				</div>
 			</td>
@@ -233,10 +230,8 @@ function remove_disk(){
 					function(){		//OFF:1
 						document.form.usb_usb3.value = 1;
 						document.form.submit();
-					},
-					{
-						switch_on_container_path: '/switcherplugin/iphone_switch_container_off.png'
-					})
+					}
+				);
 			</script>
 			</form>
 		</td>

@@ -97,7 +97,7 @@ _find_usb3_path(){
 			return
 		fi
 
-		count=$(($count+1))
+		count=$((count+1))
 	done
 
 	echo "-1"
@@ -115,7 +115,7 @@ _find_usb2_path(){
 			return
 		fi
 
-		count=$(($count+1))
+		count=$((count+1))
 	done
 
 	echo "-1"
@@ -133,7 +133,7 @@ _find_usb1_path(){
 			return
 		fi
 
-		count=$(($count+1))
+		count=$((count+1))
 	done
 
 	echo "-1"
@@ -209,7 +209,7 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 				sleep 1
 
 				modem_act_node=`nvram get $act_node`
-				tries=$((tries + 1))
+				tries=$((tries+1))
 			done
 			if [ "$modem_act_node" != "" ]; then
 				echo "Reset modem: Fail to reset modem."
@@ -226,7 +226,7 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 				sleep 1
 
 				reset_flag=`nvram get usb_modem_act_reset`
-				tries=$((tries + 1))
+				tries=$((tries+1))
 			done
 
 			nvram set usb_modem_act_reset=0
@@ -273,7 +273,7 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 				sleep 1
 
 				at_ret=`$at_lock modem_at.sh '+CFUN?' |grep "+CFUN: 1" 2>/dev/null`
-				tries=$((tries + 1))
+				tries=$((tries+1))
 			done
 
 			if [ "$at_ret" == "" ]; then
@@ -363,231 +363,235 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 		echo "roaming automatically..."
 	fi
 
-	at_ret=`$at_lock modem_at.sh '+CGATT?' 2>/dev/null`
-	ret=`echo "$at_ret" |grep "OK"`
-	if [ "$ret" == "OK" ]; then
-		echo "CGATT: Can execute +CGATT..."
-		tries=1
-		at_ret=`echo "$at_ret" |grep "+CGATT: 1"`
-		while [ $tries -le 30 -a "$at_ret" == "" ]; do
-			echo "CGATT: wait for network registered...$tries"
-			sleep 1
+	if [ "$modem_vid" == "8193" ];then
+		# just for D-Link DWM-156 A7.
+		#at_ret=`$at_lock modem_at.sh '+BMHPLMN' |grep "+BMHPLMN: " 2>/dev/null`
+		#if [ "$at_ret" != "" ]; then
+		#	plmn=`echo $at_ret | awk '{print $2}'`
+		#	echo "IMSI: $plmn."
+		#fi
 
-			at_ret=`$at_lock modem_at.sh '+CGATT?' |grep "+CGATT: 1" 2>/dev/null`
-			tries=$((tries + 1))
-		done
-
-		if [ "$at_ret" == "" ]; then
-			echo "CGATT: Fail to register network, please check."
-			exit 7
-		else
-			echo "CGATT: Successfull to register network."
-		fi
-	else # the result from CDMA2000 can be "COMMAND NOT SUPPORT", "ERROR".
-		echo "CGATT: Don't support +CGATT."
-	fi
-
-	at_cgnws=`$at_lock modem_at.sh '+CGNWS' |grep "+CGNWS:" |awk '{FS=":"; print $2}' 2>/dev/null`
-	if [ "$at_cgnws" != "" ]; then
-		mcc=`echo "$at_cgnws" |awk '{FS=","; print $5}' 2>/dev/null`
-		mnc=`echo "$at_cgnws" |awk '{FS=","; print $6}' 2>/dev/null`
-		target=$mcc$mnc
-		len=${#target}
-		target=`echo -n $modem_imsi |cut -c '1-'$len 2>/dev/null`
-
-		if [ "$mcc$mnc" == "$target" ]; then
-			spn=`echo "$at_cgnws" |awk '{FS=","; print $7}' 2>/dev/null`
-			if [ "$modem_spn" == "" -a "$spn" != "" -a "$spn" != "NULL" ]; then
-				nvram set modem_spn=$spn
-			fi
-
-			# useless temparily.
-			#isp=`echo "$at_cgnws" |awk '{FS=","; print $8}' 2>/dev/null` # ISP long name
-			#if [ "$isp" != "" -a "$isp" != "NULL" ]; then
-			#	nvram set modem_isp=$isp
-			#else
-			#	isp=`echo "$at_cgnws" |awk '{FS=","; print $9}' 2>/dev/null` # ISP short name
-			#	if [ "$isp" != "" -a "$isp" != "NULL" ]; then
-			#		nvram set modem_isp=$isp
-			#	fi
-			#fi
-		fi
-	fi
-fi
-
-if [ "$modem_vid" == "8193" ];then
-	# just for D-Link DWM-156 A7.
-	#at_ret=`$at_lock modem_at.sh '+BMHPLMN' |grep "+BMHPLMN: " 2>/dev/null`
-	#if [ "$at_ret" != "" ]; then
-	#	plmn=`echo $at_ret | awk '{print $2}'`
-	#	echo "IMSI: $plmn."
-	#fi
-
-	# put the dongle in the general procedure.
-	exit 0
-
-	at_ret=`$at_lock modem_at.sh '+CFUN=1' |grep "OK" 2>/dev/null`
-	if [ "$at_ret" != "OK" ]; then
-		echo "Fail to set CFUN=1."
-		exit -1
-	fi
-
-	tries=1
-	at_ret=""
-	while [ $tries -le 30 -a "$at_ret" == "" ]; do
-		echo "wait for network registered...$tries"
-		sleep 1
-
-		at_ret=`$at_lock modem_at.sh '+CGATT?' |grep "+CGATT: 1" 2>/dev/null`
-		tries=$((tries + 1))
-	done
-
-	if [ "$at_ret" == "" ]; then
-		echo "Fail to register network, please check."
-		exit -1
-	fi
-
-	echo "Successfull to register network."
-elif [ "$modem_type" == "qmi" ]; then
-	if [ "$modem_dev" == "" ]; then
-		path=`_find_usb_path "$modem_act_path"`
-		modem_dev=`nvram get usb_path"$path"_act`
-		if [ "$modem_dev" == "" ]; then
-			echo "Couldn't get the QMI dev..."
-			exit 8
-		fi
-
-		nvram set usb_modem_act_dev=$modem_dev
-		echo "Got the QMI dev: $modem_dev."
-	fi
-
-	wdm=`_get_wdm_by_usbnet $modem_dev`
-
-	if [ "$modem_user" != "" -o "$modem_pass" != "" ]; then
-		flag_auth="--auth-type both"
-		if [ "$modem_user" != "" ]; then
-			flag_auth="$flag_auth --username $modem_user"
-		fi
-		if [ "$modem_pass" != "" ]; then
-			flag_auth="$flag_auth --password $modem_pass"
-		fi
-	else
-		flag_auth=""
-	fi
-
-	echo "QMI($wdm): try if the network is registered..."
-	at_ret=`uqmi -d $wdm --keep-client-id wds --start-network $modem_apn $flag_auth |grep "handle=" 2>>/tmp/usb.log`
-	if [ "$at_ret" != "" ]; then
-		echo "QMI: Successfull to register network."
-	elif [ "$modem_vid" == "4817" -a "$modem_pid" == "5132" ]; then
 		# put the dongle in the general procedure.
 		exit 0
 
-		echo "Restarting the MT and set it as online mode..."
-		nvram set usb_modem_reset_huawei=1
-		at_ret=`$at_lock modem_at.sh '+CFUN=1,1'`
+		at_ret=`$at_lock modem_at.sh '+CFUN=1' |grep "OK" 2>/dev/null`
+		if [ "$at_ret" != "OK" ]; then
+			echo "Fail to set CFUN=1."
+			exit -1
+		fi
 
 		tries=1
 		at_ret=""
 		while [ $tries -le 30 -a "$at_ret" == "" ]; do
-			echo "wait the modem to wake up...$tries"
+			echo "wait for network registered...$tries"
 			sleep 1
 
 			at_ret=`$at_lock modem_at.sh '+CGATT?' |grep "+CGATT: 1" 2>/dev/null`
-			tries=$((tries + 1))
+			tries=$((tries+1))
 		done
 
-		if [ "$ret" == "" ]; then
-			echo "Fail to reset the modem, please check."
+		if [ "$at_ret" == "" ]; then
+			echo "Fail to register network, please check."
 			exit -1
 		fi
 
-		echo "Successfull to reset the modem."
-		nvram unset usb_modem_reset_huawei
-	fi
+		echo "Successfull to register network."
+	elif [ "$modem_type" == "qmi" ]; then
+		if [ "$modem_dev" == "" ]; then
+			path=`_find_usb_path "$modem_act_path"`
+			modem_dev=`nvram get usb_path"$path"_act`
+			if [ "$modem_dev" == "" ]; then
+				echo "Couldn't get the QMI dev..."
+				exit 8
+			fi
 
-	tries=1
-	at_ret=""
-	while [ $tries -le 30 -a "$at_ret" == "" ]; do
-		echo "QMI: wait for network connecting...$tries"
+			nvram set usb_modem_act_dev=$modem_dev
+			echo "Got the QMI dev: $modem_dev."
+		fi
+
+		wdm=`_get_wdm_by_usbnet $modem_dev`
+
+		if [ "$modem_user" != "" -o "$modem_pass" != "" ]; then
+			flag_auth="--auth-type both"
+			if [ "$modem_user" != "" ]; then
+				flag_auth="$flag_auth --username $modem_user"
+			fi
+			if [ "$modem_pass" != "" ]; then
+				flag_auth="$flag_auth --password $modem_pass"
+			fi
+		else
+			flag_auth=""
+		fi
+
+		echo "QMI($wdm): set the ISP profile."
+		at_ret=`uqmi -d $wdm --keep-client-id wds --start-network $modem_apn $flag_auth |grep "handle=" 2>>/tmp/usb.log`
+		if [ "$at_ret" != "" ]; then
+			echo "QMI: Successfull to set the ISP profile."
+		elif [ "$modem_vid" == "4817" -a "$modem_pid" == "5132" ]; then
+			# put the dongle in the general procedure.
+			exit 0
+
+			echo "Restarting the MT and set it as online mode..."
+			nvram set usb_modem_reset_huawei=1
+			at_ret=`$at_lock modem_at.sh '+CFUN=1,1'`
+
+			tries=1
+			at_ret=""
+			while [ $tries -le 30 -a "$at_ret" == "" ]; do
+				echo "wait the modem to wake up...$tries"
+				sleep 1
+
+				at_ret=`$at_lock modem_at.sh '+CGATT?' |grep "+CGATT: 1" 2>/dev/null`
+				tries=$((tries+1))
+			done
+
+			if [ "$ret" == "" ]; then
+				echo "Fail to reset the modem, please check."
+				exit -1
+			fi
+
+			echo "Successfull to reset the modem."
+			nvram unset usb_modem_reset_huawei
+		fi
+
+		#echo "QMI($wdm): try if the network is registered..."
+		#tries=1
+		#at_ret=""
+		#while [ $tries -le 30 -a "$at_ret" == "" ]; do
+		#	echo "QMI: wait for network connecting...$tries"
+		#	sleep 1
+
+		#	at_ret=`uqmi -d $wdm --get-data-status |grep "=connected" 2>/dev/null`
+		#	tries=$((tries+1))
+		#done
+
+		#if [ "$at_ret" == "" ]; then
+		#	echo "Fail to register network, please check."
+		#	exit 9
+		#fi
+
+		#echo "QMI: Successfull to connect network."
+	elif [ "$modem_type" == "gobi" ]; then
+		qcqmi=`_get_qcqmi_by_usbnet $modem_dev`
+		echo "Got qcqmi: $qcqmi."
+
+		cmd_pipe="/tmp/pipe"
+
+		gobi_pid=`pidof gobi`
+		if [ "$gobi_pid" != "" ]; then
+			# connect to GobiNet.
+			echo -n "1,$qcqmi," >> $cmd_pipe
+			sleep 1
+
+			# WDS stop the data session
+			echo -n "4" >> $cmd_pipe
+			sleep 1
+
+			# disconnect to GobiNet.
+			echo -n "2" >> $cmd_pipe
+			sleep 1
+
+			killall gobi
+			sleep 1
+		fi
+
+		echo "Gobi($qcqmi): set the ISP profile."
+		gobi d &
 		sleep 1
 
-		at_ret=`uqmi -d $wdm --get-data-status |grep "=connected" 2>/dev/null`
-		tries=$((tries + 1))
-	done
-
-	if [ "$at_ret" == "" ]; then
-		echo "Fail to register network, please check."
-		exit 9
-	fi
-
-	echo "QMI: Successfull to connect network."
-elif [ "$modem_type" == "gobi" ]; then
-	qcqmi=`_get_qcqmi_by_usbnet $modem_dev`
-	echo "Got qcqmi: $qcqmi."
-
-	cmd_pipe="/tmp/pipe"
-
-	gobi_pid=`pidof gobi`
-	if [ "$gobi_pid" != "" ]; then
 		# connect to GobiNet.
 		echo -n "1,$qcqmi," >> $cmd_pipe
 		sleep 1
 
-		# WDS stop the data session
-		echo -n "4" >> $cmd_pipe
+		# set the default profile to auto-connect.
+		echo -n "5,$modem_pdp,$modem_isp,$modem_apn,$modem_user,$modem_pass," >> $cmd_pipe
 		sleep 1
 
-		# disconnect to GobiNet.
+		# WDS set the autoconnect & roaming
+		# autoconnect: 0, disable; 1, enable; 2, pause.
+		# roaming: 0, allow; 1, disable. Only be activated when autoconnect is enabled.
+		if [ "$modem_roaming" != "1" ]; then
+			echo -n "7,1,1," >> $cmd_pipe
+		elif [ "$modem_roaming_mode" == "1" ]; then
+			echo "roaming manually..."
+			if [ -n "$modem_roaming_isp" ]; then
+				echo -n "7,1,0," >> $cmd_pipe
+			else
+				echo -n "7,0,0," >> $cmd_pipe
+			fi
+		else
+			echo "roaming automatically..."
+			echo -n "7,1,0," >> $cmd_pipe
+		fi
+		sleep 1
+
+		# WDS start the data session
+		#echo -n "3" >> $cmd_pipe
+		#sleep 3
+
 		echo -n "2" >> $cmd_pipe
 		sleep 1
 
 		killall gobi
 		sleep 1
-	fi
 
-	gobi d &
-	sleep 1
+		modem_status.sh rate
+		modem_status.sh band
 
-	# connect to GobiNet.
-	echo -n "1,$qcqmi," >> $cmd_pipe
-	sleep 1
+		echo "Gobi: Successfull to set the ISP profile."
 
-	# set the default profile to auto-connect.
-	echo -n "5,$modem_pdp,$modem_isp,$modem_apn,$modem_user,$modem_pass," >> $cmd_pipe
-	sleep 1
+		at_cgnws=`$at_lock modem_at.sh '+CGNWS' |grep "+CGNWS:" |awk '{FS=":"; print $2}' 2>/dev/null`
+		if [ "$at_cgnws" != "" ]; then
+			mcc=`echo "$at_cgnws" |awk '{FS=","; print $5}' 2>/dev/null`
+			mnc=`echo "$at_cgnws" |awk '{FS=","; print $6}' 2>/dev/null`
+			target=$mcc$mnc
+			len=${#target}
+			target=`echo -n $modem_imsi |cut -c '1-'$len 2>/dev/null`
 
-	# WDS set the autoconnect & roaming
-	# autoconnect: 0, disable; 1, enable; 2, pause.
-	# roaming: 0, allow; 1, disable. Only be activated when autoconnect is enabled.
-	if [ "$modem_roaming" != "1" ]; then
-		echo -n "7,1,1," >> $cmd_pipe
-	elif [ "$modem_roaming_mode" == "1" ]; then
-		echo "roaming manually..."
-		if [ -n "$modem_roaming_isp" ]; then
-			echo -n "7,1,0," >> $cmd_pipe
-		else
-			echo -n "7,0,0," >> $cmd_pipe
+			if [ "$mcc$mnc" == "$target" ]; then
+				spn=`echo "$at_cgnws" |awk '{FS=","; print $7}' 2>/dev/null`
+				if [ "$modem_spn" == "" -a "$spn" != "" -a "$spn" != "NULL" ]; then
+					nvram set modem_spn=$spn
+				fi
+
+				# useless temparily.
+				#isp=`echo "$at_cgnws" |awk '{FS=","; print $8}' 2>/dev/null` # ISP long name
+				#if [ "$isp" != "" -a "$isp" != "NULL" ]; then
+				#	nvram set modem_isp=$isp
+				#else
+				#	isp=`echo "$at_cgnws" |awk '{FS=","; print $9}' 2>/dev/null` # ISP short name
+				#	if [ "$isp" != "" -a "$isp" != "NULL" ]; then
+				#		nvram set modem_isp=$isp
+				#	fi
+				#fi
+			fi
 		fi
-	else
-		echo "roaming automatically..."
-		echo -n "7,1,0," >> $cmd_pipe
 	fi
-	sleep 1
 
-	# WDS start the data session
-	#echo -n "3" >> $cmd_pipe
-	#sleep 3
+	if [ "$modem_type" == "qmi" -o "$modem_type" == "gobi" ]; then
+		at_ret=`$at_lock modem_at.sh '+CGATT?' 2>/dev/null`
+		ret=`echo "$at_ret" |grep "OK"`
+		if [ "$ret" == "OK" ]; then
+			echo "CGATT: Can execute +CGATT..."
+			tries=1
+			at_ret=`echo "$at_ret" |grep "+CGATT: 1"`
+			while [ $tries -le 30 -a "$at_ret" == "" ]; do
+				echo "CGATT: wait for network registered...$tries"
+				sleep 1
 
-	echo -n "2" >> $cmd_pipe
-	sleep 1
+				at_ret=`$at_lock modem_at.sh '+CGATT?' |grep "+CGATT: 1" 2>/dev/null`
+				tries=$((tries+1))
+			done
 
-	killall gobi
-	sleep 1
-
-	modem_status.sh rate
-	modem_status.sh band
-
-	echo "Gobi: Successfull to start network."
+			if [ "$at_ret" == "" ]; then
+				echo "CGATT: Fail to register network, please check."
+				exit 7
+			else
+				echo "CGATT: Successfull to register network."
+			fi
+		else # the result from CDMA2000 can be "COMMAND NOT SUPPORT", "ERROR".
+			echo "CGATT: Don't support +CGATT."
+		fi
+	fi
 fi
 

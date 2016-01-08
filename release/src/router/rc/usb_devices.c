@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <dirent.h>
 #include <errno.h>
+#include <sys/mount.h>
 
 #include "rc.h"
 #include "dongles.h"
@@ -2996,6 +2997,46 @@ int set_usb_common_nvram(const char *action, const char *device_name, const char
 	return 0;
 }
 
+#ifdef RTCONFIG_BCMARM
+int asus_mmc(const char *device_name, const char *action){
+	
+	int ret = 0;
+	char *type, mnt_dev[128], mountpoint[128];
+
+	_dprintf("\n[%s][mmc hotplug:%s dev:[%s]\n", __FUNCTION__, action, device_name);
+
+	memset(mountpoint, 0, sizeof(mountpoint));
+	sprintf(mountpoint, "%s/%s", "/mnt", device_name);
+
+	if(strcmp(action, "add") == 0)
+	{
+		memset(mnt_dev, 0, sizeof(mnt_dev));
+		sprintf(mnt_dev, "/dev/%s", device_name);
+		if ((type = detect_fs_type(mnt_dev)) == NULL)
+			return 0;
+
+		_dprintf("[%s] get mmc [%s]\n", __FUNCTION__, type);	// tmp test
+
+		ret = mount_r(mnt_dev, mountpoint, type);
+
+		_dprintf("[%s] chk mount:%d\n", __FUNCTION__, ret);	// tmp test
+
+#ifdef RTAC88U
+		stop_samba();
+		setup_passwd();
+		start_samba();
+		eval("cp", "-f", "/rom/smb.conf", "/etc/smb.conf");
+#endif
+	} else {
+		ret = umount2(mountpoint, MNT_DETACH);
+
+		_dprintf("[%s] chk unmount:%d\n", __FUNCTION__, ret);	// tmp test
+	}
+
+	return ret;
+}
+#endif
+
 int asus_sd(const char *device_name, const char *action){
 #ifdef RTCONFIG_USB
 	char usb_node[32], usb_port[32];
@@ -3011,6 +3052,7 @@ int asus_sd(const char *device_name, const char *action){
 	char speed[256];
 #endif
 	char *ptr;
+	int model = get_model();
 #ifdef RTCONFIG_USB_PRINTER
 	int retry;
 #endif
@@ -3075,8 +3117,10 @@ int asus_sd(const char *device_name, const char *action){
 		}
 #endif
 
+#ifdef RTCONFIG_USB_MODEM
 		snprintf(buf1, 32, "%s.%s", USB_MODESWITCH_CONF, port_path);
 		unlink(buf1);
+#endif
 
 		if(strlen(usb_node) > 0){
 			// for the storage interface of the second modem.
@@ -3230,6 +3274,13 @@ after_change_xhcimode:
 		}
 	}
 
+	if (have_usb3_led(model)) {
+		if (is_usb3_port(usb_node))
+			nvram_set_int("usb_led_id", LED_USB3);
+		else
+			nvram_set_int("usb_led_id", LED_USB);
+	}
+
 	kill_pidfile_s("/var/run/usbled.pid", SIGUSR1);	// inform usbled to start blinking USB LED
 
 	putenv("INTERFACE=8/0/0");
@@ -3246,6 +3297,8 @@ after_change_xhcimode:
 	eval("hotplug", "block");
 
 	kill_pidfile_s("/var/run/usbled.pid", SIGUSR2); // inform usbled to stop blinking USB LED
+	if (have_usb3_led(model))
+		nvram_unset("usb_led_id");
 
 	unsetenv("INTERFACE");
 	unsetenv("ACTION");
@@ -4115,10 +4168,10 @@ int asus_usb_interface(const char *device_name, const char *action){
 
 		strcpy(device_type, nvram_safe_get(prefix));
 
+#ifdef RTCONFIG_USB_MODEM
 		snprintf(conf_file, 32, "%s.%s", USB_MODESWITCH_CONF, port_path);
 		unlink(conf_file);
 
-#ifdef RTCONFIG_USB_MODEM
 		if(!strcmp(device_type, "modem") && !strcmp(usb_node, nvram_safe_get("usb_modem_act_path"))){
 			snprintf(buf, 128, "%s", nvram_safe_get(strcat_r(prefix, "_act", tmp)));
 
@@ -4168,6 +4221,11 @@ int asus_usb_interface(const char *device_name, const char *action){
 	}
 
 	snprintf(nvram_usb_path, 32, "usb_led%d", port_num);
+#ifdef RT4GAC55U
+	if(nvram_get_int("usb_buildin") == port_num)
+		; //skip this LED
+	else
+#endif	/* RT4GAC55U */
 	if(strcmp(nvram_safe_get(nvram_usb_path), "1"))
 		nvram_set(nvram_usb_path, "1");
 

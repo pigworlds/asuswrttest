@@ -374,8 +374,8 @@ osl_pktfastget(osl_t *osh, uint len)
 
 	/* Init skb struct */
 	skb->next = skb->prev = NULL;
-	skb->data = skb->head + 16;
-	skb->tail = skb->head + 16;
+	skb->data = skb->head + NET_SKB_PAD;
+	skb->tail = skb->data;
 
 	skb->len = 0;
 	skb->cloned = 0;

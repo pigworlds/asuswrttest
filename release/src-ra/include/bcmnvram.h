@@ -151,6 +151,13 @@ extern int nvram_getall(char *nvram_buf, int count);
  */
 extern char * nvram_xfr(const char *buf);
 
+/*
+ * Get get buff translated
+ * @param	buf	string buffer would like to be translated
+ * @return	translated string buffer
+ */
+extern char * nvram_xfr(const char *buf);
+
 
 
 /*
