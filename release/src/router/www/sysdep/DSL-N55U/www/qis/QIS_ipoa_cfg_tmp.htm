@@ -50,11 +50,11 @@ function QKfinish_load_body(){
 	IPinputCtrl(document.form.dsl_dns1_x, 1);
 	IPinputCtrl(document.form.dsl_dns2_x, 1);
 	if(transfer_mode == "atm"){
-		$("atm_info").style.display = "";		
+		document.getElementById("atm_info").style.display = "";		
 		document.form.prev_page.value = "/qis/QIS_manual_setting.htm";
 	}
 	else{ //transmode "ptm"
-		$("ptm_info").style.display = "";
+		document.getElementById("ptm_info").style.display = "";
 		document.form.prev_page.value = "/qis/QIS_PTM_manual_setting.htm";
 	}	
 
@@ -93,11 +93,11 @@ function get_result_of_all_IP(){
 }
 
 function remove_red_field(){
-	$("dsl_ipaddr_div").style.border = "2px inset #F4F4F4";
-	$("dsl_netmask_div").style.border = "2px inset #F4F4F4";
-	$("dsl_gateway_div").style.border = "2px inset #F4F4F4";
-	$("dsl_dns1_x_div").style.border = "2px inset #F4F4F4";
-	$("dsl_dns2_x_div").style.border = "2px inset #F4F4F4";
+	document.getElementById("dsl_ipaddr_div").style.border = "2px inset #F4F4F4";
+	document.getElementById("dsl_netmask_div").style.border = "2px inset #F4F4F4";
+	document.getElementById("dsl_gateway_div").style.border = "2px inset #F4F4F4";
+	document.getElementById("dsl_dns1_x_div").style.border = "2px inset #F4F4F4";
+	document.getElementById("dsl_dns2_x_div").style.border = "2px inset #F4F4F4";
 }
 
 function submitForm(){

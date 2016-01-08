@@ -37,11 +37,11 @@ function QKfinish_load_body(){
 	parent.document.title = "<#Web_Title#> - <#QKSet_all_title#>";
 	parent.set_step("t2");
         if(transfer_mode == "atm"){
-		$("atm_info").style.display = "";		
+		document.getElementById("atm_info").style.display = "";		
                 document.form.prev_page.value = "/qis/QIS_manual_setting.htm";
         }
 	else{ //transmode "ptm"
-		$("ptm_info").style.display = "";
+		document.getElementById("ptm_info").style.display = "";
 		document.form.prev_page.value = "/qis/QIS_PTM_manual_setting.htm";
 	}
 

@@ -67,11 +67,11 @@ function QKfinish_load_body(){
 	}
 
         if(transfer_mode == "atm"){
-		$("atm_info").style.display = "";
+		document.getElementById("atm_info").style.display = "";
                 document.form.prev_page.value = "/qis/QIS_manual_setting.htm";
         }
 	else{ //transmode "ptm"
-		$("ptm_info").style.display = "";
+		document.getElementById("ptm_info").style.display = "";
                 document.form.prev_page.value = "/qis/QIS_PTM_manual_setting.htm";
                 document.form.x_DHCPClient[0].disabled = true;
                 document.form.x_DHCPClient[1].disabled = true;
@@ -138,11 +138,11 @@ function get_result_of_all_IP(){
 }
 
 function remove_red_field(){
-	$("dsl_ipaddr_div").style.border = "2px inset #F4F4F4";
-	$("dsl_netmask_div").style.border = "2px inset #F4F4F4";
-	$("dsl_gateway_div").style.border = "2px inset #F4F4F4";
-	$("dsl_dns1_x_div").style.border = "2px inset #F4F4F4";
-	$("dsl_dns2_x_div").style.border = "2px inset #F4F4F4";
+	document.getElementById("dsl_ipaddr_div").style.border = "2px inset #F4F4F4";
+	document.getElementById("dsl_netmask_div").style.border = "2px inset #F4F4F4";
+	document.getElementById("dsl_gateway_div").style.border = "2px inset #F4F4F4";
+	document.getElementById("dsl_dns1_x_div").style.border = "2px inset #F4F4F4";
+	document.getElementById("dsl_dns2_x_div").style.border = "2px inset #F4F4F4";
 }
 
 function submitForm(){
@@ -517,7 +517,7 @@ function gotoHome() {
 		<th width="120"><span id="mac_addr1" style="display:none"><#BOP_isp_mac_item#></span></th>
 		<td>
 		  <span id="mac_addr2" style="display:none">
-		  <input type="text" name="dsltmp_qis_hwaddr" class="input_18_table" value="" tabindex="10" maxlength="17" size="17">&nbsp;e.g., 00:11:22:33:44:55
+		  <input type="text" name="dsltmp_qis_hwaddr" class="input_18_table" value="" tabindex="10" maxlength="17" size="17" autocorrect="off" autocapitalize="off">&nbsp;e.g., 00:11:22:33:44:55
 		  </span>
 		</td>
 	  </tr>
@@ -527,7 +527,7 @@ function gotoHome() {
 		<th width="120"><span id="ppp_username1" style="display:none">PPP <#HSDPAConfig_Username_itemname#>:</span></th>
 		<td>
 		  <span id="ppp_username2" style="display:none">
-		  <input type="text" name="ppp_username" class="input_32_table" value="" tabindex="11" maxlength="32" size="20" autocapitalization="off" autocomplete="off">
+		  <input type="text" name="ppp_username" class="input_32_table" value="" tabindex="11" maxlength="32" size="20" autocomplete="off" autocorrect="off" autocapitalize="off">
 		  </span>
 		</td>
 	  </tr>
@@ -535,7 +535,7 @@ function gotoHome() {
 		<th width="120"><span id="ppp_password1" style="display:none">PPP <#HSDPAConfig_Password_itemname#>:</span></th>
 		<td>
 		  <span id="ppp_password2" style="display:none">
-		  <input type="text" name="ppp_password" class="input_32_table" value="" tabindex="12" maxlength="32" size="20" autocapitalization="off" autocomplete="off">
+		  <input type="text" name="ppp_password" class="input_32_table" value="" tabindex="12" maxlength="32" size="20" autocomplete="off" autocorrect="off" autocapitalize="off">
 		  </span>
 		</td>
 	  </tr>

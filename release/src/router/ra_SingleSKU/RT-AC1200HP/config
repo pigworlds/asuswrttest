@@ -1,8 +1,8 @@
 
-SKU_2G_FCC  = "Temp_FCC_2.4GHz_SingleSKU.DAT"
-SKU_5G_FCC  = "Temp_FCC_5.0GHz_SingleSKU.DAT"
-SKU_2G_CE   = 
-SKU_5G_CE   = 
+SKU_2G_FCC  = "20150519_SingleSKU_2G_FCC.dat"
+SKU_5G_FCC  = "20150519_SingleSKU_5G_FCC.dat"
+SKU_2G_CE   = "20150519_SingleSKU_2G_CE.dat"
+SKU_5G_CE   = "20150519_SingleSKU_5G_CE.dat"
 SKU_2G_SG   = 
 SKU_5G_SG   = 
 SKU_2G_AU   = 

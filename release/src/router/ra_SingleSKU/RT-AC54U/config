@@ -7,5 +7,5 @@ SKU_2G_SG   =
 SKU_5G_SG   = 
 SKU_2G_AU   = 
 SKU_5G_AU   = 
-SKU_2G_NCC  = 
-SKU_5G_NCC  = 
+SKU_2G_NCC  = "20150401_SingleSKU_2G_NCC.dat"
+SKU_5G_NCC  = "20150401_SingleSKU_5G_NCC.dat"

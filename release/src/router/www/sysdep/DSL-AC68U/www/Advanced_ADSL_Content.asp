@@ -124,7 +124,7 @@ function get_snrm_offset(){
 }
 
 function hide_nonstd_vectoring(_value){
-$("nonstd_vectoring").style.display = (_value == "0") ? "none" : "";
+document.getElementById("nonstd_vectoring").style.display = (_value == "0") ? "none" : "";
 }
 
 </script>
@@ -366,6 +366,19 @@ $("nonstd_vectoring").style.display = (_value == "0") ? "none" : "";
 					</select>
 				</td>
 			</tr>
+			
+			<tr>
+				<th>
+					<a class="hintstyle" href="javascript:void(0);" onClick="openHint(25,16);">ESNP - Enhanced Sudden Noise Protection (VDSL)</a>
+				</th>
+				<td>
+					<select id="" class="input_option" name="dslx_vdsl_esnp">
+						<option value="0" <% nvram_match("dslx_vdsl_esnp", "0", "selected"); %>>Default</option>
+						<option value="1" <% nvram_match("dslx_vdsl_esnp", "1", "selected"); %>>Stable</option>
+					</select>
+				</td>
+			</tr>
+			
 			<tr>
 				<th>
 					<a class="hintstyle" href="javascript:void(0);" onClick="openHint(25,2);"><#dslsetting_SRA#></a>

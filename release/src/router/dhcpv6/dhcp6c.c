@@ -1281,13 +1281,13 @@ client6_send(ev)
 
 	/* elapsed time */
 	if (ev->timeouts == 0) {
-		gettimeofday(&ev->tv_start, NULL);
+		dhcp6_time(&ev->tv_start);
 		optinfo.elapsed_time = 0;
 	} else {
 		struct timeval now, tv_diff;
 		long et;
 
-		gettimeofday(&now, NULL);
+		dhcp6_time(&now);
 		tv_sub(&now, &ev->tv_start, &tv_diff);
 
 		/*
@@ -1530,6 +1530,7 @@ client6_recvadvert(ifp, dh6, len, optinfo)
 	struct dhcp6_event *ev;
 	struct dhcp6_eventdata *evd;
 	struct authparam *authparam = NULL, authparam0;
+	int have_ia = -1;
 
 	/* find the corresponding event based on the received xid */
 	ev = find_event_withid(ifp, ntohl(dh6->dh6_xid) & DH6_XIDMASK);
@@ -1575,6 +1576,9 @@ client6_recvadvert(ifp, dh6, len, optinfo)
 	 */
 	for (evd = TAILQ_FIRST(&ev->data_list); evd;
 	    evd = TAILQ_NEXT(evd, link)) {
+		struct dhcp6_list *ial;
+		struct dhcp6_listval *lv, *slv;
+		dhcp6_listval_type_t iatype, lvtype;
 		u_int16_t stcode;
 		char *stcodestr;
 
@@ -1582,10 +1586,16 @@ client6_recvadvert(ifp, dh6, len, optinfo)
 		case DHCP6_EVDATA_IAPD:
 			stcode = DH6OPT_STCODE_NOPREFIXAVAIL;
 			stcodestr = "NoPrefixAvail";
+			ial = &optinfo->iapd_list;
+			iatype = DHCP6_LISTVAL_IAPD;
+			lvtype = DHCP6_LISTVAL_PREFIX6;
 			break;
 		case DHCP6_EVDATA_IANA:
 			stcode = DH6OPT_STCODE_NOADDRSAVAIL;
 			stcodestr = "NoAddrsAvail";
+			ial = &optinfo->iana_list;
+			iatype = DHCP6_LISTVAL_IANA;
+			lvtype = DHCP6_LISTVAL_STATEFULADDR6;
 			break;
 		default:
 			continue;
@@ -1596,6 +1606,31 @@ client6_recvadvert(ifp, dh6, len, optinfo)
 			    "advertise contains %s status", stcodestr);
 			return (-1);
 		}
+
+		if (have_ia > 0 || TAILQ_EMPTY((struct dhcp6_list *)&evd->data))
+			continue;
+		have_ia = 0;
+		TAILQ_FOREACH(lv, (struct dhcp6_list *)&evd->data, link) {
+			slv = dhcp6_find_listval(ial, iatype, &lv->val_ia, 0);
+			if (slv == NULL)
+				continue;
+			TAILQ_FOREACH(slv, &slv->sublist, link) {
+				if (slv->type == lvtype) {
+					have_ia = 1;
+					break;
+				}
+			}
+		}
+	}
+
+	/* Ignore message with none of requested addresses and/or
+	 * a prefixes as if NoAddrsAvail/NoPrefixAvail Status Code
+	 * was included.
+	 */
+	if (have_ia == 0) {
+		dprintf(LOG_INFO, FNAME,
+		    "advertise contains no address/prefix");
+		return (-1);
 	}
 
 	if (ev->state != DHCP6S_SOLICIT ||

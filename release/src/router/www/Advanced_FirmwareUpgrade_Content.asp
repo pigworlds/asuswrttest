@@ -70,7 +70,7 @@
 <script language="JavaScript" type="text/javascript" src="/jquery.js"></script>
 <script>
 
-var $j = jQuery.noConflict();
+
 var webs_state_update = '<% nvram_get("webs_state_update"); %>';
 var webs_state_upgrade = '<% nvram_get("webs_state_upgrade"); %>';
 var webs_state_error = '<% nvram_get("webs_state_error"); %>';
@@ -109,6 +109,7 @@ function get_helplink(){
 
 			var href_lang = get_supportsite_lang();
 			var model_name_supportsite = based_modelid.replace("-", "");
+			model_name_supportsite = model_name_supportsite.replace("+", "Plus");
 			if(based_modelid =="RT-N12" || hw_ver.search("RTN12") != -1){   //MODELDEP : RT-N12
 				if( hw_ver.search("RTN12HP") != -1){    //RT-N12HP
                                 	var getlink="http://www.asus.com"+ href_lang +"Networking/RTN12HP/HelpDesk_Download/";
@@ -130,9 +131,15 @@ function get_helplink(){
 			}
 			else{
 				if(based_modelid == "DSL-AC68U" || based_modelid == "DSL-AC68R" || based_modelid == "RT-N11P" || based_modelid == "RT-N12+")
-					href_lang = "/us/"; //MODELDEP:  US site
-				if(based_modelid == "RT-N12+")
+					href_lang = "/us/"; //MODELDEP:  US site, global only
+				
+				if(odmpid == "RT-N12+")
 					model_name_supportsite = "RTN12Plus";	//MODELDEP: RT-N12+
+				else if(odmpid == "RT-AC1200G+")
+					model_name_supportsite = "RTAC1200GPlus";
+				else if(odmpid.search("RT-N12E_B") != -1)       //RT-N12E_B or RT-N12E_B1
+					model_name_supportsite = "RTN12E_B1";
+
 				var getlink="http://www.asus.com"+href_lang+"Networking/" +model_name_supportsite+ "/HelpDesk_Download/";
 			}
 		
@@ -143,7 +150,7 @@ var exist_firmver="<% nvram_get("firmver"); %>";
 var dead = 0;
 function detect_firmware(flag){
 
-	$j.ajax({
+	$.ajax({
 		url: '/detect_firmware.asp',
 		dataType: 'script',
 
@@ -162,12 +169,17 @@ function detect_firmware(flag){
 				setTimeout("detect_firmware();", 1000);
   			}
   			else{	// got wlan_update.zip
-				if(webs_state_error==1){
+				if(webs_state_error == "1"){	//1:wget fail 
 					document.getElementById('update_scan').style.display="none";
 					if(flag == "initial")
 						document.getElementById('update_states').style.display="none";
 					else
 						document.getElementById('update_states').innerHTML="<#connect_failed#>";
+				}
+				else if(webs_state_error == "3"){	//3: FW check/RSA check fail
+					document.getElementById('update_scan').style.display="none";
+					document.getElementById('update_states').innerHTML="<#FIRM_fail_desc#><br><#FW_desc1#>";
+
 				}
 				else{
 					if(isNewFW(webs_state_info)){
@@ -212,7 +224,7 @@ function detect_update(){
 
 var dead = 0;
 function detect_httpd(){
-	$j.ajax({
+	$.ajax({
 		url: '/httpd_check.xml',
 		dataType: 'xml',
 		timeout: 1500,
@@ -238,7 +250,7 @@ function detect_httpd(){
 
 var rebooting = 0;
 function isDownloading(){
-	$j.ajax({
+	$.ajax({
     		url: '/detect_firmware.asp',
     		dataType: 'script',
 				timeout: 1500,
@@ -400,11 +412,11 @@ function submitForm(){
 {ADSL firmware version}
 			<tr>
 				<th><#adsl_fw_ver_itemname#></th>
-				<td><input type="text" class="input_15_table" value="<% nvram_dump("adsl/tc_fw_ver_short.txt",""); %>" readonly="1"></td>
+				<td><input type="text" class="input_15_table" value="<% nvram_dump("adsl/tc_fw_ver_short.txt",""); %>" readonly="1" autocorrect="off" autocapitalize="off"></td>
 			</tr>
 			<tr>
 				<th>RAS</th>
-				<td><input type="text" class="input_20_table" value="<% nvram_dump("adsl/tc_ras_ver.txt",""); %>" readonly="1"></td>
+				<td><input type="text" class="input_20_table" value="<% nvram_dump("adsl/tc_ras_ver.txt",""); %>" readonly="1" autocorrect="off" autocapitalize="off"></td>
 			</tr>
 [DSL-AC68U]
                         <tr>
@@ -424,7 +436,7 @@ function submitForm(){
 			</tr>
 			<tr>
 				<th><#FW_item2#></th>
-				<td><input type="text" name="firmver_table" class="input_20_table" value="<% nvram_get("firmver"); %>.<% nvram_get("buildno"); %>_<% nvram_get("extendno"); %>" readonly="1">&nbsp&nbsp&nbsp<!--/td-->
+				<td><input type="text" name="firmver_table" class="input_20_table" value="<% nvram_get("firmver"); %>.<% nvram_get("buildno"); %>_<% nvram_get("extendno"); %>" readonly="1" autocorrect="off" autocapitalize="off">&nbsp&nbsp&nbsp<!--/td-->
 						<input type="button" id="update" name="update" class="button_gen" style="display:none;" onclick="detect_update();" value="<#liveupdate#>" />
 						<div id="linkpage_div" class="button_helplink" style="margin-left:200px;margin-top:-25px;display:none;"><a id="linkpage" target="_blank"><div style="padding-top:5px;"><#liveupdate#></div></a></div>
 						<div id="check_states">

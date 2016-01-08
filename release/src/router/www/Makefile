@@ -341,12 +341,6 @@ ifneq ($(RTCONFIG_ROG),y)
 	rm -rf $(INSTALLDIR)/www/images/New_ui/indicator.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/speedmeter.png
 endif
-ifneq ($(BUILD_NAME),RT-AC3200)
-	rm -rf $(INSTALLDIR)/www/TrafficAnalyzer_Statistic.asp.asp
-	rm -rf $(INSTALLDIR)/www/statistic_default.js
-	rm -rf $(INSTALLDIR)/www/chart.js
-	rm -rf $(INSTALLDIR)/www/datepicker.css
-endif
 endif
 ifneq ($(RTCONFIG_ADBLOCK),y)
 	rm -rf $(INSTALLDIR)/www/AiProtection_AdBlock.asp
@@ -403,4 +397,17 @@ endif
 
 ifneq ($(RTCONFIG_TOR), y)
 	rm -rf $(INSTALLDIR)/www/Advanced_TOR_Content.asp
+endif
+
+ifeq ($(filter $(BUILD_NAME), RT-AC55U 4G-AC55U), )
+	rm -rf $(INSTALLDIR)/www/find_device.asp
+	rm -rf $(INSTALLDIR)/www/images/New_ui/wifi-logo.png
+endif
+
+ifneq ($(BUILD_NAME),RT-AC3200)
+	rm -rf $(INSTALLDIR)/www/TrafficAnalyzer_Statistic.asp
+	rm -rf $(INSTALLDIR)/www/images/New_ui/TrafficAnalyzer.gif
+	rm -rf $(INSTALLDIR)/www/images/New_ui/cancel.svg
+	rm -rf $(INSTALLDIR)/www/chart.js
+	rm -rf $(INSTALLDIR)/www/datepicker.css
 endif

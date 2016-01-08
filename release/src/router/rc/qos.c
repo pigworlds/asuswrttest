@@ -168,20 +168,12 @@ int add_iQosRules(char *pcWANIF)
 
 	if(pcWANIF == NULL || nvram_get_int("qos_enable") != 1 || nvram_get_int("qos_type") != 0) return -1;
 	if((fn = fopen(mangle_fn, "w")) == NULL) return -2;
-#ifdef RTCONFIG_IPV6
-#define ipv6_enabled() (0)
-	if(ipv6_enabled() && (fn_ipv6 = fopen(mangle_fn_ipv6, "w")) == NULL)
-	{
-		fclose(fn);
-		return -3;
-	}
-#endif
 
 	inuse = sticky_enable = 0;
 
 	if(get_model()==MODEL_RTAC56U || get_model()==MODEL_RTAC56S || get_model()==MODEL_RTAC68U ||
 		get_model()==MODEL_DSLAC68U || get_model()==MODEL_RTAC87U || get_model()==MODEL_RTAC3200 || 
-		get_model()==MODEL_RTAC88U || get_model()==MODEL_RTAC5300)
+		get_model()==MODEL_RTAC88U || get_model()==MODEL_RTAC3100 || get_model()==MODEL_RTAC5300)
 		manual_return = 1;
 
 	if(nvram_match("qos_sticky", "0"))
@@ -203,7 +195,7 @@ int add_iQosRules(char *pcWANIF)
 		"-A QOSO -m connmark ! --mark 0/0xff00 -j RETURN\n"
 		);
 #ifdef RTCONFIG_IPV6
-	if (ipv6_enabled())
+	if (fn_ipv6 && ipv6_enabled())
 	fprintf(fn_ipv6,
 		"*mangle\n"
 		":PREROUTING ACCEPT [0:0]\n"
@@ -243,7 +235,7 @@ int add_iQosRules(char *pcWANIF)
 
 		v4v6_ok = IPT_V4;
 #ifdef RTCONFIG_IPV6
-		if (ipv6_enabled())
+		if (fn_ipv6 && ipv6_enabled())
 			v4v6_ok |= IPT_V6;
 #endif
 
@@ -513,7 +505,7 @@ int add_iQosRules(char *pcWANIF)
 		}
 
 #ifdef RTCONFIG_IPV6
-		if (ipv6_enabled() && (v4v6_ok & IPT_V6)){
+		if (fn_ipv6 && ipv6_enabled() && (v4v6_ok & IPT_V6)){
 			// step1. check proto != "NO"
 			if(strcmp(proto_1, "NO")){
 				// step2. if proto = any, no proto / dport
@@ -628,7 +620,7 @@ int add_iQosRules(char *pcWANIF)
 			fprintf(fn , "-A QOSO -j RETURN\n");
 
 #ifdef RTCONFIG_IPV6
-	if (ipv6_enabled() && *wan6face) {
+	if (fn_ipv6 && ipv6_enabled() && *wan6face) {
 #ifdef CONFIG_BCMWL5 // TODO: it is only for the case, eth0 as wan, vlanx as lan
 		if(strncmp(wan6face, "ppp", 3)==0){
 			// ppp related interface doesn't need physdev
@@ -681,7 +673,7 @@ int add_iQosRules(char *pcWANIF)
 			fprintf(fn, "-A PREROUTING -i %s -j IMQ --todev 0\n", pcWANIF);
 #endif
 #ifdef RTCONFIG_IPV6
-			if (ipv6_enabled() && *wan6face) {
+			if (fn_ipv6 && ipv6_enabled() && *wan6face) {
 				fprintf(fn_ipv6, "-A PREROUTING -i %s -j CONNMARK --restore-mark --mask 0x7\n", wan6face);
 #ifdef CLS_ACT
 				fprintf(fn_ipv6, "-A PREROUTING -i %s -j IMQ --todev 0\n", wan6face);
@@ -698,7 +690,7 @@ int add_iQosRules(char *pcWANIF)
 	chmod(mangle_fn, 0700);
 	eval("iptables-restore", (char*)mangle_fn);
 #ifdef RTCONFIG_IPV6
-	if (ipv6_enabled())
+	if (fn_ipv6 && ipv6_enabled())
 	{
 		fprintf(fn_ipv6, "COMMIT\n");
 		fclose(fn_ipv6);

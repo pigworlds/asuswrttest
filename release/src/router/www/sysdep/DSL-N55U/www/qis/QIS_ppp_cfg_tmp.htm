@@ -55,7 +55,7 @@ function QKfinish_load_body(){
 		document.form.dsltmp_qis_proto.value = "pppoa";
 
 	if(transfer_mode == "atm"){
-		$("atm_info").style.display = "";
+		document.getElementById("atm_info").style.display = "";
 		//Brazil - GVT
 		if (country_str == "Brazil"){
 			if (prctl_val == "0" && vpi_val == "0" && vci_val == "35" && encap_val == "0" && ispname_str == "GVT"){
@@ -87,7 +87,7 @@ function QKfinish_load_body(){
 		document.form.prev_page.value = "/qis/QIS_manual_setting.htm";
 	
 	}else{	//transmode  "ptm"
-		$("ptm_info").style.display = "";
+		document.getElementById("ptm_info").style.display = "";
 		document.form.prev_page.value = "/qis/QIS_PTM_manual_setting.htm";
 	}
 }
@@ -201,20 +201,20 @@ function gotoHome() {
 	-->
 	<th width="120"><#PPPConnection_UserName_itemname#></th>
 	<td>
-	  <input type="text" name="dsltmp_qis_pppoe_username" class="input_32_table" value="" tabindex="1" maxlength="64" size="36" autocapitalization="off" autocomplete="off"/>
+	  <input type="text" name="dsltmp_qis_pppoe_username" class="input_32_table" value="" tabindex="1" maxlength="64" size="36" autocomplete="off" autocorrect="off" autocapitalize="off"/>
 	</td>
   </tr>
   <tr>
 	<th width="120"><#PPPConnection_Password_itemname#></th>
 	<td>
-	  <input type="password" name="dsltmp_qis_pppoe_passwd" class="input_32_table" value="" tabindex="2" maxlength="32" size="36" autocapitalization="off" autocomplete="off"/>
+	  <input type="password" name="dsltmp_qis_pppoe_passwd" class="input_32_table" value="" tabindex="2" maxlength="32" size="36" autocomplete="off" autocorrect="off" autocapitalize="off"/>
 	</td>
   </tr>
   <tr>
 	<th width="120"><span id="mac_addr1" style="display:none"><#PPPConnection_x_MacAddressForISP_itemname#></span></th>
 	<td>
 	  <span id="mac_addr2" style="display:none">
-	  <input type="text" name="dsltmp_qis_hwaddr" class="input_20_table" value="" tabindex="3" maxlength="17" size="17">&nbsp;<#BOP_isp_mac_item#>&nbsp;example: 00:11:22:33:44:55
+	  <input type="text" name="dsltmp_qis_hwaddr" class="input_20_table" value="" tabindex="3" maxlength="17" size="17" autocorrect="off" autocapitalize="off">&nbsp;<#BOP_isp_mac_item#>&nbsp;example: 00:11:22:33:44:55
 	  </span>
 	</td>
   </tr>

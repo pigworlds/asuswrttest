@@ -77,6 +77,9 @@ ifeq ($(RTCONFIG_USB),y)
 CFLAGS += -I$(TOP)/libdisk
 CFLAGS += -DU2EC
 LDFLAGS += -L$(TOP)/libdisk -ldisk
+ifeq ($(BCM_MMC),y)
+CFLAGS += -DBCM_MMC
+endif
 endif
 
 ifeq ($(RTCONFIG_PUSH_EMAIL),y)
@@ -251,9 +254,14 @@ endif
 
 ifeq ($(RTCONFIG_BWDPI),y)
 OBJS += bwdpi.o
-OBJS += bwdpi_monitor.o
 OBJS += bwdpi_check.o
 OBJS += bwdpi_wred_alive.o
+endif
+
+OBJS += hour_monitor.o
+
+ifeq ($(RTCONFIG_PUSH_EMAIL),y)
+OBJS += alert_mail.o
 endif
 
 ifeq ($(RTCONFIG_IPERF),y)
@@ -268,12 +276,16 @@ ifeq ($(RT4GAC55U),y)
 OBJS += lteled.o
 endif
 
-ifeq ($(RTAC68U),y)
+ifeq ($(BUILD_NAME), RT-AC68U)
 OBJS += sysdeps/broadcom/cfe.o
 endif
 
 ifeq ($(RTCONFIG_TR069),y)
 OBJS += tr069.o
+endif
+
+ifeq ($(and $(RTCONFIG_USER_LOW_RSSI),$(RTCONFIG_BCMARM)),y)
+OBJS += roamast.o
 endif
 
 ifeq ($(RTCONFIG_BCMARM),y)
@@ -329,6 +341,7 @@ endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc mtd-unlock
 	@cd $(INSTALLDIR)/sbin && ln -sf rc ots
 	@cd $(INSTALLDIR)/sbin && ln -sf rc watchdog
+	@cd $(INSTALLDIR)/sbin && ln -sf rc watchdog02
 ifeq ($(RTCONFIG_FANCTRL),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc phy_tempsense
 endif
@@ -344,9 +357,6 @@ ifeq ($(RTCONFIG_QTN),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc start_nodfs_scan_qtn
 	@cd $(INSTALLDIR)/sbin && ln -sf rc start_qtn_stateless
 	@cd $(INSTALLDIR)/sbin && ln -sf rc restart_qtn
-endif
-ifeq ($(RTCONFIG_USB),y)
-	@cd $(INSTALLDIR)/sbin && ln -sf rc usbled
 endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc ntp
 	@cd $(INSTALLDIR)/sbin && ln -sf rc autodet
@@ -384,16 +394,19 @@ endif
 
 ifeq ($(RTCONFIG_QCA),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc rtkswitch
+endif	
 	@cd $(INSTALLDIR)/sbin && ln -sf rc delay_exec
-endif
 
 	@cd $(INSTALLDIR)/sbin && ln -sf rc wanduck
 	@cd $(INSTALLDIR)/sbin && ln -sf rc tcpcheck
 	@cd $(INSTALLDIR)/sbin && ln -sf rc auto_macclone
 ifeq ($(RTCONFIG_USB),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc usbled
 	@cd $(INSTALLDIR)/sbin && ln -sf rc get_apps_name
-	@cd $(INSTALLDIR)/sbin && ln -sf rc asus_sd
+ifeq ($(BCM_MMC),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc asus_mmc
+endif
+	@cd $(INSTALLDIR)/sbin && ln -sf rc asus_sd
 	@cd $(INSTALLDIR)/sbin && ln -sf rc asus_lp
 	@cd $(INSTALLDIR)/sbin && ln -sf rc asus_sg
 	@cd $(INSTALLDIR)/sbin && ln -sf rc asus_sr
@@ -429,10 +442,6 @@ ifeq ($(RTCONFIG_DSL),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc gen_ralink_config
 endif
 endif
-ifeq ($(RTCONFIG_QCA),y)
-	@cd $(INSTALLDIR)/sbin && ln -sf rc FWRITE
-	@cd $(INSTALLDIR)/sbin && ln -sf rc FREAD
-endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc run_telnetd 
 ifeq ($(RTCONFIG_SSH),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc run_sshd
@@ -443,7 +452,9 @@ ifeq ($(RTCONFIG_PARENTALCTRL),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc pc_block
 endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc wlcscan
+ifeq ($(RTCONFIG_WIRELESSREPEATER),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc wlcconnect
+endif
 ifeq ($(RTAC66U), y)
 #	@cd $(INSTALLDIR)/sbin && ln -sf rc acsd_restart_wl
 endif
@@ -464,14 +475,15 @@ endif
 ifeq ($(RTCONFIG_BWDPI),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc rsasign_sig_check
 	@cd $(INSTALLDIR)/sbin && ln -sf rc bwdpi
-	@cd $(INSTALLDIR)/sbin && ln -sf rc bwdpi_monitor
 	@cd $(INSTALLDIR)/sbin && ln -sf rc bwdpi_check
 	@cd $(INSTALLDIR)/sbin && ln -sf rc bwdpi_wred_alive
 endif
+	@cd $(INSTALLDIR)/sbin && ln -sf rc hour_monitor
 ifeq ($(RTCONFIG_SPEEDTEST),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc speedtest
 endif
 ifeq ($(RTCONFIG_USB_MODEM),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc start_udhcpc
 	@cd $(INSTALLDIR)/sbin && ln -sf rc write_3g_ppp_conf
 ifeq ($(or $(RTCONFIG_JFFS2),$(RTCONFIG_BRCM_NAND_JFFS2),$(RTCONFIG_UBIFS)),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc lplus
@@ -490,6 +502,10 @@ ifeq ($(and $(RTCONFIG_IPV6),$(RTCONFIG_WIDEDHCP6)),y)
 endif
 ifeq ($(RTCONFIG_TR069),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc dhcpc_lease
+endif
+
+ifeq ($(and $(RTCONFIG_USER_LOW_RSSI),$(RTCONFIG_BCMARM)),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc roamast
 endif
 
 clean:

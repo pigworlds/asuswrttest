@@ -21,7 +21,7 @@ span{
 	ime-mode:disabled;
 }
 </style>
-<script type="text/JavaScript" src="/jstz.min.js"></script>
+<script type="text/JavaScript" src="jstz.min.js"></script>
 <script>
 var w_Setting = "<% nvram_get("w_Setting"); %>";
 var detect_status = "<% nvram_get("dsltmp_autodet_state"); %>";
@@ -177,13 +177,13 @@ function gotoHome() {
   <tr>
 	<th width="120"><#PPPConnection_UserName_itemname#></th>
 	<td>
-	  <input type="text" name="dsltmp_qis_pppoe_username" class="input_30_table" value="" maxlength="64">
+	  <input type="text" name="dsltmp_qis_pppoe_username" class="input_30_table" value="" maxlength="64" autocorrect="off" autocapitalize="off">
 	</td>
   </tr>
   <tr>
 	<th width="120"><#PPPConnection_Password_itemname#></th>
 	<td>
-	  <input type="password" name="dsltmp_qis_pppoe_passwd" class="input_30_table" value="" maxlength="32">
+	  <input type="password" name="dsltmp_qis_pppoe_passwd" class="input_30_table" value="" maxlength="32" autocorrect="off" autocapitalize="off">
 	</td>
   </tr>
 </table>

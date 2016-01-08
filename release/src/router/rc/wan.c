@@ -70,6 +70,7 @@
 #include <qca.h>
 #endif
 
+
 #define	MAX_MAC_NUM	16
 static int mac_num;
 static char mac_clone[MAX_MAC_NUM][18];
@@ -871,7 +872,7 @@ void update_wan_state(char *prefix, int state, int reason)
 		nvram_set(strcat_r(prefix, "proto_t", tmp), nvram_safe_get(strcat_r(prefix, "proto", tmp1)));
 
 		/* reset wanX_* variables */
-		if (nvram_match(strcat_r(prefix, "dhcpenable_x", tmp), "0")) {
+		if (!nvram_get_int(strcat_r(prefix, "dhcpenable_x", tmp))) {
 			nvram_set(strcat_r(prefix, "ipaddr", tmp), nvram_safe_get(strcat_r(prefix, "ipaddr_x", tmp1)));
 			nvram_set(strcat_r(prefix, "netmask", tmp), nvram_safe_get(strcat_r(prefix, "netmask_x", tmp1)));
 			nvram_set(strcat_r(prefix, "gateway", tmp), nvram_safe_get(strcat_r(prefix, "gateway_x", tmp1)));
@@ -888,28 +889,33 @@ void update_wan_state(char *prefix, int state, int reason)
 		nvram_unset(strcat_r(prefix, "routes_ms", tmp));
 		nvram_unset(strcat_r(prefix, "routes_rfc", tmp));
 
-		strcpy(tmp1, "");
-		if (!nvram_get_int(strcat_r(prefix, "dnsenable_x", tmp))) {
-			ptr = nvram_safe_get(strcat_r(prefix, "dns1_x", tmp));
-			if (*ptr && strcmp(ptr, "0.0.0.0"))
-				sprintf(tmp1, "%s", ptr);
-			ptr = nvram_safe_get(strcat_r(prefix, "dns2_x", tmp));
-			if (*ptr && strcmp(ptr, "0.0.0.0"))
-				sprintf(tmp1 + strlen(tmp1), "%s%s", strlen(tmp1) ? " " : "", ptr);
-		}
-		nvram_set(strcat_r(prefix, "dns", tmp), tmp1);
-
 		/* reset wanX_x* VPN variables */
 		nvram_set(strcat_r(prefix, "xipaddr", tmp), nvram_safe_get(strcat_r(prefix, "ipaddr", tmp1)));
 		nvram_set(strcat_r(prefix, "xnetmask", tmp), nvram_safe_get(strcat_r(prefix, "netmask", tmp1)));
 		nvram_set(strcat_r(prefix, "xgateway", tmp), nvram_safe_get(strcat_r(prefix, "gateway", tmp1)));
-		nvram_set(strcat_r(prefix, "xdns", tmp), nvram_safe_get(strcat_r(prefix, "dns", tmp1)));
 		nvram_unset(strcat_r(prefix, "xdomain", tmp));
 		nvram_unset(strcat_r(prefix, "xlease", tmp));
 		nvram_unset(strcat_r(prefix, "xexpires", tmp));
 		nvram_unset(strcat_r(prefix, "xroutes", tmp));
 		nvram_unset(strcat_r(prefix, "xroutes_ms", tmp));
 		nvram_unset(strcat_r(prefix, "xroutes_rfc", tmp));
+
+		/* reset wanX* dns variables */
+		strcpy(tmp1, "");
+		ptr = nvram_safe_get(strcat_r(prefix, "dns1_x", tmp));
+		if (*ptr && inet_addr_(ptr) != INADDR_ANY)
+			sprintf(tmp1, "%s", ptr);
+		ptr = nvram_safe_get(strcat_r(prefix, "dns2_x", tmp));
+		if (*ptr && inet_addr_(ptr) != INADDR_ANY)
+			sprintf(tmp1 + strlen(tmp1), "%s%s", *tmp1 ? " " : "", ptr);
+
+		/* reset wanX_dns */
+		ptr = !nvram_get_int(strcat_r(prefix, "dnsenable_x", tmp)) ? tmp1 : "";
+		nvram_set(strcat_r(prefix, "dns", tmp), ptr);
+
+		/* reset wanX_xdns VPN */
+		ptr = !nvram_get_int(strcat_r(prefix, "dnsenable_x", tmp)) ? tmp1 : "";
+		nvram_set(strcat_r(prefix, "xdns", tmp), ptr);
 
 #ifdef RTCONFIG_IPV6
 		nvram_set(strcat_r(prefix, "6rd_ip4size", tmp), "");
@@ -1155,6 +1161,13 @@ static int stop_ipoa()
 }
 #endif
 
+#ifdef RTCONFIG_DUALWAN
+void check_wan_nvram(void)
+{
+	if(nvram_match("wan1_proto", "")) nvram_set("wan1_proto", "dhcp");
+}
+#endif
+
 void
 start_wan_if(int unit)
 {
@@ -1191,6 +1204,13 @@ start_wan_if(int unit)
 
 #ifdef RTCONFIG_DUALWAN
 	wan_type = get_dualwan_by_unit(unit);
+#endif
+
+#ifdef RTCONFIG_DUALWAN
+	if (nvram_get_int("sw_mode") == SW_MODE_ROUTER) {
+		if (get_wans_dualwan()&WANSCAP_WAN && get_wans_dualwan()&WANSCAP_LAN)
+			check_wan_nvram();
+	}
 #endif
 
 #ifdef RTCONFIG_USB_MODEM
@@ -1263,10 +1283,19 @@ start_wan_if(int unit)
 		if(nvram_get_int("stop_conn_3g") == 1){
 			write_3g_ppp_conf();
 		}
-		else{
-			char *const modem_argv[] = {"modem_enable.sh", NULL};
+		else if(strcmp(modem_type, "wimax")){
+			char unit_str[4];
+			char *modem_argv[] = {"modem_enable.sh", unit_str, NULL};
 			char *ptr;
 			int sim_state;
+
+			snprintf(unit_str, 4, "%d", unit);
+
+			if(!strcmp(modem_type, "gobi")){
+				_eval(modem_argv, ">>/tmp/usb.log", 0, &pid);
+				TRACE_PT("3g end.\n");
+				return;
+			}
 
 			_eval(modem_argv, ">>/tmp/usb.log", 0, NULL);
 
@@ -1398,7 +1427,7 @@ start_wan_if(int unit)
 			nvram_set(strcat_r(prefix, "dhcpenable_x", tmp), "1");
 			nvram_set(strcat_r(prefix, "dnsenable_x", tmp), "1");
 
-			// Android phone, RNDIS, QMI interface.
+			// Android phone, RNDIS, QMI interface, Gobi.
 			if(!strncmp(wan_ifname, "usb", 3)){
 				if(nvram_get_int("stop_conn_3g") != 1)
 					start_udhcpc(wan_ifname, unit, &pid);
@@ -1515,7 +1544,7 @@ start_wan_if(int unit)
 				enable_ipv6(wan_ifname);
 		}
 #endif
-		ether_atoe(nvram_safe_get(strcat_r(prefix, "hwaddr", tmp)), eabuf);
+		ether_atoe((const char *) nvram_safe_get(strcat_r(prefix, "hwaddr", tmp)), (unsigned char *) eabuf);
 		if ((bcmp(eabuf, ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN)))
 		{
 			/* current hardware address is different than user specified */
@@ -1544,7 +1573,7 @@ start_wan_if(int unit)
 			memset(ifr.ifr_hwaddr.sa_data, 0, ETHER_ADDR_LEN);
 
 			if (nvram_match(strcat_r(prefix, "hwaddr", tmp), "") ||
-			    !ether_atoe(nvram_safe_get(strcat_r(prefix, "hwaddr", tmp)), ifr.ifr_hwaddr.sa_data) ||
+			    !ether_atoe((const char *) nvram_safe_get(strcat_r(prefix, "hwaddr", tmp)), (unsigned char *) ifr.ifr_hwaddr.sa_data) ||
 			    !memcmp(ifr.ifr_hwaddr.sa_data, "\0\0\0\0\0\0", ETHER_ADDR_LEN)) {
 				if (ioctl(s, SIOCGIFHWADDR, &ifr)) {
 					fprintf(stderr, "ioctl fail. continue\n");
@@ -1552,7 +1581,7 @@ start_wan_if(int unit)
 					update_wan_state(prefix, WAN_STATE_STOPPED, WAN_STOPPED_REASON_SYSTEM_ERR);
 					return;
 				}
-				nvram_set(strcat_r(prefix, "hwaddr", tmp), ether_etoa(ifr.ifr_hwaddr.sa_data, eabuf));
+				nvram_set(strcat_r(prefix, "hwaddr", tmp), ether_etoa((unsigned char *) ifr.ifr_hwaddr.sa_data, eabuf));
 			}
 			else {
 				ifr.ifr_hwaddr.sa_family = ARPHRD_ETHER;
@@ -1833,6 +1862,9 @@ stop_wan_if(int unit)
 	/* Stop pppd */
 	stop_pppd(unit);
 
+	/* Stop post-authenticator */
+	stop_auth(unit, 1);
+
 	/* Stop dhcp client */
 	stop_udhcpc(unit);
 	stop_zcip(unit);
@@ -1874,12 +1906,12 @@ stop_wan_if(int unit)
 #if defined(RTCONFIG_USB_BECEEM)
 		if(is_usb_modem_ready() == 1){
 			if(pids("wimaxd"))
-				system("wimaxc disconnect");
+				eval("wimaxc", "disconnect");
 		}
 
 		if(pids("wimaxd")){
-			system("killall wimaxd");
-			system("killall -SIGUSR1 wimaxd");
+			killall("wimaxd", SIGTERM);
+			killall("wimaxd", SIGUSR1);
 		}
 
 		uvid = atoi(nvram_safe_get("usb_modem_act_vid"));
@@ -1998,7 +2030,8 @@ int update_resolvconf(void)
 		foreach(tmp, wan_xdns, next) {
 			if (*wan_xdomain && strcmp(wan_xdomain, wan_domain) != 0)
 				fprintf(fp_servers, "server=/%s/%s\n", wan_xdomain, tmp);
-			fprintf(fp_servers, "server=/%s/%s\n", "local", tmp);
+			if (strstr(wan_dns, tmp) == NULL)
+				fprintf(fp_servers, "server=/%s/%s\n", "local", tmp);
 		}
 	}
 #ifdef RTCONFIG_OPENVPN
@@ -2399,9 +2432,7 @@ wan_up(char *wan_ifname)	// oleg patch, replace
 	//	nvram_safe_get("lan_ifname"), nvram_safe_get("lan_ipaddr"));
 
 	/* Start post-authenticator */
-	if (start_auth(wan_unit, 1) == 0) {
-		update_wan_state(prefix, WAN_STATE_CONNECTING, 0);
-	}
+	start_auth(wan_unit, 1);
 
 	/* Add dns servers to resolv.conf */
 	update_resolvconf();
@@ -2521,6 +2552,19 @@ wan_up(char *wan_ifname)	// oleg patch, replace
 	start_tr();
 #endif
 
+#ifdef RTCONFIG_GETREALIP
+#ifdef RTCONFIG_DUALWAN
+	if(nvram_invmatch("wans_mode", "lb"))
+#endif
+	{
+		char *getip[] = {"getrealip.sh", NULL};
+		pid_t pid;
+
+		//_eval(getip, ">>/tmp/log.txt", 0, &pid);
+		_eval(getip, ">>/dev/null", 0, &pid);
+	}
+#endif
+
 _dprintf("%s(%s): done.\n", __FUNCTION__, wan_ifname);
 }
 
@@ -2592,6 +2636,16 @@ wan_down(char *wan_ifname)
 #ifdef RTCONFIG_DUALWAN
 	if(nvram_match("wans_mode", "lb"))
 		add_multi_routes();
+#endif
+
+#ifdef RTCONFIG_GETREALIP
+#ifdef RTCONFIG_DUALWAN
+	if(nvram_invmatch("wans_mode", "lb"))
+#endif
+	{
+		nvram_set(strcat_r(prefix, "realip_state", tmp), "0");
+		nvram_set(strcat_r(prefix, "realip_ip", tmp), "");
+	}
 #endif
 }
 
@@ -2869,8 +2923,8 @@ start_wan(void)
 #endif
 
 #if LINUX_KERNEL_VERSION >= KERNEL_VERSION(2,6,36)
-	system("echo 0 > /proc/sys/net/bridge/bridge-nf-call-iptables");
-	system("echo 0 > /proc/sys/net/bridge/bridge-nf-call-ip6tables");
+	f_write_string("/proc/sys/net/bridge/bridge-nf-call-iptables", "0", 0, 0);
+	f_write_string("/proc/sys/net/bridge/bridge-nf-call-ip6tables", "0", 0, 0);
 #endif
 
 	/* Report stats */
@@ -2937,6 +2991,9 @@ void convert_wan_nvram(char *prefix, int unit)
 {
 	char tmp[100];
 	char macbuf[32];
+#if defined(CONFIG_BCMWL5) && defined(RTCONFIG_RGMII_BRCM5301X)
+	char hwaddr_5g[18];
+#endif
 
 	_dprintf("%s(%s)\n", __FUNCTION__, prefix);
 
@@ -2946,7 +3003,15 @@ void convert_wan_nvram(char *prefix, int unit)
 		nvram_set(strcat_r(prefix, "hwaddr", tmp), macbuf);
 #ifdef CONFIG_BCMWL5
 #ifdef RTCONFIG_RGMII_BRCM5301X
-	else nvram_set(strcat_r(prefix, "hwaddr", tmp), nvram_safe_get("lan_hwaddr"));
+	// else nvram_set(strcat_r(prefix, "hwaddr", tmp), nvram_safe_get("lan_hwaddr"));
+	/* QTN */
+	if(strcmp(prefix, "wan1_") == 0){
+		strcpy(hwaddr_5g, nvram_safe_get("et1macaddr"));
+		inc_mac(hwaddr_5g, 7);
+		nvram_set(strcat_r(prefix, "hwaddr", tmp), hwaddr_5g);
+	}else{
+		nvram_set(strcat_r(prefix, "hwaddr", tmp), nvram_safe_get("lan_hwaddr"));
+	}
 #else
 	else nvram_set(strcat_r(prefix, "hwaddr", tmp), nvram_safe_get("et0macaddr"));
 #endif
@@ -3017,6 +3082,7 @@ int autodet_main(int argc, char *argv[]){
 	char hwaddr_x[32];
 	int status;
 
+	f_write_string("/tmp/detect_wrong.log", "", 0, 0);
 	for(unit = WAN_UNIT_FIRST; unit < WAN_UNIT_MAX; ++unit){
 		if(get_dualwan_by_unit(unit) != WANS_DUALWAN_IF_WAN && get_dualwan_by_unit(unit) != WANS_DUALWAN_IF_LAN)
 			continue;
@@ -3098,7 +3164,9 @@ int autodet_main(int argc, char *argv[]){
 				_dprintf("try clone %s\n", mac_clone[i]);
 				nvram_set(strcat_r(prefix, "hwaddr_x", tmp), mac_clone[i]);
 			}
-			notify_rc_and_wait("restart_wan");
+			char buf[32];
+			snprintf(buf, 32, "restart_wan_if %d", unit);
+			notify_rc_and_wait(buf);
 			_dprintf("%s: wait a IP during %d seconds...\n", __FUNCTION__, waitsec);
 			int count = 0;
 			while(count < waitsec && get_wan_state(unit) != WAN_STATE_CONNECTED){
@@ -3125,4 +3193,3 @@ int autodet_main(int argc, char *argv[]){
 
 	return 0;
 }
-

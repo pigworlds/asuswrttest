@@ -17,7 +17,7 @@
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
 <script language="JavaScript" type="text/javascript" src="/jquery.js"></script>
 <script>
-var $j = jQuery.noConflict();
+
 var adsl_timestamp = parseInt("<% nvram_get("adsl_timestamp"); %>");
 var adsl_boottime = boottime - adsl_timestamp;
 
@@ -39,7 +39,7 @@ var log_CRCDown;
 var log_CRCUp;
 
 function update_log(){
-	$j.ajax({
+	$.ajax({
 		url: 'ajax_AdslStatus.asp',
 		dataType: 'script',
 		error: function(xhr){
@@ -127,19 +127,19 @@ function showadslbootTime(){
 		Minutes = Math.floor(adsl_boottime % 3600 / 60);
 		Seconds = Math.floor(adsl_boottime % 60);
 
-		$("boot_days").innerHTML = Days;
-		$("boot_hours").innerHTML = Hours;
-		$("boot_minutes").innerHTML = Minutes;
-		$("boot_seconds").innerHTML = Seconds;
+		document.getElementById("boot_days").innerHTML = Days;
+		document.getElementById("boot_hours").innerHTML = Hours;
+		document.getElementById("boot_minutes").innerHTML = Minutes;
+		document.getElementById("boot_seconds").innerHTML = Seconds;
 		adsl_boottime += 1;
 		setTimeout("showadslbootTime()", 1000);
 	}
 	else
 	{
-		$("boot_days").innerHTML = "0";
-		$("boot_hours").innerHTML = "0";
-		$("boot_minutes").innerHTML = "0";
-		$("boot_seconds").innerHTML = "0";
+		document.getElementById("boot_days").innerHTML = "0";
+		document.getElementById("boot_hours").innerHTML = "0";
+		document.getElementById("boot_minutes").innerHTML = "0";
+		document.getElementById("boot_seconds").innerHTML = "0";
 		
 	}
 }

@@ -87,7 +87,7 @@ check_usb2(void)
 {
 	if (usb_busy)
 		return 0;
-	else if (have_usb3_led(model) && strlen(nvram_safe_get("usb_led2")) > 0)
+	else if (have_usb3_led(model) && *nvram_safe_get("usb_led2"))
 		return 1;
 	else
 		return 0;
@@ -181,7 +181,8 @@ static void usbled(int sig)
 	{
 #ifdef RTCONFIG_USB_XHCI
 		if (have_usb3_led(model)) {
-			if (model==MODEL_RTN18U && (nvram_match("bl_version", "3.0.0.7") || nvram_match("bl_version", "1.0.0.0"))) {
+			if (model==MODEL_RTN18U && (nvram_match("bl_version", "3.0.0.7") || nvram_match("bl_version", "1.0.0.0")))
+			{
 				if ((got_usb2 != got_usb2_old) || (got_usb3 != got_usb3_old)) {
 					if (!got_usb2 && !got_usb3)
 						led_control(LED_USB, LED_OFF);

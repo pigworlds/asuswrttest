@@ -117,6 +117,7 @@ Set Up Environment(Tested in Fedora 8/9 and Ubuntu)
 		( make rt-ac68u  )
 		( make rt-n18uhp )
 
-	f. rt-ac55u
+	f. rt-ac55u (/ rt-ac55uhp )
 		cd release/src-qca
 		make rt-ac55u
+		( make rt-ac55uhp )

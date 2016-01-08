@@ -70,7 +70,6 @@
 }	
 </style>
 <script>
-var $j = jQuery.noConflict();
 <% wl_get_parameter(); %>
 
 // merge wl_maclist_x
@@ -434,7 +433,7 @@ function enable_macMode(){
 							</tr>
 							<tr>
 								<td width="80%">
-									<input type="text" maxlength="17" class="input_macaddr_table" name="wl_maclist_x_0" onKeyPress="return validator.isHWAddr(this,event)" onClick="hideClients_Block();">
+									<input type="text" maxlength="17" class="input_macaddr_table" name="wl_maclist_x_0" onKeyPress="return validator.isHWAddr(this,event)" onClick="hideClients_Block();" autocorrect="off" autocapitalize="off">
 									<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;display:none;" onclick="pullWLMACList(this);" title="<#select_wireless_MAC#>" onmouseover="over_var=1;" onmouseout="over_var=0;">
 									<div id="WL_MAC_List_Block" class="WL_MAC_Block"></div>
 								</td>

@@ -187,7 +187,7 @@ update_prefix(ia, pinfo, pifc, dhcpifp, ctlp, callback)
 	}
 
 	/* update the timestamp of update */
-	sp->updatetime = time(NULL);
+	sp->updatetime = dhcp6_time(NULL);
 
 	/* update the prefix according to pinfo */
 	sp->prefix.pltime = pinfo->pltime;
@@ -314,7 +314,7 @@ duration(iac)
 	time_t now;
 
 	/* Determine the smallest period until pltime expires. */
-	now = time(NULL);
+	now = dhcp6_time(NULL);
 	for (sp = TAILQ_FIRST(&iac_pd->siteprefix_head); sp;
 	    sp = TAILQ_NEXT(sp, link)) {
 		passed = now > sp->updatetime ?
@@ -485,7 +485,7 @@ add_ifprefix(siteprefix, prefix, pconf)
 	ifpfx->ifaddr = ifpfx->paddr;
 	for (i = 15; i >= pconf->ifid_len / 8; i--)
 		ifpfx->ifaddr.sin6_addr.s6_addr[i] = pconf->ifid[i];
-	if (pd_ifaddrconf(IFADDRCONF_ADD, ifpfx))
+	if (pd_ifaddrconf(IFADDRCONF_ADD, ifpfx) < 0 && errno != EEXIST)
 		goto bad;
 
 	/* TODO: send a control message for other processes */
