@@ -34,8 +34,10 @@ enum {
 	, IPC_ATE_LED
 	, IPC_SHOW_SNR
 	, IPC_SHOW_BPC
+	, IPC_GET_DMESG
 #ifdef RTCONFIG_VDSL
 	, IPC_ADD_PTM
+	, IPC_SET_RMVLAN
 #endif
 #endif
 };

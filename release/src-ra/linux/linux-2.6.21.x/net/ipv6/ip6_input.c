@@ -46,7 +46,13 @@
 #include <net/addrconf.h>
 #include <net/xfrm.h>
 
-
+#if  defined(CONFIG_RA_HW_NAT) || defined(CONFIG_RA_HW_NAT_MODULE)
+#if 0
+#include "../nat/hw_nat/ra_nat.h"
+#else
+#include "../../drivers/net/raeth/ra_nat_compact.h"
+#endif
+#endif
 
 inline int ip6_rcv_finish( struct sk_buff *skb)
 {
@@ -101,6 +107,14 @@ int ipv6_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt
 
 	if (hdr->version != 6)
 		goto err;
+
+	/*
+	 * RFC4291 2.5.3
+	 * A packet received on an interface with a destination address
+	 * of loopback must be dropped.
+	 */
+	if (!(dev->flags & IFF_LOOPBACK) && ipv6_addr_loopback(&hdr->daddr))
+                goto err;
 
 	skb->transport_header = skb->network_header + sizeof(*hdr);
 	IP6CB(skb)->nhoff = offsetof(struct ipv6hdr, nexthdr);
@@ -224,6 +238,14 @@ discard:
 
 int ip6_input(struct sk_buff *skb)
 {
+#if  defined(CONFIG_RA_HW_NAT) || defined(CONFIG_RA_HW_NAT_MODULE)
+        if( IS_SPACE_AVAILABLED(skb)  &&
+                ((FOE_MAGIC_TAG(skb) == FOE_MAGIC_PCI) ||
+                 (FOE_MAGIC_TAG(skb) == FOE_MAGIC_WLAN) ||
+                 (FOE_MAGIC_TAG(skb) == FOE_MAGIC_GE))){
+            FOE_ALG(skb)=1;
+        }
+#endif
 	return NF_HOOK(PF_INET6,NF_IP6_LOCAL_IN, skb, skb->dev, NULL, ip6_input_finish);
 }
 

@@ -81,6 +81,9 @@ function initial(){
 		$("wl_gmode_checkbox").style.display = "";
 	}
 
+	if(tmo_support)
+		tmo_wl_nmode();
+
 	if(document.form.wl_nmode_x.value=='1'){
 		document.form.wl_gmode_check.checked = false;
 		$("wl_gmode_check").disabled = true;
@@ -103,23 +106,27 @@ function initial(){
 				
 	change_wl_nmode(document.form.wl_nmode_x);
 	if(country == "EU"){		//display checkbox of DFS channel under 5GHz
-		if(based_modelid == "RT-AC68U" || based_modelid == "RT-AC68U_V2" || based_modelid == "DSL-AC68U" || based_modelid == "RT-AC69U"  
-		|| based_modelid == "RT-AC87U"){
+		if(based_modelid == "RT-AC68U" || based_modelid == "RT-AC68U_V2" || based_modelid == "DSL-AC68U" || based_modelid == "RT-AC69U" || based_modelid == "TM-AC1900"
+		|| based_modelid == "RT-AC87U"
+		|| based_modelid == "RT-AC3200"){
 			if(document.form.wl_channel.value  == '0' && '<% nvram_get("wl_unit"); %>' == '1')
 				$('dfs_checkbox').style.display = "";
 		}
 	}
 	else if(country == "US" || country == "SG"){		//display checkbox of band1 channel under 5GHz
-		if(based_modelid == "RT-AC68U" || based_modelid == "RT-AC68U_V2" || based_modelid == "RT-AC69U" || based_modelid == "DSL-AC68U"
+		if(based_modelid == "RT-AC68U" || based_modelid == "RT-AC68U_V2" || based_modelid == "RT-AC69U" || based_modelid == "TM-AC1900" || based_modelid == "DSL-AC68U"
 		|| based_modelid == "RT-AC56U" || based_modelid == "RT-AC56S"
 		|| based_modelid == "RT-N18U"
 		|| based_modelid == "RT-AC66U"
 		|| based_modelid == "RT-N66U"
-		|| based_modelid == "RT-AC53U"){		
+		|| based_modelid == "RT-AC53U"
+		|| based_modelid == "RT-AC3200"){		
 			if(document.form.wl_channel.value  == '0' && '<% nvram_get("wl_unit"); %>' == '1')
 				$('acs_band1_checkbox').style.display = "";					
 		}
-	}	
+	}
+
+	inputCtrl(document.form.wl_mfp, 0);	// hide temporally for T-Mobile WiFi Authentication, Jieming added at 2014/07/11
 }
 
 function change_wl_nmode(o){
@@ -133,8 +140,9 @@ function change_wl_nmode(o){
 		document.form.wl_wme.value = "on";
 	}
 
+	
 	wl_chanspec_list_change();
-	automode_hint();
+	genBWTable('<% nvram_get("wl_unit"); %>');
 }
 
 function genBWTable(_unit){
@@ -145,23 +153,63 @@ function genBWTable(_unit){
 	if(document.form.wl_nmode_x.value == 2){
 		bws = [1];
 		bwsDesc = ["20 MHz"];
+		if(tmo_support && _unit == 0){		// for 2.4G B/G Mixed
+			inputCtrl(document.form.wl_bw,0);
+		}
+		else{
+			inputCtrl(document.form.wl_bw,1);
+		}
 	}
 	else if(_unit == 0){
 		bws = [0, 1, 2];
 		bwsDesc = ["20/40 MHz", "20 MHz", "40 MHz"];
+		if(tmo_support){
+			if(document.form.wl_nmode_x.value == 6 || document.form.wl_nmode_x.value == 5){		// B only or G only
+				inputCtrl(document.form.wl_bw,0);				
+			}
+			else{
+				inputCtrl(document.form.wl_bw,1);
+			}
+		}
 	}
 	else{
-		if(document.form.preferred_lang.value == "UK"){    //use unique font-family for JP
-			bws = [0, 1, 2];
-			bwsDesc = ["20/40 MHz", "20 MHz", "40 MHz"];
+		if(tmo_support){
+			if(document.form.wl_nmode_x.value == 7){		// A only
+				inputCtrl(document.form.wl_bw,0);	
+			}
+			else{
+				inputCtrl(document.form.wl_bw,1);
+			
+				if(document.form.wl_nmode_x.value == 0 || document.form.wl_nmode_x.value == 3){			// Auto or AC only
+					bws = [0, 1, 2, 3];
+					bwsDesc = ["20/40/80 MHz", "20 MHz", "40 MHz", "80 MHz"];		
+				}
+				else{			// N only or A/N Mixed
+					bws = [0, 1, 2];
+					bwsDesc = ["20/40 MHz", "20 MHz", "40 MHz"];			
+				}
+			}
 		}
-		else if (!band5g_11ac_support){	//for RT-N66U SDK 6.x
-			bws = [0, 1, 2];
-			bwsDesc = ["20/40 MHz", "20 MHz", "40 MHz"];		
-		}
-		else{	
-			bws = [0, 1, 2, 3];
-			bwsDesc = ["20/40/80 MHz", "20 MHz", "40 MHz", "80 MHz"];
+		else{
+			if(document.form.preferred_lang.value == "UK"){    //use unique font-family for JP
+				bws = [0, 1, 2];
+				bwsDesc = ["20/40 MHz", "20 MHz", "40 MHz"];
+			}
+			else if (!band5g_11ac_support){	//for RT-N66U SDK 6.x
+				bws = [0, 1, 2];
+				bwsDesc = ["20/40 MHz", "20 MHz", "40 MHz"];		
+			}else if (based_modelid == "RT-AC87U"){
+				if(document.form.wl_nmode_x.value == 1){
+					bws = [1, 2];
+					bwsDesc = ["20 MHz", "40 MHz"];
+				}else{
+					bws = [1, 2, 3];
+					bwsDesc = ["20 MHz", "40 MHz", "80 MHz"];
+				}
+			}else{	
+				bws = [0, 1, 2, 3];
+				bwsDesc = ["20/40/80 MHz", "20 MHz", "40 MHz", "80 MHz"];
+			}
 		}		
 	}
 
@@ -194,6 +242,13 @@ function add_options_value(o, arr, orig){
 		add_option(o, "mbss_"+arr, arr, 0);
 }
 
+function detect_qtn_ready(){
+	if(qtn_state_t != "1")
+		setTimeout('detect_qtn_ready();', 1000);
+	else
+		document.form.submit();		
+}
+
 function applyRule(){
 	var auth_mode = document.form.wl_auth_mode_x.value;
 	
@@ -202,6 +257,10 @@ function applyRule(){
 
 	if(validForm()){
 		showLoading();
+		
+		if(based_modelid == "RT-AC87U" && "<% nvram_get("wl_unit"); %>" == "1")
+			stopFlag = '0';
+			
 		document.form.wps_config_state.value = "1";
 		
 		if((auth_mode == "shared" || auth_mode == "wpa" || auth_mode == "wpa2"  || auth_mode == "wpawpa2" || auth_mode == "radius" ||
@@ -218,16 +277,25 @@ function applyRule(){
 		if(sw_mode == 2 || sw_mode == 4)
 			document.form.action_wait.value = "5";
 
-		if(document.form.wl_bw.value == 1)		// 5GHz
+		if(document.form.wl_bw.value == 1)	// 20MHz
 			document.form.wl_chanspec.value = document.form.wl_channel.value;
 		else{
-			if(document.form.wl_channel.value == 0)			// 2.4GHz, Auto case
+			if(document.form.wl_channel.value == 0)			// Auto case
 				document.form.wl_chanspec.value = document.form.wl_channel.value;
-			else	
-				document.form.wl_chanspec.value = document.form.wl_channel.value + document.form.wl_nctrlsb.value;
+			else{
+				if(tmo_support && (document.form.wl_nmode_x.value == 6 || document.form.wl_nmode_x.value == 5 || document.form.wl_nmode_x.value == 2 || document.form.wl_nmode_x.value == 7)){		// B only, G only, B/G Mixed, A only				
+					document.form.wl_chanspec.value = document.form.wl_channel.value;
+				}
+				else{
+					document.form.wl_chanspec.value = document.form.wl_channel.value + document.form.wl_nctrlsb.value;
+				}
+			}	
 		}	
-	
-	document.form.submit();
+
+		if (based_modelid == "RT-AC87U" && "<% nvram_get("wl_unit"); %>" == "1")
+			detect_qtn_ready();
+		else
+			document.form.submit();
 	}
 } 
 
@@ -354,9 +422,15 @@ function check_NOnly_to_GN(){
 function regen_5G_mode(obj,flag){
 	if(flag == 1){
 		free_options(obj);
-		obj.options[0] = new Option("<#Auto#>", 0);
-		obj.options[1] = new Option("N + AC", 1);
-		obj.options[2] = new Option("Legacy", 2);
+		if(based_modelid == "RT-AC87U"){
+			obj.options[0] = new Option("<#Auto#>", 0);
+			obj.options[1] = new Option("N only", 1);
+			
+		}else{
+			obj.options[0] = new Option("<#Auto#>", 0);
+			obj.options[1] = new Option("N + AC", 1);
+			obj.options[2] = new Option("Legacy", 2);
+		}
 	}
 	
 	obj.value = '<% nvram_get("wl_nmode_x"); %>';
@@ -374,6 +448,33 @@ function check_acs_band1_support(obj){
 		document.form.acs_band1.value = 1;
 	else
 		document.form.acs_band1.value = 0;
+}
+
+function tmo_wl_nmode(){
+	var tmo2nmode = [["0",  "<#Auto#>"],["6",       "B Only"],["5", "G Only"],["1", "N Only"],["2",	"B/G Mixed"],["4", "G/N Mixed"]];
+	var tmo5nmode = [["0",  "<#Auto#>"],["7",       "A Only"],["1", "N Only"],["3", "AC Only"],["4", "A/N Mixed"]];
+	free_options(document.form.wl_nmode_x);
+	if("<% nvram_get("wl_unit"); %>" == "0"){               //2.4GHz
+		for(var i = 0; i < tmo2nmode.length; i++){
+			add_option(document.form.wl_nmode_x,tmo2nmode[i][1], tmo2nmode[i][0],(document.form.wl_nmode_x_orig.value == tmo2nmode[i][0]));
+		}
+	}
+	else{           //5GHz
+		for(var i = 0; i < tmo5nmode.length; i++){
+			add_option(document.form.wl_nmode_x,tmo5nmode[i][1], tmo5nmode[i][0],(document.form.wl_nmode_x_orig.value == tmo5nmode[i][0]));
+		}
+	}
+}
+
+function check_WPS(){
+	if(document.form.wl_closed[0].checked && document.form.wps_enable.value == 1){
+		if(confirm("The WPS will be disabled if hiding SSID")){
+			document.form.wps_enable.value = "0";	
+		}
+		else{	
+			return false;	
+		}
+	}
 }
 </script>
 </head>
@@ -402,6 +503,23 @@ function check_acs_band1_support(obj){
 </div>
 
 <iframe name="hidden_frame" id="hidden_frame" width="0" height="0" frameborder="0"></iframe>
+<form method="post" name="autochannelform" action="/start_apply2.htm" target="hidden_frame">
+<input type="hidden" name="productid" value="<% nvram_get("productid"); %>">
+<input type="hidden" name="wan_route_x" value="<% nvram_get("wan_route_x"); %>">
+<input type="hidden" name="wan_nat_x" value="<% nvram_get("wan_nat_x"); %>">
+<input type="hidden" name="current_page" value="Advanced_Wireless_Content.asp">
+<input type="hidden" name="next_page" value="Advanced_Wireless_Content.asp">
+<input type="hidden" name="modified" value="0">
+<input type="hidden" name="action_mode" value="apply_new">
+<input type="hidden" name="action_script" value="restart_wireless">
+<input type="hidden" name="action_wait" value="10">
+<input type="hidden" name="preferred_lang" id="preferred_lang" value="<% nvram_get("preferred_lang"); %>">
+<input type="hidden" name="wl_country_code" value="<% nvram_get("wl0_country_code"); %>" disabled>
+<input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>">
+<input type="hidden" name="wl_chanspec" value="">
+<input type="hidden" name="wl_unit" value="">
+<input type="hidden" name="force_change" value="<% nvram_get("force_change"); %>">
+</form>	
 <form method="post" name="form" action="/start_apply2.htm" target="hidden_frame">
 <input type="hidden" name="productid" value="<% nvram_get("productid"); %>">
 <input type="hidden" name="wan_route_x" value="<% nvram_get("wan_route_x"); %>">
@@ -430,6 +548,7 @@ function check_acs_band1_support(obj){
 <input type="hidden" name="wl_wme" value="<% nvram_get("wl_wme"); %>">
 <input type="hidden" name="wl_mode_x" value="<% nvram_get("wl_mode_x"); %>">
 <input type="hidden" name="wl_nmode" value="<% nvram_get("wl_nmode"); %>">
+<input type="hidden" name="wl_nmode_x_orig" value="<% nvram_get("wl_nmode_x"); %>">
 <input type="hidden" name="wl_nctrlsb_old" value="<% nvram_get("wl_nctrlsb"); %>">
 <input type="hidden" name="wl_key_type" value='<% nvram_get("wl_key_type"); %>'> <!--Lock Add 2009.03.10 for ralink platform-->
 <input type="hidden" name="wl_channel_orig" value='<% nvram_get("wl_channel"); %>'>
@@ -439,7 +558,7 @@ function check_acs_band1_support(obj){
 <input type="hidden" name="wl_subunit" value='-1'>
 <input type="hidden" name="acs_dfs" value='<% nvram_get("acs_dfs"); %>'>
 <input type="hidden" name="acs_band1" value='<% nvram_get("acs_band1"); %>'>
-
+<input type="hidden" name="wps_enable" value="<% nvram_get("wps_enable"); %>">
 <table class="content" align="center" cellpadding="0" cellspacing="0">
   <tr>
 	<td width="17">&nbsp;</td>
@@ -501,8 +620,8 @@ function check_acs_band1_support(obj){
 				<tr>
 					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 2);"><#WLANConfig11b_x_BlockBCSSID_itemname#></a></th>
 					<td>
-						<input type="radio" value="1" name="wl_closed" class="input" onClick="return change_common_radio(this, 'WLANConfig11b', 'wl_closed', '1')" <% nvram_match("wl_closed", "1", "checked"); %>><#checkbox_Yes#>
-						<input type="radio" value="0" name="wl_closed" class="input" onClick="return change_common_radio(this, 'WLANConfig11b', 'wl_closed', '0')" <% nvram_match("wl_closed", "0", "checked"); %>><#checkbox_No#>
+						<input type="radio" value="1" name="wl_closed" class="input" onClick="return check_WPS();change_common_radio(this, 'WLANConfig11b', 'wl_closed', '1')" <% nvram_match("wl_closed", "1", "checked"); %>><#checkbox_Yes#>
+						<input type="radio" value="0" name="wl_closed" class="input" onClick="return check_WPS();change_common_radio(this, 'WLANConfig11b', 'wl_closed', '0')" <% nvram_match("wl_closed", "0", "checked"); %>><#checkbox_No#>
 					</td>
 				</tr>
 					  
@@ -514,8 +633,8 @@ function check_acs_band1_support(obj){
 							<option value="1" <% nvram_match("wl_nmode_x", "1","selected"); %>>N Only</option>
 							<option value="2" <% nvram_match("wl_nmode_x", "2","selected"); %>>Legacy</option>
 						</select>
-						<span id="wl_optimizexbox_span" style="display:none"><input type="checkbox" name="wl_optimizexbox_ckb" id="wl_optimizexbox_ckb" value="<% nvram_get("wl_optimizexbox"); %>" onclick="document.form.wl_optimizexbox.value=(this.checked==true)?1:0;"> Optimized for Xbox</input></span>
-						<span id="wl_gmode_checkbox" style="display:none;"><input type="checkbox" name="wl_gmode_check" id="wl_gmode_check" value="" onClick="wl_gmode_protection_check();"> b/g Protection</input></span>
+						<span id="wl_optimizexbox_span" style="display:none"><input type="checkbox" name="wl_optimizexbox_ckb" id="wl_optimizexbox_ckb" value="<% nvram_get("wl_optimizexbox"); %>" onclick="document.form.wl_optimizexbox.value=(this.checked==true)?1:0;"> <#WLANConfig11b_x_Mode_xbox#></input></span>
+						<span id="wl_gmode_checkbox" style="display:none;"><input type="checkbox" name="wl_gmode_check" id="wl_gmode_check" value="" onClick="wl_gmode_protection_check();"> <#WLANConfig11b_x_Mode_protectbg#></input></span>
 						<span id="wl_nmode_x_hint" style="display:none;"><br><#WLANConfig11n_automode_limition_hint#><br></span>
 						<span id="wl_NOnly_note" style="display:none;"></span>
 						<!-- [N + AC] is not compatible with current guest network authentication method(TKIP or WEP),  Please go to <a id="gn_link" href="/Guest_network.asp?af=wl_NOnly_note" target="_blank" style="color:#FFCC00;font-family:Lucida Console;text-decoration:underline;">guest network</a> and change the authentication method. -->
@@ -533,11 +652,13 @@ function check_acs_band1_support(obj){
 			 	</tr>
 				<!-- ac channel -->			  
 				<tr>
-					<th><a id="wl_channel_select" class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 3);"><#WLANConfig11b_Channel_itemname#></a></th>
+					<th>						
+						<a id="wl_channel_select" class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 3);"><#WLANConfig11b_Channel_itemname#></a>						
+					</th>
 					<td>
 				 		<select name="wl_channel" class="input_option" onChange="change_channel(this);"></select>
-						<span id="dfs_checkbox" style="display:none"><input type="checkbox" onClick="check_DFS_support(this);"  <% nvram_match("acs_dfs", "1", "checked"); %>>Auto select channel including DFS channels</input></span>
-						<span id="acs_band1_checkbox" style="display:none"><input type="checkbox" onClick="check_acs_band1_support(this);"  <% nvram_match("acs_band1", "1", "checked"); %>>Auto select channel including band1 channels</input></span>
+						<span id="dfs_checkbox" style="display:none;"><input type="checkbox" onClick="check_DFS_support(this);"  <% nvram_match("acs_dfs", "1", "checked"); %>>Auto select channel including DFS channels</input></span>
+						<span id="acs_band1_checkbox" style="display:none;"><input type="checkbox" onClick="check_acs_band1_support(this);"  <% nvram_match("acs_band1", "1", "checked"); %>>Auto select channel including band1 channels</input></span>
 					</td>
 			  </tr> 
 		  	<!-- end -->

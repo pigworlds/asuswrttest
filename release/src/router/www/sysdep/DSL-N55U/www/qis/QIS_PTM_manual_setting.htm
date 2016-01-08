@@ -64,6 +64,7 @@ function showCountryList(o){
 	var code = "";
 	var showed_country = "";
 	code +="<select	name='country' class='input_option' onchange='showAllList(this.value);'>";
+	code +="<option value='default'><#Select_menu_default#></option>";
 	for(var i = 0; i < ISP_PTM_List.length; i++){
 		if(showed_country != ISP_PTM_List[i][1]){
 			code +="<option value='"+ISP_PTM_List[i][1];
@@ -312,7 +313,7 @@ function QIS_manual_setting_load_body() {
 	parent.set_step("t2");
 	hidePVCInfo(1);
 	if(country_code=="")
-		country_code = "Germany";
+		country_code = "default";
 	showCountryList(country_code);
 	showAllList(country_code);
 }
@@ -329,7 +330,12 @@ function submit_page(){
 
 function btnNext() {
 	var connection_type = 0;
-	if ( document.form.country.value=='NO'|| document.form.ISP.value=='NO' ){
+	if(document.form.country.value=='default'){
+                alert("<#JS_fieldblank#>");
+                document.form.country.focus();
+                return false;
+        }
+        else if ( document.form.country.value=='NO'|| document.form.ISP.value=='NO' ){
 		var tmp_vlanid = document.form.dslx_vid.value;
 		if ( isNaN(tmp_vlanid) == true ) {
 			alert('<#WANVLANIDText#> "' + tmp_vlanid + '" <#Manual_Setting_JS_invalid#>');

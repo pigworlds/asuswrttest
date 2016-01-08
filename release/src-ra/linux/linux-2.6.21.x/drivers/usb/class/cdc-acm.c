@@ -562,7 +562,6 @@ static int acm_tty_open(struct tty_struct *tty, struct file *filp)
 		goto done;
         }
 
-
 	acm->ctrlurb->dev = acm->dev;
 	if (usb_submit_urb(acm->ctrlurb, GFP_KERNEL)) {
 		dbg("usb_submit_urb(ctrl irq) failed");
@@ -577,12 +576,10 @@ static int acm_tty_open(struct tty_struct *tty, struct file *filp)
 	INIT_LIST_HEAD(&acm->spare_read_urbs);
 	INIT_LIST_HEAD(&acm->spare_read_bufs);
 	INIT_LIST_HEAD(&acm->filled_read_bufs);
-	for (i = 0; i < acm->rx_buflimit; i++) {
+	for (i = 0; i < acm->rx_buflimit; i++)
 		list_add(&(acm->ru[i].list), &acm->spare_read_urbs);
-	}
-	for (i = 0; i < acm->rx_buflimit; i++) {
+	for (i = 0; i < acm->rx_buflimit; i++)
 		list_add(&(acm->rb[i].list), &acm->spare_read_bufs);
-	}
 
 	acm->throttle = 0;
 
@@ -924,7 +921,7 @@ static int acm_probe (struct usb_interface *intf,
 	
 	/* normal probing*/
 	if (!buffer) {
-		err("Weird descriptor references\n");
+		dev_err(&intf->dev, "Weird descriptor references\n");
 		return -EINVAL;
 	}
 
@@ -936,21 +933,21 @@ static int acm_probe (struct usb_interface *intf,
 			buflen = intf->cur_altsetting->endpoint->extralen;
 			buffer = intf->cur_altsetting->endpoint->extra;
 		} else {
-			err("Zero length descriptor references\n");
+			dev_err(&intf->dev, "Zero length descriptor references\n");
 			return -EINVAL;
 		}
 	}
 
 	while (buflen > 0) {
 		if (buffer [1] != USB_DT_CS_INTERFACE) {
-			err("skipping garbage\n");
+			dev_err(&intf->dev, "skipping garbage\n");
 			goto next_desc;
 		}
 
 		switch (buffer [2]) {
 			case USB_CDC_UNION_TYPE: /* we've found it */
 				if (union_header) {
-					err("More than one union descriptor, skipping ...");
+					dev_err(&intf->dev, "More than one union descriptor, skipping ...");
 					goto next_desc;
 				}
 				union_header = (struct usb_cdc_union_desc *)
@@ -968,7 +965,7 @@ static int acm_probe (struct usb_interface *intf,
 				call_management_function = buffer[3];
 				call_interface_num = buffer[4];
 				if ((call_management_function & 3) != 3)
-					err("This device cannot do calls on its own. It is no modem.");
+					dev_err(&intf->dev, "This device cannot do calls on its own. It is no modem.");
 				break;
 			default:
 				/* there are LOTS more CDC descriptors that
@@ -1053,7 +1050,7 @@ skip_normal_probe:
 	for (minor = 0; minor < ACM_TTY_MINORS && acm_table[minor]; minor++);
 
 	if (minor == ACM_TTY_MINORS) {
-		err("no more free acm devices");
+		dev_err(&intf->dev, "no more free acm devices");
 		return -ENODEV;
 	}
 

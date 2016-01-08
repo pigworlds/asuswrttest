@@ -15,7 +15,7 @@
 #include "shutils.h"
 
 #define WAIT_TP_INIT	300
-#define WAIT_AUTO_DET	120
+#define WAIT_AUTO_DET	180
 static int m_exit = 0;
 static int m_msqid_to_d = 0;
 static int m_msqid_from_d = 0;
@@ -82,10 +82,10 @@ int start_auto_det(void)
 
 int stop_auto_det(void)
 {
-	msgbuf send_buf;
-	msgbuf receive_buf;
+	//msgbuf send_buf;
+	//msgbuf receive_buf;
 	struct msqid_ds stMsgInfo;
-
+/*
 	send_buf.mtype=IPC_STOP_AUTO_DET;
 	strcpy(send_buf.mtext,"stopdet");
 
@@ -109,7 +109,7 @@ int stop_auto_det(void)
 			}
 		}
 	}
-
+*/
 	// delete msg queue from kernel
 	msgctl(m_msqid_from_d, IPC_RMID, &stMsgInfo);
 

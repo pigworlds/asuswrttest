@@ -187,6 +187,7 @@ typedef enum {
 	e_qcsapi_wifi_get_list_regulatory_channels,
 	e_qcsapi_wifi_get_list_regulatory_bands,
 	e_qcsapi_wifi_get_regulatory_db_version,
+	e_qcsapi_wifi_set_regulatory_tx_power_cap,
 	e_qcsapi_wifi_set_chan_pri_inactive,
 
 	e_qcsapi_wifi_get_tx_power,
@@ -388,6 +389,8 @@ typedef enum {
 
 	e_qcsapi_config_get_parameter,
 	e_qcsapi_config_update_parameter,
+	e_qcsapi_config_get_ssid_parameter,
+	e_qcsapi_config_update_ssid_parameter,
 	e_qcsapi_bootcfg_get_parameter,
 	e_qcsapi_bootcfg_update_parameter,
 	e_qcsapi_bootcfg_commit,
@@ -411,6 +414,7 @@ typedef enum {
 	e_qcsapi_wifi_get_scs_dfs_reentry_request,
 	e_qcsapi_wifi_get_scs_cca_intf,
 	e_qcsapi_wifi_get_scs_param,
+	e_qcsapi_wifi_set_scs_stats,
 
 	e_qcsapi_wifi_start_ocac,
 	e_qcsapi_wifi_stop_ocac,
@@ -427,6 +431,9 @@ typedef enum {
 	e_qcsapi_wifi_set_pairing_id,
 	e_qcsapi_wifi_get_pairing_enable,
 	e_qcsapi_wifi_set_pairing_enable,
+
+	e_qcsapi_wifi_get_rts_threshold,
+	e_qcsapi_wifi_set_rts_threshold,
 
 	e_qcsapi_wifi_set_vendor_fix,
 
@@ -498,6 +505,11 @@ typedef enum {
 	e_qcsapi_set_security_defer_mode,
 	e_qcsapi_apply_security_config,
 
+	e_qcsapi_wifi_set_intra_bss_isolate,
+	e_qcsapi_wifi_get_intra_bss_isolate,
+	e_qcsapi_wifi_set_bss_isolate,
+	e_qcsapi_wifi_get_bss_isolate,
+	e_qcsapi_wifi_get_disassoc_reason,
 	e_qcsapi_nosuch_api = 0
 } qcsapi_entry_point;
 

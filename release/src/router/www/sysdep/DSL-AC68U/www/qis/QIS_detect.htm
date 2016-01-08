@@ -76,7 +76,7 @@ function getWANStatus(){
 					if(Redirect_count >= 24){
 						Redirect_count = 0;
 						if(dsl_autodet_state == "up"){
-								if(extend_autodet == 1){ //(ATM)extend for another 45 seconds for auto detection to finish, so max 135 seconds
+								if(extend_autodet == 1){ //(ATM)extend for another (24-9)*5=75 seconds for auto detection to finish, so max 195 seconds
 									extend_autodet = 0;
 									Redirect_count = 9;
 									getWANStatus();
@@ -178,7 +178,7 @@ function gotoUserManualSet(){
 			<strong><span><#QKSet_detect_waitdesc#></span></strong>
 		</td>
 	  </tr>
-	  <tr id="no_cable" style="display:none;">
+	  <tr id="no_cable">
 		<td>
 		</td>
 		<td class="test_css">

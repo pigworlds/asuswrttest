@@ -27,6 +27,13 @@ var qos_irates = '<% nvram_get("qos_irates"); %>';
 
 function initial(){
 	show_menu();
+	if(bwdpi_support){
+		$('content_title').innerHTML = "Adaptive QoS - Traditional";
+	}
+	else{
+		$('content_title').innerHTML = "<#Menu_TrafficManager#> - QoS";
+	}
+	
 	init_changeScale("qos_obw");
 	init_changeScale("qos_ibw");
 	//load_QoS_rule();		
@@ -211,7 +218,7 @@ function switchPage(page){
 <input type="hidden" name="modified" value="0">
 <input type="hidden" name="action_mode" value="apply">
 <input type="hidden" name="action_wait" value="5">
-<input type="hidden" name="action_script" value="restart_qos">
+<input type="hidden" name="action_script" value="restart_qos;restart_firewall">
 <input type="hidden" name="first_time" value="">
 <input type="hidden" name="preferred_lang" id="preferred_lang" value="<% nvram_get("preferred_lang"); %>">
 <input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>">
@@ -242,13 +249,13 @@ function switchPage(page){
 						<table width="100%" >
 						<tr >
 						<td  class="formfonttitle" align="left">								
-										<div style="margin-top:5px;"><#Menu_TrafficManager#> - QoS</div>
+										<div id="content_title" style="margin-top:5px;"></div>
 									</td>
 						<td align="right" >	
 						<div style="margin-top:5px;">
 							<select onchange="switchPage(this.options[this.selectedIndex].value)" class="input_option">
 								<!--option><#switchpage#></option-->
-								<option value="1"><#qos_automatic_mode#></option>
+								<option value="1">Configuration</option>
 								<option value="2"><#qos_user_rules#></option>
 								<option value="3" selected><#qos_user_prio#></option>
 							</select>	    

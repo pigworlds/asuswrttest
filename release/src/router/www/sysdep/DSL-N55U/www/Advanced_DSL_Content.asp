@@ -348,7 +348,7 @@ function initial(){
 function show_is_active_dslx_transmode(){
 	if(!vdsl_support)
 		$("active_dslmode").innerHTML = "";
-	else if(document.form.dsltmp_transmode.value == "<% nvram_get("dslx_transmode"); %>")
+	else if(document.form.dsltmp_transmode.value == document.form.dslx_transmode.value)
 		$("active_dslmode").innerHTML = "( Active )";
 	else
 		$("active_dslmode").innerHTML = "( Not Active )";		
@@ -368,7 +368,9 @@ function change_wan_unit(obj){
 		document.form.dsltmp_transmode.style.display = "none";
 	}
 	
-	if(obj.options[obj.selectedIndex].text == "WAN" || obj.options[obj.selectedIndex].text == "Ethernet LAN"){
+	if(obj.options[obj.selectedIndex].text == "WAN" 
+		|| obj.options[obj.selectedIndex].text == "Ethernet LAN"
+		|| obj.options[obj.selectedIndex].text == "Ethernet WAN"){
 		document.form.current_page.value = "Advanced_WAN_Content.asp";
 	}
 	else if(obj.options[obj.selectedIndex].text == "USB") {
@@ -402,8 +404,12 @@ function genWANSoption(){
 	
 	for(i=0; i<wans_dualwan.split(" ").length; i++){
 		var wans_dualwan_NAME = wans_dualwan.split(" ")[i].toUpperCase();	
-		if(wans_dualwan_NAME == "LAN")
-			wans_dualwan_NAME = "Ethernet LAN";
+		//MODELDEP: DSL-N55U, DSL-N55U-B, DSL-AC68U, DSL-AC68R
+                if(wans_dualwan_NAME == "LAN" && 
+                        (productid == "DSL-N55U" || productid == "DSL-N55U-B" || productid == "DSL-AC68U" || productid == "DSL-AC68R")) 
+                        wans_dualwan_NAME = "Ethernet WAN";
+                else if(wans_dualwan_NAME == "LAN")
+                        wans_dualwan_NAME = "Ethernet LAN";
 		if(wans_dualwan_NAME != "NONE")
 			document.form.wan_unit.options[i] = new Option(wans_dualwan_NAME, i);
 	}
@@ -513,8 +519,11 @@ function applyRule(){
 			document.form.action_script.value = "reboot";		
 			document.form.action_wait.value = "<% get_default_reboot_time(); %>";				
 		}
-		
-		document.form.dslx_transmode.value = document.form.dsltmp_transmode.value;
+
+		if(document.form.dslx_transmode.value != document.form.dsltmp_transmode.value) {
+			document.form.action_script.value = "restart_dsl_setting;".concat(document.form.action_script.value);
+			document.form.dslx_transmode.value = document.form.dsltmp_transmode.value;
+		}
 		
 		document.form.submit();
 	}
@@ -1058,7 +1067,7 @@ function pass_checked(obj){
 <input type="hidden" name="lan_netmask" value="<% nvram_get("lan_netmask"); %>" />
 <input type="hidden" name="dsl_unit" value="" />
 <input type="hidden" name="dsl_enable" value="" />
-<input type="hidden" name="dslx_transmode" value="">
+<input type="hidden" name="dslx_transmode" value="<% nvram_get("dslx_transmode"); %>">
 <input type="hidden" name="wan_enable" value="" disabled>
 <!--input type="hidden" name="wan_unit" value="" disabled-->
 <span id="bridgePPPoE_relay"></span>

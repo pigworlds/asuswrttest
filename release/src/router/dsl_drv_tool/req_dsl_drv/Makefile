@@ -2,6 +2,14 @@ include ../../common.mak
 
 CFLAGS += -Wall -O
 
+ifeq ($(RTCONFIG_DSL_TCLINUX),y)
+CFLAGS += -DRTCONFIG_DSL_TCLINUX
+endif
+
+ifeq ($(RTCONFIG_VDSL),y)
+CFLAGS += -DRTCONFIG_VDSL
+endif
+
 ifeq ($(RTCONFIG_BCMARM),y)
 CFLAGS += $(EXTRA_FLAG)
 endif

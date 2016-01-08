@@ -266,6 +266,28 @@ function valid_form(){
 					</select>
 				</td>
 			</tr>
+			<tr>
+				<th>
+					<a class="hintstyle" href="javascript:void(0);" onClick="openHint(25,8);">VDSL Profile</a>
+				</th>
+				<td>
+					<select id="" class="input_option" name="dslx_vdsl_profile">
+						<option value="0" <% nvram_match("dslx_vdsl_profile", "0", "selected"); %>>30a multi mode</option>
+						<option value="1" <% nvram_match("dslx_vdsl_profile", "1", "selected"); %>>17a multi mode</option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					Improved Impulse Noise Protection (G.998.4)
+				</th>
+				<td>
+					<select id="" class="input_option" name="dslx_ginp">
+						<option value="1" <% nvram_match("dslx_ginp", "1", "selected"); %>><#btn_Enabled#></option>
+						<option value="0" <% nvram_match("dslx_ginp", "0", "selected"); %>><#btn_Disabled#></option>
+					</select>
+				</td>
+			</tr>
 		</table>
 		<div class="apply_gen">
 			<input class="button_gen" onclick="applyRule()" type="button" value="<#CTL_apply#>"/>

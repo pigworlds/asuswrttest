@@ -14,15 +14,13 @@ enum {
 
 // Annex B has different HW and FW from Annex AIJKM
 enum {
-	EnumAdslTypeB,
-};
-
-enum {
-    EnumAdslTypeA,
+    EnumAdslTypeA = 0,
     EnumAdslTypeI,    
     EnumAdslTypeA_L,    
     EnumAdslTypeM,
-    EnumAdslTypeA_I_J_L_M,    
+    EnumAdslTypeA_I_J_L_M,
+    EnumAdslTypeB,
+    EnumAdslTypeB_J_M
 };
 
 enum {

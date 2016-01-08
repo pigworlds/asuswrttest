@@ -113,4 +113,6 @@ enum {
 #define REMOTE_FILE_ADSL_SNR "/proc/tc3162/adsl_showsnr"
 #define REMOTE_FILE_VDSL_SNR "/proc/tc3162/vdsl_showsnr"
 #define LOCAL_FILE_DSL_SNR "/var/tmp/spectrum-snr"
+#define REMOTE_FILE_DMESG "/var/tmp/dmesg.txt"
+#define LOCAL_FILE_DMESG "/tmp/adsl/dmesg.txt"
 #endif

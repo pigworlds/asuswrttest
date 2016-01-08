@@ -198,7 +198,17 @@ function ValidateChecksum(PIN){
 }
 
 function PIN_PBC_Check(){
+	var array_temp = new Array();
 	if(document.form.wps_sta_pin.value != ""){
+		if(document.form.wps_sta_pin.value.indexOf(' ')!= -1){
+			array_temp = document.form.wps_sta_pin.value.split(" ");
+			document.form.wps_sta_pin.value = array_temp[0] + array_temp[1];
+		}
+		else if(document.form.wps_sta_pin.value.indexOf('-')!= -1){
+			array_temp = document.form.wps_sta_pin.value.split("-");
+			document.form.wps_sta_pin.value = array_temp[0] + array_temp[1];
+		}
+			
 		if(document.form.wps_sta_pin.value.length != 8 || !ValidateChecksum(document.form.wps_sta_pin.value)){
 			alert("<#JS_InvalidPIN#>");
 			document.form.wps_sta_pin.focus();
@@ -650,7 +660,7 @@ function _change_wl_unit_status(__unit){
 			  <td>
 					<input type="radio" name="wps_method" onclick="changemethod(0);" value="0"><#WLANConfig11b_x_WPS_pushbtn#>
 					<input type="radio" name="wps_method" onclick="changemethod(1);" value="1"><#WLANConfig11b_x_WPSPIN_itemname#>
-			  	<input type="text" name="wps_sta_pin" id="wps_sta_pin" value="" size="8" maxlength="8" class="input_15_table">
+			  	<input type="text" name="wps_sta_pin" id="wps_sta_pin" value="" size="9" maxlength="9" class="input_15_table">
 				  <div id="starBtn" style="margin-top:10px;"><input class="button_gen" type="button" style="margin-left:5px;" onClick="configCommand();" id="addEnrolleebtn_client" name="addEnrolleebtn"  value="<#wps_start_btn#>"></div>
 				</td>
 			</tr>

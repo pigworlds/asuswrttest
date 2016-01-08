@@ -7,7 +7,7 @@
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
-<link rel="icon" href="images/favicon.png"><title><#Web_Title#> - <#menu2#></title>
+<link rel="icon" href="images/favicon.png"><title><#Web_Title#> - <#UPnPMediaServer#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
@@ -45,7 +45,6 @@
 	width:736px;
 }
 .upnp_icon{
-	background: url(/images/New_ui/USBExt/media_sever.jpg) no-repeat;
 	width:736px;
 	height:500px;
 	margin-top:15px;
@@ -122,12 +121,15 @@ var dms_dir_type_x_array = '<% nvram_get("dms_dir_type_x"); %>';
 function dlna_path_display(){
 	if("<% nvram_get("dms_enable"); %>" == 1){
 		document.form.dms_friendly_name.parentNode.parentNode.parentNode.style.display = "";
+		document.form.dms_dir_manual_x[0].parentNode.parentNode.style.display = "";
 		document.getElementById("dmsStatus").parentNode.parentNode.style.display = "";		
-		document.getElementById("dlna_path_div").style.display = "";
-		show_dlna_path();
+		//document.getElementById("dlna_path_div").style.display = "";
+		//show_dlna_path();		
+		set_dms_dir(document.form.dms_dir_manual);
 	}
 	else{
 		document.form.dms_friendly_name.parentNode.parentNode.parentNode.style.display = "none";
+		document.form.dms_dir_manual_x[0].parentNode.parentNode.style.display = "none";
 		document.getElementById("dmsStatus").parentNode.parentNode.style.display = "none";		
 		document.getElementById("dlna_path_div").style.display = "none";
 	}
@@ -220,27 +222,29 @@ var folderlist = new Array();
 function applyRule(){	
 	
 		if(validForm()){
-			var rule_num = document.getElementById("dlna_path_table").rows.length;
-			var item_num = document.getElementById("dlna_path_table").rows[0].cells.length;
-			var dms_dir_tmp_value = "";
-			var dms_dir_type_tmp_value = "";
-		
-			if(item_num >1){
-				for(i=0; i<rule_num; i++){			
-					dms_dir_tmp_value += "<";
-					dms_dir_tmp_value += document.getElementById("dlna_path_table").rows[i].cells[0].innerHTML;
-			
-					var type_translate_tmp = "";
-					dms_dir_type_tmp_value += "<";
-					type_translate_tmp += document.getElementById("dlna_path_table").rows[i].cells[1].innerHTML.indexOf("Audio")>=0? "A":""; 
-					type_translate_tmp += document.getElementById("dlna_path_table").rows[i].cells[1].innerHTML.indexOf("Image")>=0? "P":"";
-					type_translate_tmp += document.getElementById("dlna_path_table").rows[i].cells[1].innerHTML.indexOf("Vedio")>=0? "V":"";			
-					dms_dir_type_tmp_value += type_translate_tmp;			
-				}
+			if(document.form.dms_enable.value == 1 && document.form.dms_dir_manual.value == 1){
+						var rule_num = document.getElementById("dlna_path_table").rows.length;
+						var item_num = document.getElementById("dlna_path_table").rows[0].cells.length;
+						var dms_dir_tmp_value = "";
+						var dms_dir_type_tmp_value = "";
+		  			
+						if(item_num >1){
+							for(i=0; i<rule_num; i++){			
+								dms_dir_tmp_value += "<";
+								dms_dir_tmp_value += document.getElementById("dlna_path_table").rows[i].cells[0].innerHTML;
+						
+								var type_translate_tmp = "";
+								dms_dir_type_tmp_value += "<";
+								type_translate_tmp += document.getElementById("dlna_path_table").rows[i].cells[1].innerHTML.indexOf("Audio")>=0? "A":""; 
+								type_translate_tmp += document.getElementById("dlna_path_table").rows[i].cells[1].innerHTML.indexOf("Image")>=0? "P":"";
+								type_translate_tmp += document.getElementById("dlna_path_table").rows[i].cells[1].innerHTML.indexOf("Video")>=0? "V":"";			
+								dms_dir_type_tmp_value += type_translate_tmp;			
+							}
+						}
+		  			
+						document.form.dms_dir_x.value = dms_dir_tmp_value;
+						document.form.dms_dir_type_x.value = dms_dir_type_tmp_value;	
 			}
-		
-			document.form.dms_dir_x.value = dms_dir_tmp_value;
-			document.form.dms_dir_type_x.value = dms_dir_type_tmp_value;	
 		}
 		else{
 			return false;
@@ -251,6 +255,10 @@ function applyRule(){
 		document.form.dms_friendly_name.disabled = true;
 		document.form.dms_dir_x.disabled = true;
 		document.form.dms_dir_type_x.disabled = true;
+	}
+	if(document.form.dms_dir_manual.value == 0){
+		document.form.dms_dir_x.disabled = true;
+		document.form.dms_dir_type_x.disabled = true;		
 	}
 	
 	showLoading();
@@ -654,7 +662,7 @@ function del_Row(r){
 			dms_dir_type_x_tmp += "&#60";
 				tmp_type += document.getElementById("dlna_path_table").rows[k].cells[1].innerHTML.indexOf("Audio")>=0? "A " : "";
 				tmp_type += document.getElementById("dlna_path_table").rows[k].cells[1].innerHTML.indexOf("Image")>=0? "P " : "";
-				tmp_type += document.getElementById("dlna_path_table").rows[k].cells[1].innerHTML.indexOf("Vedio")>=0? "V " : "";
+				tmp_type += document.getElementById("dlna_path_table").rows[k].cells[1].innerHTML.indexOf("Video")>=0? "V " : "";
 			dms_dir_type_x_tmp += tmp_type;
 	}
 	
@@ -688,13 +696,13 @@ function addRow_Group(upper){
 	
 	if(!document.form.type_A_audio.checked &&
 			!document.form.type_P_image.checked &&
-			!document.form.type_V_vedio.checked){
+			!document.form.type_V_video.checked){
 				dms_dir_type_x_tmp = "APV";
 	}
 	else{
 		dms_dir_type_x_tmp += document.form.type_A_audio.checked? "A" : "";
 		dms_dir_type_x_tmp += document.form.type_P_image.checked? "P" : "";
-		dms_dir_type_x_tmp += document.form.type_V_vedio.checked? "V" : "";
+		dms_dir_type_x_tmp += document.form.type_V_video.checked? "V" : "";
 	}
 	
 	//Viz check same rule  //match(path) is not accepted
@@ -711,10 +719,10 @@ function addRow_Group(upper){
 	
 	addRow_dir_x(document.getElementById("PATH"));
 	addRow_dir_type_x(dms_dir_type_x_tmp);
-	document.getElementById("PATH").value = "/tmp/mnt";
+	document.getElementById("PATH").value = "/mnt";
 	document.form.type_A_audio.checked = true;
 	document.form.type_P_image.checked = true;
-	document.form.type_V_vedio.checked = true;
+	document.form.type_V_video.checked = true;
 	
 	show_dlna_path();
 }
@@ -745,7 +753,7 @@ function show_dlna_path(){
 			code +='<td width="45%" class="dlna_path_td">'+ dms_dir_x_array_row[i] +'</td>';
 				tmp_type += dms_dir_type_x_array_row[i].indexOf("A")>=0? "Audio " : "";
 				tmp_type += dms_dir_type_x_array_row[i].indexOf("P")>=0? "Image " : "";
-				tmp_type += dms_dir_type_x_array_row[i].indexOf("V")>=0? "Vedio " : "";
+				tmp_type += dms_dir_type_x_array_row[i].indexOf("V")>=0? "Video " : "";
 			code +='<td width="40%" class="dlna_path_td">'+ tmp_type +'</td>';
 				
 			code +='<td width="15%">';
@@ -780,6 +788,18 @@ else if(v == "dms"){
 	
 	document.form.dms_friendly_name.value = friendly_name_dms;
 }	
+}
+
+function set_dms_dir(obj){
+	if(obj.value == 1){	//manual path
+		document.getElementById("dlna_path_div").style.display = "";
+		document.form.dms_dir_manual.value = 1;
+		show_dlna_path();
+	}
+	else{		//default path
+		document.getElementById("dlna_path_div").style.display = "none";
+		document.form.dms_dir_manual.value = 0;
+	}
 }
 
 </script>
@@ -844,6 +864,7 @@ else if(v == "dms"){
 <input type="hidden" name="dms_enable" value="<% nvram_get("dms_enable"); %>">
 <input type="hidden" name="dms_dir_x" value="">
 <input type="hidden" name="dms_dir_type_x" value="">
+<input type="hidden" name="dms_dir_manual" value="<% nvram_get("dms_dir_manual"); %>">
 
 <table class="content" align="center" cellpadding="0" cellspacing="0">
   <tr>
@@ -878,7 +899,7 @@ else if(v == "dms"){
 				</div>
 				<div style="margin:5px;"><img src="/images/New_ui/export/line_export.png"></div>
 
-			<div class="formfontdesc"><#upnp_Desc#></div>	<!-- "upnp_Desc" is a untranslated string. -->
+			<div id="upnp_desc_id" class="formfontdesc"><#upnp_Desc#></div>
 		</td>
   </tr>  
 
@@ -913,7 +934,7 @@ else if(v == "dms"){
         		</td>
        	</tr>
        	<tr>
-       		<th>iTunes Server Name</th>
+       		<th><#iTunesServer_itemname#></th>
 					<td>
 						<div><input name="daapd_friendly_name" type="text" style="margin-left:15px;" class="input_15_table" value=""><br/><div id="alert_msg1" style="color:#FC0;margin-left:10px;"></div></div>
 					</td>
@@ -926,7 +947,7 @@ else if(v == "dms"){
 					<tr><td colspan="2"><#UPnPMediaServer#></td></tr>
 				</thead>
    			<tr>
-        	<th>Enable DLNA Media Server</th>
+        	<th><#DLNA_enable#></th>
         	<td>
         			<div class="left" style="width:94px; position:relative; left:3%;" id="radio_dms_enable"></div>
 							<div class="clear"></div>
@@ -934,13 +955,16 @@ else if(v == "dms"){
 									$j('#radio_dms_enable').iphoneSwitch('<% nvram_get("dms_enable"); %>', 
 										 function() {
 										 	document.form.dms_friendly_name.parentNode.parentNode.parentNode.style.display = "";
+										 	document.form.dms_dir_manual_x[0].parentNode.parentNode.style.display = "";
 											document.getElementById("dmsStatus").parentNode.parentNode.style.display = "";
-											document.getElementById("dlna_path_div").style.display = "";
-											show_dlna_path();
+											//document.getElementById("dlna_path_div").style.display = "";
+											//show_dlna_path();
+											set_dms_dir(document.form.dms_dir_manual);
 											document.form.dms_enable.value = 1;									
 										 },
 										 function() {
 										 	document.form.dms_friendly_name.parentNode.parentNode.parentNode.style.display = "none";
+										 	document.form.dms_dir_manual_x[0].parentNode.parentNode.style.display = "none";
 											document.getElementById("dmsStatus").parentNode.parentNode.style.display = "none";
 											document.getElementById("dlna_path_div").style.display = "none";
 											document.form.dms_enable.value = 0;
@@ -955,17 +979,23 @@ else if(v == "dms"){
         		</td>
        	</tr>
        	<tr>
-       		<th>Media Server Name</th>
+       		<th><#DLNA_itemname#></th>
 					<td>
 						<div><input name="dms_friendly_name" type="text" style="margin-left:15px;" class="input_15_table" value=""><br/><div id="alert_msg2" style="color:#FC0;margin-left:10px;"></div></div>
 					</td>
       	</tr>
    			<tr>
-        	<th>Media Server Status</th>
+        	<th><#DLNA_status#></th>
         	<td><span id="dmsStatus" style="margin-left:15px">Idle</span>
         	</td>
        	</tr>
-	
+   			<tr>
+        	<th><#DLNA_path_setting#></th>
+        	<td>
+        		<input type="radio" value="0" name="dms_dir_manual_x" class="input" onClick="set_dms_dir(this);" <% nvram_match("dms_dir_manual", "0", "checked"); %>><#DLNA_path_shared#>
+						<input type="radio" value="1" name="dms_dir_manual_x" class="input" onClick="set_dms_dir(this);" <% nvram_match("dms_dir_manual", "1", "checked"); %>><#DLNA_path_manual#>
+        	</td>
+       	</tr>	
       	</table> 
       	</div>
       	
@@ -973,13 +1003,13 @@ else if(v == "dms"){
       	<table width="98%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table" style="margin-top:8px;">
 			  	<thead>
 			  		<tr>
-						<td colspan="3" id="GWStatic">Media Server Path&nbsp;(<#List_limit#>&nbsp;10)</td>
+						<td colspan="3" id="GWStatic"><#DLNA_path_manual#>&nbsp;(<#List_limit#>&nbsp;10)</td>
 			  		</tr>
 			  	</thead>
 
 			  	<tr>
-		  			<th>Media Server Directory</th>
-        		<th>Shared Content Type</th>
+		  			<th><#DLNA_directory#></th>
+        		<th><#DLNA_contenttype#></th>
         		<th><#list_add_delete#></th>
 			  	</tr>			  
 			  	<tr>
@@ -989,7 +1019,7 @@ else if(v == "dms"){
             	<td width="40%">
             		<input type="checkbox" class="input" name="type_A_audio" checked>&nbsp;Audio&nbsp;&nbsp;
 								<input type="checkbox" class="input" name="type_P_image" checked>&nbsp;Image&nbsp;&nbsp;
-								<input type="checkbox" class="input" name="type_V_vedio" checked>&nbsp;Vedio
+								<input type="checkbox" class="input" name="type_V_video" checked>&nbsp;Video
             	</td>
             	<td width="15%">
 									<input type="button" class="add_btn" onClick="addRow_Group(10);" value="">

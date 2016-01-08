@@ -34,11 +34,14 @@ extern void enable_polling(void);
 #ifdef RTCONFIG_DSL_TCLINUX
 extern int HandleAdslEntry(void);
 extern int CommitAdslEntry(void);
+extern int SetTransMode(char* transmode, int FromAteCmd);
+extern int SetGinp(int GinpActive, int FromAteCm);
 #ifdef RTCONFIG_VDSL
 extern int SetVdslTargetSNRM(int SNRMValue, int FromAteCmd);
 extern int SetVdslTxPowerGainOffset(int VdslTxPowerGainOffset, int FromAteCmd);
 extern int SetVdslRxAutoGainCtrl(int VdslRxAutoGainCtrl, int FromAteCm);
 extern int SetVdslUpPowerBackOff(char *VdslUpPowerBackOff, int FromAteCm);
+extern int SetVdslProfile(int VdslProfile, int FromAteCm);
 #endif
 #endif
 
@@ -137,18 +140,31 @@ void nvram_load_one_pvc(PVC_PARAM* pPvcSetting, int idx)
 #endif  
 }
 
-
+#if DSL_N55U_ANNEX_B == 1
+int nvram_load_adsl_type_AnnexB()
+{
+#ifndef WIN32
+    char* pValue = NULL;
+    pValue = nvram_safe_get("dslx_annex");
+    if (pValue == NULL) return EnumAdslTypeB_J_M;
+    else return atoi(pValue);
+#else
+    return EnumAdslTypeB_J_M;
+#endif
+}
+#else /* #if DSL_N55U_ANNEX_B */
 int nvram_load_adsl_type()
 {
 #ifndef WIN32
-    char* pValue;
+    char* pValue = NULL;
     pValue = nvram_safe_get("dslx_annex");
-    if (*pValue == 0) return EnumAdslTypeA;
-    else return atoi(pValue);  
-#else    
+    if (pValue == NULL) return EnumAdslTypeA;
+    else return atoi(pValue);
+#else
     return EnumAdslTypeA;
-#endif        
+#endif
 }
+#endif /* #if DSL_N55U_ANNEX_B */
 
 int nvram_load_adsl_mode()
 {
@@ -401,7 +417,9 @@ void reload_dsl_setting(void)
 	int VdslTxPowerGainOffset;
 	int VdslRxAutoGainCtrl;
 	char *VdslUpPowerBackOff;
+	int VdslProfile;
 #endif
+	int GINP;
 #endif
 
 #ifdef RTCONFIG_DSL_TCLINUX
@@ -409,7 +427,7 @@ void reload_dsl_setting(void)
 #endif
 	// load setting from nvram
 #if DSL_N55U_ANNEX_B == 1
-	EnumAdslType=EnumAdslTypeB;
+	EnumAdslType=nvram_load_adsl_type_AnnexB();
 #else
 	EnumAdslType=nvram_load_adsl_type();
 #endif
@@ -430,19 +448,26 @@ void reload_dsl_setting(void)
 	myprintf("SRA: %d\n", EnumSRA_); /* Paul add 2012/10/15 */
 	myprintf("Bitswap: %d\n", EnumBitswap_); /* Paul add 2013/10/23 */
 #ifdef RTCONFIG_DSL_TCLINUX
+	SetTransMode(nvram_safe_get("dslx_transmode"), 0);
+	GINP = nvram_get_int("dslx_ginp");
+	SetGinp(GINP, 0);
+	myprintf("G.INP: %d\n", GINP);
 #ifdef RTCONFIG_VDSL
 	VdslTargetSNRM = nvram_get_int("dslx_vdsl_target_snrm");
 	VdslTxPowerGainOffset = nvram_get_int("dslx_vdsl_tx_gain_off");
 	VdslRxAutoGainCtrl = nvram_get_int("dslx_vdsl_rx_agc");
 	VdslUpPowerBackOff = nvram_safe_get("dslx_vdsl_upbo");
+	VdslProfile = nvram_get_int("dslx_vdsl_profile");
 	SetVdslTargetSNRM(VdslTargetSNRM, 0);
 	SetVdslTxPowerGainOffset(VdslTxPowerGainOffset, 0);
 	SetVdslRxAutoGainCtrl(VdslRxAutoGainCtrl, 0);
 	SetVdslUpPowerBackOff(VdslUpPowerBackOff, 0);
+	SetVdslProfile(VdslProfile, 0);
 	myprintf("SNRM Offset (VDSL): %d\n", VdslTargetSNRM);
 	myprintf("Tx Gain Offset (VDSL): %d\n", VdslTxPowerGainOffset);
 	myprintf("Rx AGC (VDSL): %d\n", VdslRxAutoGainCtrl);
 	myprintf("UPBO (VDSL): %s\n", VdslUpPowerBackOff);
+	myprintf("VDSL Profile: %d\n", VdslProfile);
 #endif
 	CommitAdslEntry();
 #endif

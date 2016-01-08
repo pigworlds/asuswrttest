@@ -28,7 +28,7 @@ ifeq ($(RTN14U),y)
 CFLAGS += -DBAND_2G_ONLY
 endif
 
-ifeq ($(RTN14U)$(RTAC52U)$(RTAC51U)$(RTN11P),y)
+ifeq ($(RTN14U)$(RTAC52U)$(RTAC51U)$(RTN11P)$(RTN54U),y)
 CFLAGS += -DRA_ESW
 endif
 
@@ -42,6 +42,10 @@ endif
 
 ifeq ($(RTCONFIG_DNSMASQ),y)
 CFLAGS += -DDNSMASQ
+endif
+
+ifeq ($(RTCONFIG_BWDPI),y)
+CFLAGS += -I$(TOP)/bwdpi/
 endif
 
 OBJS = httpd.o cgi.o ej.o 
@@ -101,6 +105,10 @@ endif
 ifeq ($(RTCONFIG_OPENVPN),y)
 OBJS += openvpn_options.o
 LIBS += -L$(TOP)/openssl -lssl -lcrypto
+endif
+
+ifeq ($(RTCONFIG_BWDPI),y)
+LIBS += -L$(TOP)/bwdpi -lbwdpi
 endif
 
 export CFLAGS

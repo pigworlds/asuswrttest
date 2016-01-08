@@ -14,6 +14,7 @@ endif
 
 ifeq ($(RTCONFIG_BCMARM),y)
 CFLAGS += $(EXTRA_FLAG)
+CFLAGS += -I$(SRCBASE)/common/include
 endif
 
 CFLAGS += -Wall -O

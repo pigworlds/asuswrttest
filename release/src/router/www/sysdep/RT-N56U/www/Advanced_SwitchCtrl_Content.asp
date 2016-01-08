@@ -23,7 +23,8 @@ var wireless = [<% wl_auth_list(); %>];	// [[MAC, associated, authorized], ...]
 
 function initial(){
 	show_menu();
-	if(based_modelid == "RT-AC52U" || based_modelid == "RT-N14U" || based_modelid == "RT-AC51U")
+	if(based_modelid == "RT-N14U" || based_modelid == "RT-N11P" ||
+	   based_modelid == "RT-AC52U" || based_modelid == "RT-AC51U")
 	{
 		inputCtrl(document.form.switch_ctrlrate_unknown_unicast, 0);
 		inputCtrl(document.form.switch_ctrlrate_unknown_multicast, 0);
@@ -142,7 +143,7 @@ function valid_form(){
           </td>
 				</tr>
       	<tr>
-      		<th>NAT Acceleration</th>
+      		<th><#NAT_Acceleration#></th>
           <td>
 						<select name="hwnat" class="input_option">
 							<option class="content_input_fd" value="0" <% nvram_match("hwnat", "0","selected"); %>><#WLANConfig11b_WirelessCtrl_buttonname#></option>

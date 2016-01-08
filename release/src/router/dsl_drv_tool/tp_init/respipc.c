@@ -53,11 +53,14 @@ extern void reload_dsl_setting(void);
 #ifdef RTCONFIG_DSL_TCLINUX
 extern void InitAutoDet(void);
 extern int HandleAutoDet(void);
+extern int HandleAdslEntry(void);
 extern int CommitAdslEntry(void);
 extern int GetDslPerf(void);
+extern int GetDmesg(char*);
 extern int AllLedOnOff(char *onoff);
 #ifdef RTCONFIG_VDSL
 extern void AddPtm(int idx, int ext_idx, int vlan_active, int vlan_id);
+extern int SetRmVlan(int);
 #endif
 #endif
 
@@ -345,6 +348,9 @@ int RcvMsgQ()
             mode = *pWord++;
             type = *pWord++;
             myprintf("SET MODE:%d %d\n",mode,type);
+#ifdef RTCONFIG_DSL_TCLINUX
+			HandleAdslEntry();
+#endif
             set_ret_mode = SetAdslMode(mode,1);
             set_ret_type = SetAdslType(type,1);
 #ifdef RTCONFIG_DSL_TCLINUX
@@ -385,6 +391,7 @@ int RcvMsgQ()
 			InitAutoDet();
 			send_buf.mtype=IPC_INIT_AUTO_DET;
 			strcpy(send_buf.mtext, "");
+			enable_polling();
 		}
 		else if (IPC_GET_AUTO_DET_RESULT == receive_buf.mtype)
 		{
@@ -436,6 +443,17 @@ int RcvMsgQ()
 			else
 				strcpy(send_buf.mtext, "Done");
 		}
+		else if (IPC_GET_DMESG == receive_buf.mtype)
+		{
+			int ret;
+			ret = GetDmesg(receive_buf.mtext);
+			enable_polling();
+			send_buf.mtype=IPC_GET_DMESG;
+			if(ret)
+				strcpy(send_buf.mtext, "FAIL");
+			else
+				strcpy(send_buf.mtext, "Done");
+		}
 #ifdef RTCONFIG_VDSL
 		else if (IPC_ADD_PTM == receive_buf.mtype)
 		{
@@ -453,6 +471,19 @@ int RcvMsgQ()
 			AddPtm(idx, ext_idx, vlan_active, vid);
 			send_buf.mtype=IPC_ADD_PTM;
 			strcpy(send_buf.mtext, "Done");
+		}
+		else if (IPC_SET_RMVLAN == receive_buf.mtype)
+		{
+			int ret, value;
+			value = (int)strtol(receive_buf.mtext, NULL, 10);
+			myprintf("Set value: %d\n", value);
+			ret = SetRmVlan(value);
+			enable_polling();
+			send_buf.mtype=IPC_SET_RMVLAN;
+			if(ret)
+				strcpy(send_buf.mtext, "FAIL");
+			else
+				strcpy(send_buf.mtext, "Done");
 		}
 #endif
 #endif

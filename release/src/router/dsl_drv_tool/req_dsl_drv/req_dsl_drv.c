@@ -107,6 +107,27 @@ int main(int argc, char* argv[])
 		send_buf.mtype=IPC_RELOAD_DSL_SETTING;
 		strcpy(send_buf.mtext,"dslsetting");;
 	}
+	else if (!strcmp(argv[1],"getdmesg"))
+	{
+		send_buf.mtype = IPC_GET_DMESG;
+		memset(send_buf.mtext, 0, MAX_IPC_MSG_BUF);
+		if(argc == 3 && strlen(argv[2]) < MAX_IPC_MSG_BUF)
+			strcpy(send_buf.mtext, argv[2]);
+	}
+#ifdef RTCONFIG_DSL_TCLINUX
+	else if (strcmp(argv[1],"rmvlan") == 0)
+	{
+		send_buf.mtype=IPC_SET_RMVLAN;
+		if(argc == 3 && strlen(argv[2]) < MAX_IPC_MSG_BUF) {
+			memset(send_buf.mtext, 0, MAX_IPC_MSG_BUF);
+			strcpy(send_buf.mtext, argv[2]);
+		}
+		else {
+			printf("%s %d: Command error\n", __FUNCTION__, __LINE__);
+			goto delete_msgq_and_quit;
+		}
+	}
+#endif
 
 	if(msgsnd(msqid_to_d,&send_buf,MAX_IPC_MSG_BUF,0)<0)
 	{

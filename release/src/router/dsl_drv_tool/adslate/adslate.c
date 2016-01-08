@@ -434,7 +434,13 @@ void adsl_ate(int argc, char* argv[])
 	else if (!strcmp(argv[1],"led"))
 	{
 		send_buf.mtype = IPC_ATE_LED;
-		strcpy(send_buf.mtext, argv[2]);
+		if(argc == 3 && strlen(argv[2]) < MAX_IPC_MSG_BUF) {
+				strcpy(send_buf.mtext, argv[2]);
+		}
+		else {
+			myprintf("%s %d: Command error\n", __FUNCTION__, __LINE__);
+			goto delete_msgq_and_quit;
+		}
 		myprintf("IPC_ATE_LED\n");
 	}
 	else if (!strcmp(argv[1],"showsnr"))

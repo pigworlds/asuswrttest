@@ -64,6 +64,7 @@ function showCountryList(o){
 	var code = "";
 	var showed_country = "";
 	code +="<select	name='country' class='input_option' onchange='showAllList(this.value);'>";
+	code +="<option value='default'><#Select_menu_default#></option>";
 	for(var i = 0; i < ISP_List.length; i++){
 		if(showed_country != ISP_List[i][1]){
 			code +="<option value='"+ISP_List[i][1];
@@ -322,7 +323,7 @@ function QIS_menual_setting_load_body() {
 	}
 
 	if(country_code=="")
-	    country_code = "Australia";
+	    country_code = "default";
 	showCountryList(country_code);
 	showAllList(country_code);
 }
@@ -342,10 +343,15 @@ function submit_page(){
 
 function btnNext() {
 	var connection_type = 0;
-  // Manual Setting
-  if ( document.form.country.value=='NO'|| document.form.ISP.value=='NO' ){
+	// Manual Setting
+	if(document.form.country.value=='default'){
+		alert("<#JS_fieldblank#>");
+		document.form.country.focus();
+		return false;           
+        }
+	else if ( document.form.country.value=='NO'|| document.form.ISP.value=='NO' ){
 
-   	var tmp_vpi = document.form.user_vpi.value;
+		var tmp_vpi = document.form.user_vpi.value;
 		var tmp_vci = document.form.user_vci.value;
 
 		if(tmp_vpi == ""){
@@ -394,8 +400,8 @@ function btnNext() {
 		document.form.dsltmp_cfg_iptv_idx.value = "";
 		document.form.dsltmp_cfg_ispname.value = "";
 		document.form.dsltmp_cfg_country.value = "";
-  }
-  else {
+	}
+	else {
 		var isp_idx = 0
 		if (selected_country == "Russia") {
 			isp_idx = document.getElementById("ISPSVC").value;

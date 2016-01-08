@@ -47,7 +47,7 @@ enum {
 	gpio_out,
 };
 
-#if defined(RTN14U) || defined(RTAC51U)
+#if defined(RTN14U) || defined(RTAC51U) ||defined(RTN54U)
 /// RT-N14U mapping
 enum {
 	WAN_PORT=0,
@@ -71,6 +71,8 @@ enum {
 	CPU_PORT=6,
 	P7_PORT=7,
 };
+#define PORT_W4321
+
 #elif defined(RTN11P)
 /// RT-N11P mapping
 enum {
@@ -164,9 +166,10 @@ static unsigned int get_wan_port_mask(int wan_unit)
  */
 static unsigned int get_lan_port_mask(void)
 {
+	int sw_mode = nvram_get_int("sw_mode");
 	unsigned int m = nvram_get_int("lanports_mask");
 
-	if (nvram_get_int("sw_mode") == SW_MODE_AP)
+	if (sw_mode == SW_MODE_AP)
 		m = 0x1F;
 
 	return m;
@@ -413,7 +416,7 @@ int mt7620_vlan_unset(int vid)
 }
 
 
-#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P)
+#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN54U) 
 /**
  * Get TX or RX byte count of WAN and WANS_LAN
  * @unit:	WAN unit.
@@ -496,12 +499,11 @@ static void build_wan_lan_mask(int stb)
 	int sw_mode = nvram_get_int("sw_mode");
 	char prefix[8], nvram_ports[20];
 
-	if (sw_mode == SW_MODE_AP) {
+	if (sw_mode == SW_MODE_AP || sw_mode == SW_MODE_REPEATER)
 		wanscap_lan = 0;
 
-		if (stb == 100)	/* Don't create WAN port. */
-			stb = 7;
-	}
+	if (stb == 100 && (sw_mode == SW_MODE_AP || __is_mediabridge_mode(sw_mode)))
+		stb = 7;	/* Don't create WAN port. */
 
 	if (wanscap_lan && (wans_lanport < 0 || wans_lanport > 4)) {
 		_dprintf("%s: invalid wans_lanport %d!\n", __func__, wans_lanport);
@@ -563,7 +565,7 @@ static void config_mt7620_esw_LANWANPartition(int type)
 	if (switch_init() < 0)
 		return;
 
-	if (sw_mode == SW_MODE_AP)
+	if (sw_mode == SW_MODE_AP || sw_mode == SW_MODE_REPEATER)
 		wanscap_lan = 0;
 
 	if (wanscap_lan && (wans_lanport < 0 || wans_lanport > 4)) {
@@ -610,7 +612,7 @@ static void config_mt7620_esw_LANWANPartition(int type)
 	__create_port_map(0xE0 | lan_mask, portmap);
 	mt7620_vlan_set(0, 1, portmap, 0);
 
-	if (sw_mode != SW_MODE_AP) {
+	if (sw_mode == SW_MODE_ROUTER) {
 		switch (wanscap_wanlan) {
 		case WANSCAP_WAN | WANSCAP_LAN:
 			//WAN: P7, P6, wan_mask
@@ -766,7 +768,7 @@ static void set_Vlan_PRIO(int prio)
 	nvram_set("vlan_prio", tmp);
 }
 
-//convert port mapping from  RT-N56U   to   RT-N14U / RT-AC52U / RT-AC51U (MT7620)
+//convert port mapping from  RT-N56U   to   RT-N14U / RT-AC52U / RT-AC51U (MT7620) /RT-N54U
 static int convert_port_bitmask(int orig)
 {
 	int i, mask, result;
@@ -795,7 +797,7 @@ static void initialize_Vlan(int stb_bitmask)
 	if (switch_init() < 0)
 		return;
 
-	if (sw_mode == SW_MODE_AP)
+	if (sw_mode == SW_MODE_AP || sw_mode == SW_MODE_REPEATER)
 		wanscap_lan = 0;
 
 	if (wanscap_lan && (wans_lanport < 0 || wans_lanport > 4)) {
@@ -845,7 +847,7 @@ static void initialize_Vlan(int stb_bitmask)
 	switch_fini();
 }
 
-#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P)
+#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN54U)
 static void fix_up_hwnat_for_wifi(void)
 {
 	int i, j, m, r, v, isp_profile_hwnat_not_safe = 0;
@@ -853,7 +855,7 @@ static void fix_up_hwnat_for_wifi(void)
 	char bss[] = "wl0.1_bss_enabledXXXXXX";
 	char mode_x[] = "wl0_mode_xXXXXXX";
 	struct wifi_if_vid_s w = {
-#if defined(RTAC52U) || defined(RTAC51U)
+#if defined(RTAC52U) || defined(RTAC51U) || defined(RTN54U)
 		.wl_vid = { 21, 43 },		/* DP_RA0  ~ DP_RA3:  21, 22, 23, 24;	DP_RAI0  ~ DP_RAI3:  43, 44, 45, 46 */
 		.wl_wds_vid = { 37, 59 },	/* DP_WDS0 ~ DP_WDS3: 37, 38, 39, 40;	DP_WDSI0 ~ DP_WDSI3: 59, 60, 61, 62 */
 #elif defined(RTN14U) || defined(RTN11P)
@@ -1209,7 +1211,7 @@ ralink_gpio_write_bit(int idx, int value)
 	}	
 	else if (idx==72) 
 	{              
-#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) //wlan led
+#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN54U) //wlan led
 		req=RALINK_ATE_GPIO72;
 		idx=value;
 #else
@@ -1299,7 +1301,7 @@ ralink_gpio_init(unsigned int idx, int dir)
 	int fd, req;
 	unsigned long arg;
 	
-#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P)
+#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P)  || defined(RTN54U)
 	if(idx==72) //discard gpio72
 		return 0;
 #endif
@@ -1486,20 +1488,20 @@ void ATE_mt7620_esw_port_status(void)
 		pS.speed[i] = (value >> 2) & 0x3;
 	}
 
-#if defined(RTAC52U)
+#if defined(PORT_W4321)
 	sprintf(buf, "W0=%C;L4=%C;L3=%C;L2=%C;L1=%C;",
-		(pS.link[0] == 1) ? (pS.speed[0] == 2) ? 'G' : 'M': 'X',
-		(pS.link[1] == 1) ? (pS.speed[1] == 2) ? 'G' : 'M': 'X',
-		(pS.link[2] == 1) ? (pS.speed[2] == 2) ? 'G' : 'M': 'X',
-		(pS.link[4] == 1) ? (pS.speed[4] == 2) ? 'G' : 'M': 'X',
-		(pS.link[3] == 1) ? (pS.speed[3] == 2) ? 'G' : 'M': 'X');
+		(pS.link[ WAN_PORT] == 1) ? (pS.speed[ WAN_PORT] == 2) ? 'G' : 'M': 'X',
+		(pS.link[LAN4_PORT] == 1) ? (pS.speed[LAN4_PORT] == 2) ? 'G' : 'M': 'X',
+		(pS.link[LAN3_PORT] == 1) ? (pS.speed[LAN3_PORT] == 2) ? 'G' : 'M': 'X',
+		(pS.link[LAN2_PORT] == 1) ? (pS.speed[LAN2_PORT] == 2) ? 'G' : 'M': 'X',
+		(pS.link[LAN1_PORT] == 1) ? (pS.speed[LAN1_PORT] == 2) ? 'G' : 'M': 'X');
 #else
 	sprintf(buf, "W0=%C;L1=%C;L2=%C;L3=%C;L4=%C;",
-		(pS.link[0] == 1) ? (pS.speed[0] == 2) ? 'G' : 'M': 'X',
-		(pS.link[1] == 1) ? (pS.speed[1] == 2) ? 'G' : 'M': 'X',
-		(pS.link[2] == 1) ? (pS.speed[2] == 2) ? 'G' : 'M': 'X',
-		(pS.link[3] == 1) ? (pS.speed[3] == 2) ? 'G' : 'M': 'X',
-		(pS.link[4] == 1) ? (pS.speed[4] == 2) ? 'G' : 'M': 'X');
+		(pS.link[ WAN_PORT] == 1) ? (pS.speed[ WAN_PORT] == 2) ? 'G' : 'M': 'X',
+		(pS.link[LAN1_PORT] == 1) ? (pS.speed[LAN1_PORT] == 2) ? 'G' : 'M': 'X',
+		(pS.link[LAN2_PORT] == 1) ? (pS.speed[LAN2_PORT] == 2) ? 'G' : 'M': 'X',
+		(pS.link[LAN3_PORT] == 1) ? (pS.speed[LAN3_PORT] == 2) ? 'G' : 'M': 'X',
+		(pS.link[LAN4_PORT] == 1) ? (pS.speed[LAN4_PORT] == 2) ? 'G' : 'M': 'X');
 #endif
 	puts(buf);
 

@@ -1279,9 +1279,7 @@ function refresh_captcha(){
 						  </tr>						  				
 					  				
 						  <tr>
-							<th width="30%" style="font-family: Calibri;font-weight: bolder;">
-								Folder
-							</th>
+							<th width="30%" style="font-family: Calibri;font-weight: bolder;"><#routerSync_folder#></th>
 							<td>
 			          <input type="text" id="PATH" class="input_30_table" style="height: 23px;" name="cloud_dir" value="" onclick=""/>
 		  					<input name="button" type="button" class="button_gen" onclick="get_disk_tree();" value="Browser"/>
@@ -1290,9 +1288,7 @@ function refresh_captcha(){
 						  </tr>
 
 						  <tr>
-							<th width="30%" style="font-family: Calibri;font-weight: bolder;">
-								Rule
-							</th>
+							<th width="30%" style="font-family: Calibri;font-weight: bolder;"><#Cloudsync_Rule#></th>
 							<td>
 								<select name="cloud_rule" class="input_option">
 									<option value="0"><#Cloudsync_Rule_sync#></option>
@@ -1302,9 +1298,7 @@ function refresh_captcha(){
 							</td>
 						  </tr>
 						  <tr>
-							<th width="30%" style="font-family: Calibri;font-weight: bolder;">
-								Security code
-							</th>
+							<th width="30%" style="font-family: Calibri;font-weight: bolder;"><#routerSync_Security_code#></th>
 							<td>
 								<div style="color:#FC0;"><input id="security_code_field" name="security_code_field" type="text" maxlength="6" class="input_32_table" style="height: 23px;width:100px;margin-right:10px;" >OTP Authentication</div>
 							</td>

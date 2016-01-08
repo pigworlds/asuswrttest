@@ -9,15 +9,13 @@
 #include <errno.h>
 #include <unistd.h>
 #include <signal.h>
-#include <linux/if_packet.h>
-#include <linux/socket.h>
-#include <linux/net.h>
-#include <linux/if_ether.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <net/if.h>
+#include <net/ethernet.h>
+#include <netpacket/packet.h>
 #include "basedef.h"
 #include "string.h"
 #include <fcntl.h>
@@ -33,6 +31,7 @@ static BOOLEAN m_AdaptOpened;
 
 #include "../msg_define.h"
 #include <shared.h> //Ren
+#undef CONFIG_BCMWL5
 #include "shutils.h"
 #include <stdarg.h>
 #include "bcmnvram.h"
@@ -82,8 +81,11 @@ extern void add_rc_support(char *feature);
 #ifdef RTCONFIG_DSL_TCLINUX
 int HandleInfoAdsl(void);
 int tftp_get_file(char* remote_full_path, char* local_full_path);
+int GetDmesg(char *params);
+int getModulation(void);
 #ifdef RTCONFIG_VDSL
 void AddPtm(int idx, int ext_idx, int vlan_active, int vlan_id);
+int SetRmVlan(int value);
 #endif
 #endif
 
@@ -151,6 +153,9 @@ typedef struct {
 	char vdslrxautogainctrl[8];
 	char vdsltxpowergainoffset[8];
 	char vdsluppowerbackoff[8];
+	char transmode[8];
+	char vdslprofile[8];
+	char ginpactive[8];
 } ADSL_ENTRY_DATA;
 
 typedef struct {
@@ -902,8 +907,8 @@ void tok_assert_buf(char* tok_buf, char* tok_buf_expected)
 
 int HandleAdslShowLan(ADSL_LAN_IP* pLanIp)
 {
-    declare_resp_handling_vars(pRespBuf, pRespLen, RespPktNum, tok, pRespStr);
 #ifndef RTCONFIG_DSL_TCLINUX
+    declare_resp_handling_vars(pRespBuf, pRespLen, RespPktNum, tok, pRespStr);
     SendCmdAndWaitResp(pRespBuf, MAX_RESP_BUF_SIZE, pRespLen, MAX_RESP_BUF_NUM, &RespPktNum, m_AdslMacAddr,
         MAC_RTS_CONSOLE_CMD, (PUCHAR)SHOW_LAN, GET_LEN(SHOW_LAN), 0);
     int i;
@@ -931,33 +936,33 @@ int HandleAdslShowLan(ADSL_LAN_IP* pLanIp)
         }
     }
 #else
-	int i;
-	char tccmd[MAX_RESP_BUF_SIZE] = {0};
+	//int i;
+	//char tccmd[MAX_RESP_BUF_SIZE] = {0};
 
-	sprintf(tccmd, "tcapi get Info_Ether ip\x0d\x0a");
-	SendCmdAndWaitResp(pRespBuf, MAX_RESP_BUF_SIZE, pRespLen, MAX_RESP_BUF_NUM, &RespPktNum, m_AdslMacAddr,
-		MAC_RTS_CONSOLE_CMD, (PUCHAR)tccmd, GET_LEN(tccmd), 0);
-	for(i=0; i<RespPktNum; i++)
-	{
-		scanner_set(GET_RESP_STR(pRespBuf[i]), GET_RESP_LEN(*pRespLen[i]));
-		while (1)
-		{
-			tok = scanner();
-			if (tok == TOKEN_EOF)
-			{
-				break;
-			}
-			if (tok == TOKEN_NUMBER_LITERAL)
-			{
-				pRespStr = scanner_get_str();
-				if(inet_addr(pRespStr) < 0)
+	//sprintf(tccmd, "tcapi get Info_Ether ip\x0d\x0a");
+	//SendCmdAndWaitResp(pRespBuf, MAX_RESP_BUF_SIZE, pRespLen, MAX_RESP_BUF_NUM, &RespPktNum, m_AdslMacAddr,
+		//MAC_RTS_CONSOLE_CMD, (PUCHAR)tccmd, GET_LEN(tccmd), 0);
+	//for(i=0; i<RespPktNum; i++)
+	//{
+		//scanner_set(GET_RESP_STR(pRespBuf[i]), GET_RESP_LEN(*pRespLen[i]));
+		//while (1)
+		//{
+			//tok = scanner();
+			//if (tok == TOKEN_EOF)
+			//{
+				//break;
+			//}
+			//if (tok == TOKEN_NUMBER_LITERAL)
+			//{
+				//pRespStr = scanner_get_str();
+				//if(inet_addr(pRespStr) == INADDR_NONE)
 					strcpymax(pLanIp->IpAddr, DEFAULT_IPADDR, sizeof(pLanIp->IpAddr));
-				else
-					strcpymax(pLanIp->IpAddr, pRespStr, sizeof(pLanIp->IpAddr));
+				//else
+					//strcpymax(pLanIp->IpAddr, pRespStr, sizeof(pLanIp->IpAddr));
 				eval("route", "add", "-host", pLanIp->IpAddr, "dev", "vlan2");
-			}
-		}
-	}
+			//}
+		//}
+	//}
 #endif
     return 0;
 }
@@ -1101,8 +1106,18 @@ int SetAdslMode(int EnumAdslModeValue, int FromAteCmd)
 
 int SetAdslType(int EnumAdslTypeValue, int FromAteCmd)
 {
-#ifdef RTCONFIG_DSL_ANNEX_B /* Paul add 2012/8/22, for Annex B if set adsltype 0 again will change to Annex A. Which is a bug with ADSL driver, so just skip. */
-	return 0;
+#ifdef RTCONFIG_DSL_ANNEX_B
+	/* Renjie: for old users, their setting is still '0' for Annex B. But it is wrong value.
+	So we change it to EnumAdslTypeB (5). Because there are some users need to use Annex B only mode to get better stability.
+	If user restore to default, the value will be EnumAdslTypeB_J_M (6).
+	*/
+	if( (EnumAdslTypeValue != EnumAdslTypeB) && (EnumAdslTypeValue != EnumAdslTypeB_J_M) )
+	{
+		char tmp_val[2] = {0};
+		sprintf(tmp_val, "%d", EnumAdslTypeB);
+		EnumAdslTypeValue = EnumAdslTypeB;
+		nvram_set("dslx_annex", tmp_val);
+	}
 #endif
 #ifndef RTCONFIG_DSL_TCLINUX
     declare_resp_handling_vars(pRespBuf, pRespLen, RespPktNum, tok, pRespStr);
@@ -2548,12 +2563,16 @@ void UpdateAllAdslSts(unsigned int cnt, int from_ate)
 			nvram_adslsts("init"); //Paul modify 2012/6/19
 			nvram_adslsts_detail("init");
     }
-    //else if (strcmp(m_SysSts.LineState,"3") == 0) //Paul comment 2012/11/21 for now
-    else
-    {
-			nvram_adslsts("up");
-			nvram_adslsts_detail("up");
-    }
+	else if (strcmp(m_SysSts.LineState,"3") == 0)
+	{
+		nvram_adslsts("up");
+		nvram_adslsts_detail("up");
+	}
+	else
+	{
+		nvram_adslsts("down");
+		nvram_adslsts_detail("down");
+	}
 
 	if (m_DbgOutputRedirectToFile) return;
 
@@ -2630,6 +2649,20 @@ void UpdateAllAdslSts(unsigned int cnt, int from_ate)
     fclose(fp);
 #else
 	HandleInfoAdsl();
+
+	//If Opmode is G.DMT, modify modulation type from auto to g.dmt
+	if (strstr(m_InfoAdsl.linestate, "up") && strstr(m_InfoAdsl.opmode,"G.DMT")) {
+		if(nvram_match("dslx_modulation", "5")) {	//multiple mode
+			nvram_set("dslx_modulation", "2");	//G.dmt
+			if(nvram_match("dslx_annex", "6") && strstr(m_InfoAdsl.adsltype, "ANNEX_B")) {	//set bjm ant sync-up with b
+				nvram_set("dslx_annex", "5");	//b
+			}
+			nvram_commit();
+			reload_dsl_setting();
+			return;
+		}
+	}
+
 	//may change to m_InfoAdsl.adsluptime
 	if (strcmp(m_InfoAdsl.linestate,"up") == 0 && uptime_Saved == 0)
 	{
@@ -3038,15 +3071,17 @@ int DelAllPvc()
 		MAC_RTS_CONSOLE_CMD, (PUCHAR)tccmd, GET_LEN(tccmd), 1);
 
 #ifdef RTCONFIG_VDSL
+	sleep(2);
 	memset(tccmd, 0, sizeof(tccmd));
-	for(i=8; i<10; i++)
-		sprintf(tccmd + strlen(tccmd), "tcapi set Wan_PVC%d Active No; tcapi commit Wan_PVC%d; ", i, i);
+	for(i=0; i<MAX_PVC; i++)
+		sprintf(tccmd + strlen(tccmd), "tcapi set WanExt_PVC8e%d Active No; ", i);
+	strcat(tccmd, "tcapi set Wan_PVC8 Active No; tcapi commit Wan_PVC8; ");
 	strcat(tccmd, "\x0d\x0a");
 
 	SendCmdAndWaitResp(pRespBuf, MAX_RESP_BUF_SIZE, pRespLen, MAX_RESP_BUF_NUM, &RespPktNum, m_AdslMacAddr,
 		MAC_RTS_CONSOLE_CMD, (PUCHAR)tccmd, GET_LEN(tccmd), 1);
 #endif
-
+	sleep(2);
 	return 0;
 #endif
 }
@@ -3510,14 +3545,14 @@ int AddPvc(int idx, int vlan_id, int vpi, int vci, int encap, int mode)
 
 	switch(mode) {
 		case 1://pppoa
-			sprintf(tccmd + strlen(tccmd), "tcapi set Wan_PVC%d ISP 2; ", idx);
+			sprintf(tccmd + strlen(tccmd), "tcapi set Wan_PVC%d ISP 4; ", idx);
 			if(encap)
 				sprintf(tccmd + strlen(tccmd), "tcapi set Wan_PVC%d ENCAP \"PPPoA VC-Mux\"; ", idx);
 			else
 				sprintf(tccmd + strlen(tccmd), "tcapi set Wan_PVC%d ENCAP \"PPPoA LLC\"; ", idx);
 			break;
 		case 2://ipoa
-			sprintf(tccmd + strlen(tccmd), "tcapi set Wan_PVC%d ISP 1; ", idx);
+			sprintf(tccmd + strlen(tccmd), "tcapi set Wan_PVC%d ISP 5; ", idx);
 			if(encap)
 				sprintf(tccmd + strlen(tccmd), "tcapi set Wan_PVC%d ENCAP \"1483 Routed IP VC-Mux\"; ", idx);
 			else
@@ -3535,6 +3570,7 @@ int AddPvc(int idx, int vlan_id, int vpi, int vci, int encap, int mode)
 	strcat(tccmd, "\x0d\x0a");
 	SendCmdAndWaitResp(pRespBuf, MAX_RESP_BUF_SIZE, pRespLen, MAX_RESP_BUF_NUM, &RespPktNum, m_AdslMacAddr,
 		MAC_RTS_CONSOLE_CMD, (PUCHAR)tccmd, GET_LEN(tccmd), 1);
+	sleep(1);
 	return 0;
 #endif
 }
@@ -4080,6 +4116,9 @@ int main(int argc, char* argv[])
 #else
 		memset(&m_AdslEntry, 0, sizeof(m_AdslEntry));
 		memset(&m_InfoAdsl, 0, sizeof(m_InfoAdsl));
+#ifdef RTCONFIG_VDSL
+		SetRmVlan(nvram_get_int("dslx_rmvlan"));
+#endif
 #endif
 		WriteAdslFwInfoToFile();
 		SetPollingTimer();
@@ -4419,6 +4458,7 @@ int tftp_get_file(char* remote_full_path, char* local_full_path)
 		init_resp_buf (pRespBuf, pRespLen);
 		SendCmdAndWaitResp(pRespBuf, MAX_RESP_BUF_SIZE, pRespLen, MAX_RESP_BUF_NUM, &RespPktNum, m_AdslMacAddr,
 			MAC_RTS_CONSOLE_CMD, (PUCHAR)tccmd, GET_LEN(tccmd), 1);
+		sleep(1);
 	}
 
 	pch = strrchr(remote_full_path, '/');
@@ -4427,6 +4467,7 @@ int tftp_get_file(char* remote_full_path, char* local_full_path)
 	else
 		strncpy(remote_filename, remote_full_path, sizeof(remote_filename));
 
+	unlink(local_full_path);
 	ret = eval("tftp", "-g", "-r", remote_filename, "-l", local_full_path, m_IpAddr.IpAddr);
 	return ret;
 }
@@ -4536,6 +4577,21 @@ int HandleAdslEntry(void)
 				if(pch)
 					strncpy(m_AdslEntry.vdsluppowerbackoff, pch+1, strcspn(pch+1, "\n"));
 			}
+			else if(!strncmp(buf, "TransMode", 6)) {
+				pch = strchr(buf, '=');
+				if(pch)
+					strncpy(m_AdslEntry.transmode, pch+1, strcspn(pch+1, "\n"));
+			}
+			else if(!strncmp(buf, "VdslProfile", 6)) {
+				pch = strchr(buf, '=');
+				if(pch)
+					strncpy(m_AdslEntry.vdslprofile, pch+1, strcspn(pch+1, "\n"));
+			}
+			else if(!strncmp(buf, "GINPActive", 6)) {
+				pch = strchr(buf, '=');
+				if(pch)
+					strncpy(m_AdslEntry.ginpactive, pch+1, strcspn(pch+1, "\n"));
+			}
 			memset(buf, 0, sizeof(buf));
 		}
 		fclose(fp);
@@ -4560,24 +4616,8 @@ int CommitAdslEntry(void)
 		SendCmdAndWaitResp(pRespBuf, MAX_RESP_BUF_SIZE, pRespLen, MAX_RESP_BUF_NUM, &RespPktNum, m_AdslMacAddr,
 			MAC_RTS_CONSOLE_CMD, (PUCHAR)tccmd, GET_LEN(tccmd), 1);
 		m_AdslCommitFlag = 0;
+		sleep(5);
 	}
-	return 0;
-}
-
-int CommitWanPVC(void)
-{
-	PUCHAR pRespBuf[MAX_RESP_BUF_NUM];
-	PUSHORT pRespLen[MAX_RESP_BUF_NUM];
-	USHORT RespPktNum;
-	init_resp_buf (pRespBuf, pRespLen);
-
-	char tccmd[MAX_RESP_BUF_SIZE] = {0};
-
-	memset(tccmd, 0, sizeof(tccmd));
-	strcpy(tccmd, "tcapi commit Wan\x0d\x0a");
-	SendCmdAndWaitResp(pRespBuf, MAX_RESP_BUF_SIZE, pRespLen, MAX_RESP_BUF_NUM, &RespPktNum, m_AdslMacAddr,
-		MAC_RTS_CONSOLE_CMD, (PUCHAR)tccmd, GET_LEN(tccmd), 1);
-
 	return 0;
 }
 
@@ -4729,6 +4769,116 @@ int AllLedOnOff(char *onoff)
 	return 0;
 }
 
+int GetDmesg(char *params)
+{
+	char tccmd[MAX_RESP_BUF_SIZE];
+	PUCHAR pRespBuf[MAX_RESP_BUF_NUM];
+	PUSHORT pRespLen[MAX_RESP_BUF_NUM];
+	USHORT RespPktNum;
+	init_resp_buf (pRespBuf, pRespLen);
+
+	memset(tccmd, 0, sizeof(tccmd));
+	strcat(tccmd, "w ghs show opm; w ghs show vendor; w tcif show fw; ");
+	if(params && strlen(params))
+		sprintf(tccmd+strlen(tccmd), "dmesg %s", params);
+	else
+		strcat(tccmd, "dmesg");
+	sprintf(tccmd+strlen(tccmd), " > %s; ", REMOTE_FILE_DMESG);
+	strcat(tccmd, "\x0d\x0a");
+	SendCmdAndWaitResp(pRespBuf, MAX_RESP_BUF_SIZE, pRespLen, MAX_RESP_BUF_NUM, &RespPktNum, m_AdslMacAddr,
+		MAC_RTS_CONSOLE_CMD, (PUCHAR)tccmd, GET_LEN(tccmd), 1);
+	sleep(1);
+	return tftp_get_file(REMOTE_FILE_DMESG, LOCAL_FILE_DMESG);
+}
+
+int getModulation(void)
+{
+	int mode = DSL_MODE_NOT_UP;
+
+	if(nvram_match("dsltmp_adslsyncsts", "up"))
+	{
+		if(strstr(m_InfoAdsl.opmode, "ANSI T1.413"))
+		{
+			mode = DSL_MODE_ADSL_ANSI;
+		}
+		else if(strstr(m_InfoAdsl.opmode, "ITU G.992.1(G.DMT)"))
+		{
+			mode = DSL_MODE_ADSL_OPEN_GDMT;
+		}
+		else if(strstr(m_InfoAdsl.opmode, "ITU G.992.2(G.Lite)"))
+		{
+			mode = DSL_MODE_ADSL_OPEN_GLITE;
+		}
+		else if(strstr(m_InfoAdsl.opmode, "ITU G.992.3(ADSL2)"))
+		{
+			mode = DSL_MODE_ADSL2;
+		}
+		else if(strstr(m_InfoAdsl.opmode, "ITU G.992.5(ADSL2PLUS)"))
+		{
+			mode = DSL_MODE_ADSL2PLUS;
+		}
+		else if(strstr(m_InfoAdsl.opmode, "ITU G.993.2(VDSL2)"))
+		{
+			mode = DSL_MODE_VDSL2;
+		}
+	}
+	else
+	{
+		mode = DSL_MODE_NOT_UP;
+	}
+
+	return mode;
+}
+
+int SetTransMode(char* transmode, int FromAteCmd)
+{
+	PUCHAR pRespBuf[MAX_RESP_BUF_NUM];
+	PUSHORT pRespLen[MAX_RESP_BUF_NUM];
+	USHORT RespPktNum;
+	init_resp_buf (pRespBuf, pRespLen);
+
+	if(!transmode) return -1;
+
+	char tccmd[MAX_RESP_BUF_SIZE] = {0};
+
+	if(strncmp(m_AdslEntry.transmode, transmode, 3))
+	{
+		myprintf("%s [%s]!=[%s]\n", __FUNCTION__, m_AdslEntry.transmode, transmode);
+		memset(tccmd, 0, sizeof(tccmd));
+		sprintf(tccmd, "tcapi set Adsl_Entry TransMode %s\x0d\x0a", transmode);
+		SendCmdAndWaitResp(pRespBuf, MAX_RESP_BUF_SIZE, pRespLen, MAX_RESP_BUF_NUM, &RespPktNum, m_AdslMacAddr,
+			MAC_RTS_CONSOLE_CMD, (PUCHAR)tccmd, GET_LEN(tccmd), 1);
+		m_AdslCommitFlag = 1;
+	}
+	return 0;
+}
+
+int SetGinp(int GinpActive, int FromAteCm)
+{
+	PUCHAR pRespBuf[MAX_RESP_BUF_NUM];
+	PUSHORT pRespLen[MAX_RESP_BUF_NUM];
+	USHORT RespPktNum;
+	init_resp_buf (pRespBuf, pRespLen);
+
+	char tccmd[MAX_RESP_BUF_SIZE] = {0};
+	char szValue[4] = {0};
+
+	if(GinpActive)
+		strncpy(szValue, "Yes", sizeof(szValue));
+	else
+		strncpy(szValue, "No", sizeof(szValue));
+
+	if(strcmp(m_AdslEntry.ginpactive, szValue))
+	{
+		myprintf("%s [%s]!=[%s]\n", __FUNCTION__, m_AdslEntry.ginpactive, szValue);
+		memset(tccmd, 0, sizeof(tccmd));
+		sprintf(tccmd, "tcapi set Adsl_Entry GINPActive %s\x0d\x0a", szValue);
+		SendCmdAndWaitResp(pRespBuf, MAX_RESP_BUF_SIZE, pRespLen, MAX_RESP_BUF_NUM, &RespPktNum, m_AdslMacAddr,
+			MAC_RTS_CONSOLE_CMD, (PUCHAR)tccmd, GET_LEN(tccmd), 1);
+		m_AdslCommitFlag = 1;
+	}
+}
+
 #ifdef RTCONFIG_VDSL
 void AddPtm(int idx, int ext_idx, int vlan_active, int vlan_id)
 {
@@ -4748,6 +4898,7 @@ void AddPtm(int idx, int ext_idx, int vlan_active, int vlan_id)
 	strcat(tccmd, "\x0d\x0a");
 	SendCmdAndWaitResp(pRespBuf, MAX_RESP_BUF_SIZE, pRespLen, MAX_RESP_BUF_NUM, &RespPktNum, m_AdslMacAddr,
 		MAC_RTS_CONSOLE_CMD, (PUCHAR)tccmd, GET_LEN(tccmd), 1);
+	sleep(1);
 }
 
 int SetVdslTargetSNRM(int SNRMValue, int FromAteCmd)
@@ -4844,44 +4995,44 @@ int SetVdslUpPowerBackOff(char *VdslUpPowerBackOff, int FromAteCm)
 	return 0;
 }
 
-int getModulation(void)
+int SetVdslProfile(int VdslProfile, int FromAteCm)
 {
-	int mode = DSL_MODE_NOT_UP;
+	PUCHAR pRespBuf[MAX_RESP_BUF_NUM];
+	PUSHORT pRespLen[MAX_RESP_BUF_NUM];
+	USHORT RespPktNum;
+	init_resp_buf (pRespBuf, pRespLen);
 
-	if(nvram_match("dsltmp_adslsyncsts", "up"))
-	{
-		if(strstr(m_InfoAdsl.opmode, "ANSI T1.413"))
-		{
-			mode = DSL_MODE_ADSL_ANSI;
-		}
-		else if(strstr(m_InfoAdsl.opmode, "ITU G.992.1(G.DMT)"))
-		{
-			mode = DSL_MODE_ADSL_OPEN_GDMT;
-		}
-		else if(strstr(m_InfoAdsl.opmode, "ITU G.992.2(G.Lite)"))
-		{
-			mode = DSL_MODE_ADSL_OPEN_GLITE;
-		}
-		else if(strstr(m_InfoAdsl.opmode, "ITU G.992.3(ADSL2)"))
-		{
-			mode = DSL_MODE_ADSL2;
-		}
-		else if(strstr(m_InfoAdsl.opmode, "ITU G.992.5(ADSL2PLUS)"))
-		{
-			mode = DSL_MODE_ADSL2PLUS;
-		}
-		else if(strstr(m_InfoAdsl.opmode, "ITU G.993.2(VDSL2)"))
-		{
-			mode = DSL_MODE_VDSL2;
-		}
-	}
-	else
-	{
-		mode = DSL_MODE_NOT_UP;
-	}
+	char tccmd[MAX_RESP_BUF_SIZE] = {0};
+	char szValue[8] = {0};
 
-	return mode;
+	sprintf(szValue, "%d", VdslProfile);
+
+	if(strcmp(m_AdslEntry.vdslprofile, szValue))
+	{
+		myprintf("%s [%s]!=[%s]\n", __FUNCTION__, m_AdslEntry.vdslprofile, szValue);
+		memset(tccmd, 0, sizeof(tccmd));
+		sprintf(tccmd, "tcapi set Adsl_Entry VdslProfile %s\x0d\x0a", szValue);
+		SendCmdAndWaitResp(pRespBuf, MAX_RESP_BUF_SIZE, pRespLen, MAX_RESP_BUF_NUM, &RespPktNum, m_AdslMacAddr,
+			MAC_RTS_CONSOLE_CMD, (PUCHAR)tccmd, GET_LEN(tccmd), 1);
+		m_AdslCommitFlag = 1;
+	}
+	return 0;
 }
 
-#endif
-#endif
+int SetRmVlan(int value)
+{
+	PUCHAR pRespBuf[MAX_RESP_BUF_NUM];
+	PUSHORT pRespLen[MAX_RESP_BUF_NUM];
+	USHORT RespPktNum;
+	init_resp_buf (pRespBuf, pRespLen);
+
+	char tccmd[MAX_RESP_BUF_SIZE] = {0};
+
+	sprintf(tccmd, "echo %d >/proc/tc3162/rmvlan\x0d\x0a", value);
+	SendCmdAndWaitResp(pRespBuf, MAX_RESP_BUF_SIZE, pRespLen, MAX_RESP_BUF_NUM, &RespPktNum, m_AdslMacAddr,
+		MAC_RTS_CONSOLE_CMD, (PUCHAR)tccmd, GET_LEN(tccmd), 1);
+
+	return 0;
+}
+#endif	//RTCONFIG_VDSL
+#endif	//RTCONFIG_DSL_TCLINUX

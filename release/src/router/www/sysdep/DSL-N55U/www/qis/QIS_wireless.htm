@@ -172,9 +172,11 @@ function QKWireless_load_body(){
 	}
 
 	if (is_admin_pswd_set == "1") {
+		document.form.http_username.value="<% nvram_get("dsltmp_qis_admin_username"); %>";
 		document.form.http_passwd.value="<% nvram_get("dsltmp_qis_admin_passwd"); %>";
 	}
 	else {
+		document.form.http_username.disabled = true;
 		document.form.http_passwd.disabled = true;
 	}
 
@@ -262,8 +264,10 @@ function submitForm(){
 
 	if(document.form.dslx_transmode.value == "atm")
 		document.form.dsl0_enable.value = 1;
-	else //PTM
+	else {//PTM
+		document.form.action_script.value = "restart_dsl_setting;".concat(document.form.action_script.value);
 		document.form.dsl8_enable.value = 1;
+	}
 
 	//parent.w_Setting_tmp = document.form.w_Setting.value
 	//document.getElementById("loadingIcon").style.display = "";
@@ -365,6 +369,7 @@ function gotoHome(){
 <input type="hidden" name="lan_dns2_x" value="" disabled>
 <input type="hidden" name="lan_ipaddr_rt" value="" disabled>
 <input type="hidden" name="lan_netmask_rt" value="" disabled>
+<input type="hidden" name="http_username" value="">
 <input type="hidden" name="http_passwd" value="<% nvram_get("password"); %>">
 <input type="hidden" name="dsl0_enable" value="0">
 <input type="hidden" name="dsl0_vpi" value="<% nvram_get("dsltmp_qis_vpi"); %>">

@@ -54,8 +54,10 @@ function initial(){
 			document.form.dslx_annex[4].checked = true;
 	}
 	else {
-		if (dsl_annex_x == 0)
-			document.form.dslx_annex.checked = true;
+		if (dsl_annex_x == 5)
+			document.form.dslx_annex[0].checked = true;
+		else if (dsl_annex_x == 6)
+			document.form.dslx_annex[1].checked = true;
 	}
 	show_menu();
 }
@@ -187,7 +189,10 @@ function valid_form(){
 		</tr>
 [DSL-N55U-B]
 		<tr>
-		<td><input name="dslx_annex" type="radio" value="0"> Annex B </td>
+		<td><input name="dslx_annex" type="radio" value="5"> Annex B </td>
+		</tr>
+		<tr>
+		<td><input name="dslx_annex" type="radio" value="6"> Annex B/J </td>
 		</tr>
 -->
 <!--###HTML_PREP_END###-->

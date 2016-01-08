@@ -41,7 +41,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <net/if_arp.h>
-#include <signal.h>
 #include <dirent.h>
 #include <linux/sockios.h>
 #include <bcmnvram.h>
@@ -147,19 +146,16 @@ int copy_routes(int table){
 	int len;
 
 	if(table <= 0){
-		memset(cmd, 0, 2048);
-		sprintf(cmd, "ip route flush table %d", WAN0_ROUTE_TABLE);
+		snprintf(cmd, 2048, "ip route flush table %d", WAN0_ROUTE_TABLE);
 		system(cmd);
 
-		memset(cmd, 0, 2048);
-		sprintf(cmd, "ip route flush table %d", WAN1_ROUTE_TABLE);
+		snprintf(cmd, 2048, "ip route flush table %d", WAN1_ROUTE_TABLE);
 		system(cmd);
 
 		return 0;
 	}
 
-	memset(cmd, 0, 2048);
-	sprintf(cmd, "ip route list table main > %s", TEMP_ROUTE_FILE);
+	snprintf(cmd, 2048, "ip route list table main > %s", TEMP_ROUTE_FILE);
 	system(cmd);
 
 	route_buf = read_whole_file(TEMP_ROUTE_FILE);
@@ -173,8 +169,7 @@ int copy_routes(int table){
 		len = strlen(line);
 		line[len-2] = 0;
 
-		memset(cmd, 0, 2048);
-		sprintf(cmd, "ip route add table %d %s", table, line);
+		snprintf(cmd, 2048, "ip route add table %d %s", table, line);
 		system(cmd);
 	}
 
@@ -194,7 +189,7 @@ int add_multi_routes(void)
 {
 	int unit, wan_state;
 	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
-	char wan_if[32], wan_ip[32], wan_gate[32];
+	char wan_proto[32], wan_if[32], wan_ip[32], wan_gate[32];
 	char cmd[2048];
 #ifdef RTCONFIG_DUALWAN
 	int gate_num = 0, wan_weight, table;
@@ -251,6 +246,7 @@ int add_multi_routes(void)
 
 		snprintf(prefix, sizeof(prefix), "wan%d_", unit);
 		wan_state = nvram_get_int(strcat_r(prefix, "state_t", tmp));
+		strncpy(wan_proto, nvram_safe_get(strcat_r(prefix, "proto", tmp)), 32);
 		strncpy(wan_if, get_wan_ifname(unit), 32);
 		strncpy(wan_ip, nvram_safe_get(strcat_r(prefix, "ipaddr", tmp)), 32);
 		strncpy(wan_gate, nvram_safe_get(strcat_r(prefix, "gateway", tmp)), 32);
@@ -273,28 +269,33 @@ int add_multi_routes(void)
 				table = WAN0_ROUTE_TABLE;
 
 			// set the rules of wan[X]'s ip and gateway for multi routing tables.
-			memset(cmd2, 0, 2048);
-			sprintf(cmd2, "ip rule del pref 200 from %s table %d", wan_ip, table);
+			snprintf(cmd2, 2048, "ip rule del pref 200 from %s table %d", wan_ip, table);
 			system(cmd2);
 
-			memset(cmd2, 0, 2048);
-			sprintf(cmd2, "ip rule add pref 200 from %s table %d", wan_ip, table);
+			snprintf(cmd2, 2048, "ip rule add pref 200 from %s table %d", wan_ip, table);
 			system(cmd2);
 
-			memset(cmd2, 0, 2048);
-			sprintf(cmd2, "ip rule del pref 400 to %s table %d", wan_gate, table);
+			snprintf(cmd2, 2048, "ip rule del pref 400 to %s table %d", wan_gate, table);
 			system(cmd2);
 
-			memset(cmd2, 0, 2048);
-			sprintf(cmd2, "ip rule add pref 400 to %s table %d", wan_gate, table);
+			snprintf(cmd2, 2048, "ip rule add pref 400 to %s table %d", wan_gate, table);
 			system(cmd2);
 
 			// set the routes for multi routing tables.
 			copy_routes(table);
 
-			memset(cmd2, 0, 2048);
-			sprintf(cmd2, "ip route replace default via %s dev %s table %d", wan_gate, wan_if, table);
+			if(!strcmp(wan_proto, "pptp") || !strcmp(wan_proto, "l2tp")){
+				snprintf(cmd2, 2048, "ip route add %s dev %s table %d", wan_gate, wan_if, table);
+				system(cmd2);
+			}
+
+			snprintf(cmd2, 2048, "ip route replace default via %s dev %s table %d", wan_gate, wan_if, table);
 			system(cmd2);
+
+			if(!strcmp(wan_proto, "pptp") || !strcmp(wan_proto, "l2tp")){
+				snprintf(cmd2, 2048, "ip route del %s dev %s table %d", wan_gate, wan_if, table);
+				system(cmd2);
+			}
 
 			strcpy(wan_multi_if[unit], wan_if);
 			strcpy(wan_multi_gate[unit], wan_gate);
@@ -322,12 +323,10 @@ int add_multi_routes(void)
 						continue;
 
 					if(rtable == table){
-						memset(cmd2, 0, 2048);
-						sprintf(cmd2, "ip rule del pref 100 from %s to %s table %d", rfrom, rto, rtable);
+						snprintf(cmd2, 2048, "ip rule del pref 100 from %s to %s table %d", rfrom, rto, rtable);
 						system(cmd2);
 
-						memset(cmd2, 0, 2048);
-						sprintf(cmd2, "ip rule add pref 100 from %s to %s table %d", rfrom, rto, rtable);
+						snprintf(cmd2, 2048, "ip rule add pref 100 from %s to %s table %d", rfrom, rto, rtable);
 						system(cmd2);
 					}
 	 			}
@@ -336,25 +335,21 @@ int add_multi_routes(void)
 
 			// ISP's routing rules.
 			if(nvram_match(strcat_r(prefix, "routing_isp_enable", tmp), "1")){
-				memset(wan_isp, 0, 32);
-				strcpy(wan_isp, nvram_safe_get(strcat_r(prefix, "routing_isp", tmp)));
+				strncpy(wan_isp, nvram_safe_get(strcat_r(prefix, "routing_isp", tmp)), 32);
 
 				FILE *fp;
 				char conf_name[64], line[1024];
 
-				memset(conf_name, 0, 64);
-				sprintf(conf_name, "/rom/etc/static_routes/%s.conf", wan_isp);
+				snprintf(conf_name, 64, "/rom/etc/static_routes/%s.conf", wan_isp);
 
 				if((fp = fopen(conf_name, "r")) != NULL){
 					while(fgets(line, sizeof(line), fp)){
 						char *token = strtok(line, "\n");
 
-						memset(cmd2, 0, 2048);
-						sprintf(cmd2, "ip rule del pref 300 %s table %d", token, table);
+						snprintf(cmd2, 2048, "ip rule del pref 300 %s table %d", token, table);
 						system(cmd2);
 
-						memset(cmd2, 0, 2048);
-						sprintf(cmd2, "ip rule add pref 300 %s table %d", token, table);
+						snprintf(cmd2, 2048, "ip rule add pref 300 %s table %d", token, table);
 						system(cmd2);
 					}
 					fclose(fp);
@@ -364,10 +359,19 @@ int add_multi_routes(void)
 		else
 #endif
 		{
+			if(!strcmp(wan_proto, "pptp") || !strcmp(wan_proto, "l2tp")){
+				snprintf(cmd, 2048, "ip route add %s dev %s", wan_gate, wan_if);
+				system(cmd);
+			}
+
 			// set the default gateway.
-			memset(cmd, 0, 2048);
-			sprintf(cmd, "ip route replace default via %s dev %s", wan_gate, wan_if);
+			snprintf(cmd, 2048, "ip route replace default via %s dev %s", wan_gate, wan_if);
 			system(cmd);
+
+			if(!strcmp(wan_proto, "pptp") || !strcmp(wan_proto, "l2tp")){
+				snprintf(cmd, 2048, "ip route del %s dev %s", wan_gate, wan_if);
+				system(cmd);
+			}
 		}
 
 #ifdef RTCONFIG_DUALWAN
@@ -391,12 +395,10 @@ int add_multi_routes(void)
 			// move the gateway via VPN+DHCP from the main routing table to the correct one.
 			strcpy(wan_gate, nvram_safe_get(strcat_r(prefix, "xgateway", tmp)));
 			if(strlen(wan_gate) > 0 && strcmp(wan_gate, "0.0.0.0") && strcmp(wan_gate, wan_multi_gate[unit])){
-				memset(cmd2, 0, 2048);
-				sprintf(cmd2, "ip route del default via %s dev %s", wan_gate, get_wanx_ifname(unit));
+				snprintf(cmd2, 2048, "ip route del default via %s dev %s", wan_gate, get_wanx_ifname(unit));
 				system(cmd2);
 
-				memset(cmd2, 0, 2048);
-				sprintf(cmd2, "ip route add default via %s dev %s table %d metric 1", wan_gate, get_wanx_ifname(unit), table);
+				snprintf(cmd2, 2048, "ip route add default via %s dev %s table %d metric 1", wan_gate, get_wanx_ifname(unit), table);
 				system(cmd2);
 			}
 
@@ -405,18 +407,14 @@ int add_multi_routes(void)
 			if(strlen(wan_dns) > 0){
 				// set the rules for the DNS servers.
 				foreach(word, wan_dns, next) {
-					memset(cmd2, 0, 2048);
-					sprintf(cmd2, "ip rule del pref 200 from %s table %d", word, table);
+					snprintf(cmd2, 2048, "ip rule del pref 200 from %s table %d", word, table);
 					system(cmd2);
-					memset(cmd2, 0, 2048);
-					sprintf(cmd2, "ip rule add pref 200 from %s table %d", word, table);
+					snprintf(cmd2, 2048, "ip rule add pref 200 from %s table %d", word, table);
 					system(cmd2);
 
-					memset(cmd2, 0, 2048);
-					sprintf(cmd2, "ip rule del pref 400 to %s table %d", word, table);
+					snprintf(cmd2, 2048, "ip rule del pref 400 to %s table %d", word, table);
 					system(cmd2);
-					memset(cmd2, 0, 2048);
-					sprintf(cmd2, "ip rule add pref 400 to %s table %d", word, table);
+					snprintf(cmd2, 2048, "ip rule add pref 400 to %s table %d", word, table);
 					system(cmd2);
 				}
 			}
@@ -426,18 +424,14 @@ int add_multi_routes(void)
 			if(strlen(wan_dns) > 0){
 				// set the rules for the DNS servers.
 				foreach(word, wan_dns, next) {
-					memset(cmd2, 0, 2048);
-					sprintf(cmd2, "ip rule del pref 200 from %s table %d", word, table);
+					snprintf(cmd2, 2048, "ip rule del pref 200 from %s table %d", word, table);
 					system(cmd2);
-					memset(cmd2, 0, 2048);
-					sprintf(cmd2, "ip rule add pref 200 from %s table %d", word, table);
+					snprintf(cmd2, 2048, "ip rule add pref 200 from %s table %d", word, table);
 					system(cmd2);
 
-					memset(cmd2, 0, 2048);
-					sprintf(cmd2, "ip rule del pref 400 to %s table %d", word, table);
+					snprintf(cmd2, 2048, "ip rule del pref 400 to %s table %d", word, table);
 					system(cmd2);
-					memset(cmd2, 0, 2048);
-					sprintf(cmd2, "ip rule add pref 400 to %s table %d", word, table);
+					snprintf(cmd2, 2048, "ip rule add pref 400 to %s table %d", word, table);
 					system(cmd2);
 				}
 			}
@@ -469,11 +463,35 @@ int add_multi_routes(void)
 				free(nv);
 		}
 
-		if(strlen(cmd) > 0)
+		if(strlen(cmd) > 0){
+			for(unit = WAN_UNIT_FIRST; unit < WAN_UNIT_MAX; ++unit){
+				snprintf(prefix, sizeof(prefix), "wan%d_", unit);
+				strncpy(wan_proto, nvram_safe_get(strcat_r(prefix, "proto", tmp)), 32);
+				strncpy(wan_if, get_wan_ifname(unit), 32);
+				strncpy(wan_gate, nvram_safe_get(strcat_r(prefix, "gateway", tmp)), 32);
+
+				if(!strcmp(wan_proto, "pptp") || !strcmp(wan_proto, "l2tp")){
+					snprintf(cmd2, 2048, "ip route add %s dev %s", wan_gate, wan_if);
+					system(cmd2);
+				}
+			}
+
 			system(cmd);
+
+			for(unit = WAN_UNIT_FIRST; unit < WAN_UNIT_MAX; ++unit){
+				snprintf(prefix, sizeof(prefix), "wan%d_", unit);
+				strncpy(wan_proto, nvram_safe_get(strcat_r(prefix, "proto", tmp)), 32);
+				strncpy(wan_if, get_wan_ifname(unit), 32);
+				strncpy(wan_gate, nvram_safe_get(strcat_r(prefix, "gateway", tmp)), 32);
+
+				if(!strcmp(wan_proto, "pptp") || !strcmp(wan_proto, "l2tp")){
+					snprintf(cmd2, 2048, "ip route del %s dev %s", wan_gate, wan_if);
+					system(cmd2);
+				}
+			}
+		}
 	}
 #endif
-
 	system("ip route flush cache");
 
 	return 0;
@@ -623,7 +641,6 @@ start_ecmh(const char *wan_ifname)
 		return;
 
 	switch (service) {
-	case IPV6_NATIVE:
 	case IPV6_NATIVE_DHCP:
 	case IPV6_MANUAL:
 		eval("/bin/ecmh", "-u", nvram_safe_get("http_username"), "-i", (char*)wan_ifname);
@@ -649,8 +666,17 @@ start_igmpproxy(char *wan_ifname)
 	static char *igmpproxy_conf = "/tmp/igmpproxy.conf";
 	char *altnet = nvram_safe_get("mr_altnet_x");
 
-#ifdef RTCONFIG_DSL /* Paul add 2012/9/21 for DSL model, start on interface br1. */
-	wan_ifname = "br1";
+#ifdef RTCONFIG_DSL
+#ifdef RTCONFIG_DUALWAN
+	if ( nvram_match("wan0_ifname", wan_ifname)
+		&& get_dualwan_primary() == WANS_DUALWAN_IF_DSL) {
+		if (nvram_get_int("dslx_config_num") > 1)
+			wan_ifname = "br1";
+	}
+#else
+	if (nvram_get_int("dslx_config_num") > 1)
+		wan_ifname = "br1";
+#endif
 #endif
 
 	stop_igmpproxy();
@@ -1083,18 +1109,6 @@ static int stop_ipoa()
 }
 #endif
 
-#ifdef RTCONFIG_USB_MODEM
-void run_qmi_connect(const char *usbnet){
-	char wdm_dev[32];
-
-	killall_tk("uqmi");
-
-	get_wdm_by_usbnet(usbnet, wdm_dev, 32);
-
-	eval("uqmi", "-d", wdm_dev, "--keep-client-id", "wds", "--start-network", nvram_safe_get("modem_apn"));
-}
-#endif
-
 void
 start_wan_if(int unit)
 {
@@ -1151,8 +1165,7 @@ TRACE_PT("3g begin.\n");
 		char dhcp_pid_file[1024];
 		FILE *fp;
 
-		memset(dhcp_pid_file, 0, 1024);
-		sprintf(dhcp_pid_file, "/var/run/udhcpc%d.pid", unit);
+		snprintf(dhcp_pid_file, 1024, "/var/run/udhcpc%d.pid", unit);
 
 		kill_pidfile_s(dhcp_pid_file, SIGUSR2);
 		kill_pidfile_s(dhcp_pid_file, SIGTERM);
@@ -1160,7 +1173,14 @@ TRACE_PT("3g begin.\n");
 		eval("find_modem_type.sh");
 		eval("find_modem_node.sh");
 
-		if(!strcmp(nvram_safe_get("usb_modem_act_type"), "tty")
+		wan_ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+
+		if(nvram_get_int("stop_conn_3g") == 1)
+			write_3g_ppp_conf();
+		else
+			eval("modem_enable.sh", wan_ifname);
+
+		if((!strcmp(nvram_safe_get("usb_modem_act_type"), "tty") || !strcmp(nvram_safe_get("usb_modem_act_type"), "mbim"))
 				&& write_3g_ppp_conf()
 				&& (fp = fopen(PPP_CONF_FOR_3G, "r")) != NULL){
 			fclose(fp);
@@ -1179,7 +1199,7 @@ TRACE_PT("3g begin.\n");
 
 			char *pppd_argv[] = { "/usr/sbin/pppd", "call", "3g", "nochecktime", NULL};
 
-			if(!nvram_match("stop_conn_3g", "1")){
+			if(nvram_get_int("stop_conn_3g") != 1){
 				_eval(pppd_argv, NULL, 0, NULL);
 
 				update_wan_state(prefix, WAN_STATE_CONNECTING, 0);
@@ -1187,9 +1207,8 @@ TRACE_PT("3g begin.\n");
 			else
 				TRACE_PT("stop_conn_3g was set.\n");
 		}
-		// RNDIS, QMI interface: usbX, Beceem interface: usbbcm -> ethX.
+		// RNDIS, QMI interface: usbX, Beceem interface: usbbcm -> ethX, gct(mad)wimax: wimaxX.
 		else{
-			wan_ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
 			if(strlen(wan_ifname) <= 0){
 #ifdef RTCONFIG_USB_BECEEM
 				snprintf(usb_node, 32, "%s", nvram_safe_get("usb_modem_act_path"));
@@ -1210,35 +1229,11 @@ _dprintf("RNDIS/Beceem: start_wan_if.\n");
 							modprobe("tun");
 							sleep(1);
 
-							i = 0;
-							while(i < 3){
-								if(pids("madwimax")){
-									killall_tk("madwimax");
-									sleep(1);
-
-									++i;
-								}
-								else
-									break;
-							}
-
 							xstart("madwimax");
 						}
 						else if(is_gct_dongle(1, uvid, upid)){
 							modprobe("tun");
 							sleep(1);
-
-							i = 0;
-							while(i < 3){
-								if(pids("gctwimax")){
-									killall_tk("gctwimax");
-									sleep(1);
-
-									++i;
-								}
-								else
-									break;
-							}
 
 							write_gct_conf();
 
@@ -1292,10 +1287,7 @@ _dprintf("RNDIS/Beceem: start_wan_if.\n");
 
 			// Android phone, RNDIS, QMI interface.
 			if(!strncmp(wan_ifname, "usb", 3)){
-				if(!nvram_match("stop_conn_3g", "1")){
-					if(!strcmp(nvram_safe_get("usb_modem_act_type"), "qmi"))
-						run_qmi_connect(wan_ifname);
-
+				if(nvram_get_int("stop_conn_3g") != 1){
 					start_udhcpc(wan_ifname, unit, &pid);
 					update_wan_state(prefix, WAN_STATE_CONNECTING, 0);
 				}
@@ -1308,17 +1300,15 @@ _dprintf("RNDIS/Beceem: start_wan_if.\n");
 				write_beceem_conf(wan_ifname);
 #endif
 
-				if(!nvram_match("stop_conn_3g", "1")){
+				if(nvram_get_int("stop_conn_3g") != 1){
 					snprintf(usb_node, 32, "%s", nvram_safe_get("usb_modem_act_path"));
 					if(strlen(usb_node) <= 0)
 						return;
 
 					if(get_path_by_node(usb_node, port_path, 8) == NULL)
 						return;
-_dprintf("Beceem: stop_wan_if.\n");
 
-					memset(nvram_name, 0, 32);
-					sprintf(nvram_name, "usb_path%s_act", port_path);
+					snprintf(nvram_name, 32, "usb_path%s_act", port_path);
 
 					if(!strcmp(nvram_safe_get(nvram_name), wan_ifname))
 						start_udhcpc(wan_ifname, unit, &pid);
@@ -1327,8 +1317,7 @@ _dprintf("Beceem: stop_wan_if.\n");
 					if(strlen(nvram_safe_get(nvram_name)) <= 0){
 						char buf[128];
 
-						memset(buf, 0, 128);
-						sprintf(buf, "wimaxd -c %s", WIMAX_CONF);
+						snprintf(buf, 128, "wimaxd -c %s", WIMAX_CONF);
 						_dprintf("%s: cmd=%s.\n", __FUNCTION__, buf);
 						system(buf);
 						sleep(3);
@@ -1350,7 +1339,7 @@ _dprintf("Beceem: stop_wan_if.\n");
 			}
 #ifdef RTCONFIG_USB_BECEEM
 			else if(!strncmp(wan_ifname, "wimax", 5)){
-				if(!nvram_match("stop_conn_3g", "1")){
+				if(nvram_get_int("stop_conn_3g") != 1){
 					start_udhcpc(wan_ifname, unit, &pid);
 					update_wan_state(prefix, WAN_STATE_CONNECTING, 0);
 				}
@@ -1396,10 +1385,12 @@ TRACE_PT("3g end.\n");
 			return;
 		}
 #ifdef RTCONFIG_IPV6
-		if (nvram_match("ipv6_ifdev", "ppp") &&
-		    (strcmp(wan_proto, "dhcp") == 0 ||
-		     strcmp(wan_proto, "static") == 0)) {
-			nvram_set("ipv6_ifdev", "eth");
+		if (unit == wan_primary_ifunit()) {
+			if (nvram_match("ipv6_ifdev", "ppp") &&
+			    (strcmp(wan_proto, "dhcp") == 0 ||
+			     strcmp(wan_proto, "static") == 0)) {
+				nvram_set("ipv6_ifdev", "eth");
+			}
 		}
 
 		if ((get_ipv6_service() != IPV6_DISABLED))
@@ -1469,7 +1460,7 @@ TRACE_PT("3g end.\n");
 #ifdef CONFIG_BCMWL5
 		set_et_qos_mode();
 #endif
-		if(unit == wan_primary_ifunit())
+		if (unit == wan_primary_ifunit())
 			start_pppoe_relay(wan_ifname);
 
 		enable_ip_forward();
@@ -1495,11 +1486,9 @@ TRACE_PT("3g end.\n");
 			/* update demand option */
 			nvram_set_int(strcat_r(prefix, "pppoe_demand", tmp), demand);
 
-			if ((dhcpenable == 0) &&
-/* TODO: remake it as macro */
-			    (inet_network(ipaddr) & inet_network(netmask)) ==
-			    (inet_network(nvram_safe_get("lan_ipaddr")) &
-			     inet_network(nvram_safe_get("lan_netmask")))) {
+			if (dhcpenable == 0 &&
+			    inet_equal(ipaddr, netmask,
+				       nvram_safe_get("lan_ipaddr"), nvram_safe_get("lan_netmask"))) {
 				update_wan_state(prefix, WAN_STATE_STOPPED, WAN_STOPPED_REASON_INVALID_IPADDR);
 				return;
 			}
@@ -1538,7 +1527,8 @@ TRACE_PT("3g end.\n");
 				}
 
 				/* start multicast router on Static+VPN physical interface */
-				start_igmpproxy(wan_ifname);
+				if (unit == wan_primary_ifunit())
+					start_igmpproxy(wan_ifname);
 
 				/* update resolv.conf */
 				update_resolvconf();
@@ -1607,27 +1597,28 @@ TRACE_PT("3g end.\n");
 		 * 'udhcpc bound'/'udhcpc deconfig' upon finishing IP address
 		 * renew and release.
 		 */
-		else if (strcmp(wan_proto, "dhcp") == 0) {
-#ifdef RTCONFIG_DSL
-			nvram_set(strcat_r(prefix, "clientid", tmp), nvram_safe_get("dslx_dhcp_clientid"));
-#endif
+		else if (strcmp(wan_proto, "dhcp") == 0)
+		{
+			/* Bring up WAN interface */
+			ifconfig(wan_ifname, IFUP, NULL, NULL);
+
 			/* Start pre-authenticator */
 			if (start_auth(unit, 0) == 0) {
 				update_wan_state(prefix, WAN_STATE_CONNECTING, 0);
 			}
-
+#ifdef RTCONFIG_DSL
+			nvram_set(strcat_r(prefix, "clientid", tmp), nvram_safe_get("dslx_dhcp_clientid"));
+#endif
 			/* Start dhcp daemon */
 			start_udhcpc(wan_ifname, unit, &pid);
 
 			update_wan_state(prefix, WAN_STATE_CONNECTING, 0);
 		}
 		/* Configure static IP connection. */
-		else if (strcmp(wan_proto, "static") == 0) {
-/* TODO: remake it as macro */
-			if ((inet_network(nvram_safe_get(strcat_r(prefix, "ipaddr", tmp))) &
-					inet_network(nvram_safe_get(strcat_r(prefix, "netmask", tmp)))) ==
-					(inet_network(nvram_safe_get("lan_ipaddr")) &
-					inet_network(nvram_safe_get("lan_netmask")))) {
+		else if (strcmp(wan_proto, "static") == 0)
+		{
+			if (inet_equal(nvram_safe_get(strcat_r(prefix, "ipaddr", tmp)), nvram_safe_get(strcat_r(prefix, "netmask", tmp)),
+				       nvram_safe_get("lan_ipaddr"), nvram_safe_get("lan_netmask"))) {
 				update_wan_state(prefix, WAN_STATE_STOPPED, WAN_STOPPED_REASON_INVALID_IPADDR);
 				return;
 			}
@@ -1637,20 +1628,19 @@ TRACE_PT("3g end.\n");
 					nvram_safe_get(strcat_r(prefix, "ipaddr", tmp)),
 					nvram_safe_get(strcat_r(prefix, "netmask", tmp)));
 
-#ifdef RTCONFIG_DSL
-#ifdef RTCONFIG_DUALWAN
-			if(wan_type == WANS_DUALWAN_IF_DSL)
-#endif
-				if (nvram_match("dsl0_proto", "ipoa"))
-				{
-					start_ipoa();
-				}
-#endif
-
 			/* Start pre-authenticator */
 			if (start_auth(unit, 0) == 0) {
 				update_wan_state(prefix, WAN_STATE_CONNECTING, 0);
 			}
+#ifdef RTCONFIG_DSL
+#ifdef RTCONFIG_DUALWAN
+			if (wan_type == WANS_DUALWAN_IF_DSL)
+#endif
+			{
+				if (nvram_match("dsl0_proto", "ipoa"))
+					start_ipoa();
+			}
+#endif
 
 			/* We are done configuration */
 			wan_up(wan_ifname);
@@ -1676,6 +1666,10 @@ stop_wan_if(int unit)
 	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
 	char *wan_proto, active_proto[32];
 	char pid_file[256];
+#ifdef RTCONFIG_USB_BECEEM
+	int i;
+	unsigned int uvid, upid;
+#endif
 
 	snprintf(prefix, sizeof(prefix), "wan%d_", unit);
 
@@ -1702,8 +1696,7 @@ stop_wan_if(int unit)
 
 #ifdef RTCONFIG_IPV6
 		if (nvram_match("ipv6_ifdev", "eth") ||
-		    ((get_ipv6_service() != IPV6_NATIVE) &&
-		     (get_ipv6_service() != IPV6_NATIVE_DHCP)))
+		    get_ipv6_service() != IPV6_NATIVE_DHCP)
 			stop_wan6();
 #endif
 		/* Shutdown and kill all possible tasks */
@@ -1737,10 +1730,7 @@ stop_wan_if(int unit)
 	/* Stop pppd */
 	stop_pppd(unit);
 
-	memset(pid_file, 0, 256);
-	sprintf(pid_file, "/var/run/udhcpc%d.pid", unit);
-
-	logmessage("stop_wan()", "perform DHCP release");
+	snprintf(pid_file, sizeof(pid_file), "/var/run/udhcpc%d.pid", unit);
 	kill_pidfile_s(pid_file, SIGUSR2);
 	kill_pidfile_s(pid_file, SIGTERM);
 
@@ -1782,14 +1772,50 @@ stop_wan_if(int unit)
 		if(is_usb_modem_ready() == 1){
 			if(pids("wimaxd"))
 				system("wimaxc disconnect");
-
-			killall_tk("madwimax");
-			killall_tk("gctwimax");
 		}
 
 		if(pids("wimaxd")){
 			system("killall wimaxd");
 			system("killall -SIGUSR1 wimaxd");
+		}
+
+		uvid = atoi(nvram_safe_get("usb_modem_act_vid"));
+		upid = atoi(nvram_safe_get("usb_modem_act_pid"));
+
+		if(is_samsung_dongle(1, uvid, upid)){
+			i = 0;
+			while(i < 3){
+				if(pids("madwimax")){
+					killall_tk("madwimax");
+					sleep(1);
+
+					++i;
+				}
+				else
+					break;
+			}
+
+			modprobe_r("tun");
+
+			nvram_set(strcat_r(prefix, "ifname", tmp), "");
+		}
+		else if(is_gct_dongle(1, uvid, upid)){
+			i = 0;
+			while(i < 3){
+				if(pids("gctwimax")){
+					killall_tk("gctwimax");
+					sleep(1);
+
+					++i;
+				}
+				else
+					break;
+			}
+			unlink(WIMAX_CONF);
+
+			modprobe_r("tun");
+
+			nvram_set(strcat_r(prefix, "ifname", tmp), "");
 		}
 	}
 #endif
@@ -1808,11 +1834,9 @@ stop_wan_if(int unit)
 int update_resolvconf(void)
 {
 	FILE *fp;
-	char tmp[32];
-	char prefix[] = "wanXXXXXXXXXX_";
-	char word[256], *next;
-	int lock;
-	int unit;
+	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
+	char *next;
+	int unit, lock;
 
 	lock = file_lock("resolv");
 
@@ -1821,25 +1845,6 @@ int update_resolvconf(void)
 		file_unlock(lock);
 		return errno;
 	}
-
-#if 0
-#ifdef RTCONFIG_IPV6
-	/* Handle IPv6 DNS before IPv4 ones */
-	if (ipv6_enabled()) {
-		if ((get_ipv6_service() == IPV6_NATIVE_DHCP) && nvram_get_int("ipv6_dnsenable")) {
-			foreach(word, nvram_safe_get("ipv6_get_dns"), next)
-				fprintf(fp, "nameserver %s\n", word);
-		} else
-		for (unit = 1; unit <= 3; unit++) {
-			sprintf(tmp, "ipv6_dns%d", unit);
-			next = nvram_safe_get(tmp);
-			if (*next && strcmp(next, "0.0.0.0") != 0)
-				fprintf(fp, "nameserver %s\n", next);
-		}
-	}
-#endif
-#endif
-
 #ifdef RTCONFIG_OPENVPN
 	if (!write_vpn_resolv(fp)) {
 #endif
@@ -1857,21 +1862,45 @@ int update_resolvconf(void)
 		if (!*wan_dns && !*wan_xdns)
 			continue;
 
-		foreach(word, (*wan_dns ? wan_dns : wan_xdns), next)
-			fprintf(fp, "nameserver %s\n", word);
+		foreach(tmp, (*wan_dns ? wan_dns : wan_xdns), next)
+			fprintf(fp, "nameserver %s\n", tmp);
 	}
 #ifdef RTCONFIG_OPENVPN
 	}
 #endif
 	fclose(fp);
 
+	if (!(fp = fopen("/tmp/resolv.dnsmasq", "w+"))) {
+		perror("/tmp/resolv.dnsmasq");
+		file_unlock(lock);
+		return errno;
+	}
+#ifdef RTCONFIG_IPV6
+	if (ipv6_enabled() & is_routing_enabled()) {
+		struct in6_addr addr;
+
+	/* TODO: Skip unconnected wan */
+
+		if (get_ipv6_service() == IPV6_NATIVE_DHCP && nvram_get_int("ipv6_dnsenable")) {
+			foreach(tmp, nvram_safe_get("ipv6_get_dns"), next) {
+				if (*tmp && inet_pton(AF_INET6, tmp, &addr) > 0)
+					fprintf(fp, "server=%s\n", tmp);
+			}
+		} else {
+			for (unit = 1; unit <= 3; unit++) {
+				snprintf(tmp, sizeof(tmp), "ipv6_dns%d", unit);
+				next = nvram_safe_get(tmp);
+				if (*next && inet_pton(AF_INET6, next, &addr) > 0)
+					fprintf(fp, "server=%s\n", next);
+			}
+		}
+	}
+#endif
+	fclose(fp);
+
 	file_unlock(lock);
 
-#ifdef RTCONFIG_DNSMASQ
 	reload_dnsmasq();
-#else
-	restart_dns();
-#endif
 
 	return 0;
 }
@@ -1882,6 +1911,7 @@ void wan6_up(const char *wan_ifname)
 	char addr6[INET6_ADDRSTRLEN + 4];
 	struct in_addr addr4;
 	struct in6_addr addr;
+	char *gateway;
 	int service = get_ipv6_service();
 
 	if (!wan_ifname || (strlen(wan_ifname) <= 0) ||
@@ -1889,10 +1919,8 @@ void wan6_up(const char *wan_ifname)
 		return;
 
 	switch (service) {
-	case IPV6_NATIVE:
 	case IPV6_NATIVE_DHCP:
-		if ((nvram_get_int("ipv6_accept_ra") & 1) != 0)
-			ipv6_sysconf(wan_ifname, "accept_ra", 1);
+		ipv6_sysconf(wan_ifname, "accept_ra", 1);
 		ipv6_sysconf(wan_ifname, "forwarding", 0);
 		break;
 	case IPV6_MANUAL:
@@ -1907,21 +1935,10 @@ void wan6_up(const char *wan_ifname)
 	set_intf_ipv6_dad(wan_ifname, 0, 1);
 
 	switch (service) {
-	case IPV6_NATIVE:
-		break;
 	case IPV6_NATIVE_DHCP:
-		{
-			int prefixlen = 64;
-
-			/* prefix */
-			nvram_set_int("ipv6_prefix_length", prefixlen);
-		}
-#if 0
-		stop_dhcp6c();
+#ifndef RTCONFIG_WIDEDHCP6
 		start_dhcp6c();
-#else
-		start_rdnssd();
-#endif
+#endif /* !RTCONFIG_WIDEDHCP6 */
 		break;
 	case IPV6_MANUAL:
 		if (nvram_match("ipv6_ipaddr", (char*)ipv6_router_address(NULL))) {
@@ -1931,7 +1948,12 @@ void wan6_up(const char *wan_ifname)
 		snprintf(addr6, sizeof(addr6), "%s/%d", nvram_safe_get("ipv6_ipaddr"), nvram_get_int("ipv6_prefix_len_wan"));
 		eval("ip", "-6", "addr", "add", addr6, "dev", (char *)wan_ifname);
 		eval("ip", "-6", "route", "del", "::/0");
-		eval("ip", "-6", "route", "add", "::/0", "via", nvram_safe_get("ipv6_gateway"), "dev", (char *)wan_ifname, "metric", "1");
+
+		gateway = nvram_safe_get("ipv6_gateway");
+		if (gateway && gateway) {
+			eval("ip", "-6", "route", "add", gateway, "dev", (char *)wan_ifname, "metric", "1");
+			eval("ip", "-6", "route", "add", "::/0", "via", gateway, "dev", (char *)wan_ifname, "metric", "1");
+		} else	eval("ip", "-6", "route", "add", "::/0", "dev", (char *)wan_ifname, "metric", "1");
 
 		/* workaround to update ndp entry for now */
 		eval("ping6", "-c", "2", "-I", (char *)wan_ifname, "ff02::1");
@@ -1990,9 +2012,18 @@ void wan6_up(const char *wan_ifname)
 		break;
 	}
 
-	if (get_ipv6_service() != IPV6_NATIVE_DHCP)
+#ifdef RTCONFIG_WIDEDHCP6
+	/* start dependent services */
+	switch (service) {
+	case IPV6_NATIVE_DHCP:
+		start_rdnssd();
+		break;
+	default:
+		start_dhcp6s();
 		start_radvd();
-
+		break;
+	}
+#endif // RTCONFIG_WIDEDHCP6
 #if 0
 	start_ecmh(wan_ifname);
 #endif
@@ -2004,10 +2035,13 @@ void wan6_down(const char *wan_ifname)
 #if 0
 	stop_ecmh();
 #endif
+#ifdef RTCONFIG_WIDEDHCP6
 	stop_rdnssd();
 	stop_radvd();
-	stop_ipv6_tunnel();
+	stop_dhcp6s();
+#endif
 	stop_dhcp6c();
+	stop_ipv6_tunnel();
 
 	update_resolvconf();
 }
@@ -2026,8 +2060,7 @@ void start_wan6(void)
 		nvram_set("ipv6_ifdev", "eth");
 	}
 	if (nvram_match("ipv6_ifdev", "eth") ||
-	    ((get_ipv6_service() != IPV6_NATIVE) &&
-	     (get_ipv6_service() != IPV6_NATIVE_DHCP))) {
+	    get_ipv6_service() != IPV6_NATIVE_DHCP) {
 		wan6_up(get_wan6face());
 	}
 }
@@ -2071,8 +2104,7 @@ wan_up(char *wan_ifname)	// oleg patch, replace
 				nvram_set("ipv6_ifdev", "eth");
 			}
 			if (nvram_match("ipv6_ifdev", "eth") ||
-			    ((get_ipv6_service() != IPV6_NATIVE) &&
-			     (get_ipv6_service() != IPV6_NATIVE_DHCP))) {
+			    get_ipv6_service() != IPV6_NATIVE_DHCP) {
 				wan6_up(get_wan6face());
 			}
 		}
@@ -2111,7 +2143,8 @@ wan_up(char *wan_ifname)	// oleg patch, replace
 		}
 
 		/* start multicast router on DHCP+VPN physical interface */
-		start_igmpproxy(wan_ifname);
+		if (wan_unit == wan_primary_ifunit())
+			start_igmpproxy(wan_ifname);
 
 		update_resolvconf();
 
@@ -2145,6 +2178,8 @@ wan_up(char *wan_ifname)	// oleg patch, replace
 	/* Install interface dependent static routes */
 	add_wan_routes(wan_ifname);
 
+	nvram_set(strcat_r(prefix, "gw_ifname", tmp), wan_ifname);
+	
 	/* setup static wan routes via physical device */
 	if (strcmp(wan_proto, "dhcp") == 0 || strcmp(wan_proto, "static") == 0) {
 		nvram_set(strcat_r(prefix, "xgateway", tmp), gateway ? : "0.0.0.0");
@@ -2163,14 +2198,13 @@ wan_up(char *wan_ifname)	// oleg patch, replace
 			nvram_set("ipv6_ifdev", "eth");
 		}
 		if (nvram_match("ipv6_ifdev", "eth") ||
-		    ((get_ipv6_service() != IPV6_NATIVE) &&
-		     (get_ipv6_service() != IPV6_NATIVE_DHCP))) {
+		    get_ipv6_service() != IPV6_NATIVE_DHCP) {
 			wan6_up(get_wan6face());
 		}
 	}
 #endif
 
-#if defined(RTN65U) || defined(RTN56U) || defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P)
+#if defined(RTN65U) || defined(RTN56U) || defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P)|| defined(RTN54U)
 	reinit_hwnat(wan_unit);
 #endif
 
@@ -2208,6 +2242,15 @@ wan_up(char *wan_ifname)	// oleg patch, replace
 		start_igmpproxy(wan_ifname);
 
 	//add_iQosRules(wan_ifname);
+#ifdef RTCONFIG_BWDPI
+	if(nvram_get_int("bwdpi_test") == 1){
+		// do nothing
+	}
+	else if(nvram_get_int("qos_type") == 1){
+		start_qosd();
+	}
+	else
+#endif
 	start_iQos();
 
 	stop_upnp();
@@ -2221,17 +2264,12 @@ wan_up(char *wan_ifname)	// oleg patch, replace
 		refresh_ntpc();
 	}
 
-#ifdef RTCONFIG_VPNC
-#if defined(RTCONFIG_OPENVPN)
-	if(nvram_match("vpnc_proto", "openvpn"))
-		start_vpn_eas();
-#endif
-	if((nvram_match("vpnc_proto", "pptp") || nvram_match("vpnc_proto", "l2tp")) && nvram_match("vpnc_auto_conn", "1"))
-		start_vpnc();
-#else
 #ifdef RTCONFIG_OPENVPN
 	start_vpn_eas();
 #endif
+#ifdef RTCONFIG_VPNC
+	if((nvram_match("vpnc_proto", "pptp") || nvram_match("vpnc_proto", "l2tp")) && nvram_match("vpnc_auto_conn", "1"))
+		start_vpnc();
 #endif
 
 _dprintf("%s(%s): done.\n", __FUNCTION__, wan_ifname);
@@ -2261,13 +2299,13 @@ wan_down(char *wan_ifname)
 
 	wan_proto = nvram_safe_get(strcat_r(prefix, "proto", tmp));
 
-	/* stop multicast router when not VPN */
-	if (strcmp(wan_proto, "dhcp") == 0 ||
-	    strcmp(wan_proto, "static") == 0)
-		stop_igmpproxy();
-
-	/* Remove default route to gateway if specified */
 	if (wan_unit == wan_primary_ifunit()) {
+		/* Stop multicast router when not VPN */
+		if (strcmp(wan_proto, "dhcp") == 0 ||
+		    strcmp(wan_proto, "static") == 0)
+			stop_igmpproxy();
+
+		/* Remove default route to gateway if specified */
 		gateway = nvram_safe_get(strcat_r(prefix, "gateway", tmp));
 		if (inet_addr_(gateway) == INADDR_ANY)
 			gateway = NULL;
@@ -2550,6 +2588,7 @@ start_wan(void)
 #ifdef RTCONFIG_IPV6
 	symlink("/sbin/rc", "/tmp/ppp/ipv6-up");
 	symlink("/sbin/rc", "/tmp/ppp/ipv6-down");
+	symlink("/sbin/rc", "/tmp/dhcp6c");
 #endif
 	symlink("/sbin/rc", "/tmp/ppp/auth-fail");
 #ifdef RTCONFIG_VPNC
@@ -2631,6 +2670,7 @@ stop_wan(void)
 #ifdef RTCONFIG_IPV6
 	unlink("/tmp/ppp/ipv6-up");
 	unlink("/tmp/ppp/ipv6-down");
+	unlink("/tmp/dhcp6c");
 #endif
 	unlink("/tmp/ppp/auth-fail");
 #ifdef RTCONFIG_VPNC
