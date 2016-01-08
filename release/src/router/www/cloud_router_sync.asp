@@ -167,7 +167,7 @@ var invitation_flag = 0;
 var ip_flag = 0;  // 0: public, 1: private
 var ddns_enable = '<% nvram_get("ddns_enable_x"); %>';
 var ddns_host_name = '<% nvram_get("ddns_hostname_x"); %>';
-var macAddr = '<% nvram_get("et0macaddr"); %>'.toUpperCase().replace(/:/g, "");
+var macAddr = '<% nvram_get("lan_hwaddr"); %>'.toUpperCase().replace(/:/g, "");
 var host_macaddr = macAddr.split(':');
 var isMD5DDNSName = "A"+hexMD5(macAddr).toUpperCase()+".asuscomm.com";
 var webdav_aidisk = '<% nvram_get("webdav_aidisk"); %>';
@@ -702,10 +702,12 @@ function show_invitation(share_link_url){
 function show_captcha_style(captcha){		// captcha display style
 	if( $('captcha_rule').value == 2){  
 		var graph_content = "";
+		graph_content = "Security code: ";
 		for(i=0;i<4;i++){
-			graph_content += '<img style="height:30px;" src="/images/cloudsync/captcha/'+captcha[i]+'.jpg">';
+			graph_content += '<img style="height:30px;" src="/images/cloudsync/captcha/'+captcha.charAt(i)+'.jpg">';
 		}
-		$('invite_captcha').innerHTML = "Security code: "+graph_content;
+
+		$('invite_captcha').innerHTML = graph_content;
 	}
 	else if( $('captcha_rule').value == 0)
 		$('invite_captcha').innerHTML = "Security code: None";
@@ -913,7 +915,9 @@ function show_view_info(obj_id){
 
 function appendMailTo(){
 	var mailtoCode = '<a href="mailto:?subject=Router%20Sync%20Invitation&body=';
-	mailtoCode += "Hi,%0D%0A%0D%0A"; 
+	mailtoCode += "Hi,%0D%0A"; 
+	mailtoCode += "lets share our files with smart sync!"; 
+	mailtoCode += "%0D%0A%0D%0A"; 
 	mailtoCode += $('invite_desc').innerHTML.replace(/ /g, "%20") + "%0D%0A"; 
 	mailtoCode += "Sync%20path:%20" + $('invite_path').innerHTML.replace(/ /g, "%20") + "%0D%0A"; 
 	mailtoCode += $('invite_rule').innerHTML.replace(/ /g, "%20") + "%0D%0A%0D%0A"; 
@@ -1182,7 +1186,7 @@ hint_string += "<#routerSync_rule_CtoS#>";
 										</th>
 										<td>
 											<input type="text" id="PATH" class="input_25_table" style="height: 25px;" name="cloud_dir" value="" >
-											<input name="button" type="button" class="button_gen_short" onclick="get_disk_tree();" value="Browser"/>
+											<input name="button" type="button" class="button_gen_short" onclick="get_disk_tree();" value="<#Cloudsync_browser_folder#>"/>
 											<div id="noUSB" style="color:#FC0;display:none;margin-left:3px;font-size:12px;line-height:140%;"><#no_usb_found#></div>
 										</td>
 									</tr>
@@ -1249,7 +1253,7 @@ hint_string += "<#routerSync_rule_CtoS#>";
 							</tr>
 	  					</thead>		  
     					<tr>
-							<th width="10%">Provider</th>
+							<th width="10%"><#Provider#></th>
 							<th width="25%">Description</a></th>
 							<th width="10%">Sync Rule</a></th>
 							<th width="30%">Local Sync Folder</th>

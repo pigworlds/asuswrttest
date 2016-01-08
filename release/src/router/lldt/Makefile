@@ -11,6 +11,16 @@ CFLAGS += -I$(SRCBASE)/include
 LDFLAGS += -L$(TOP)/shared -lshared
 LDFLAGS += -L$(TOP)/nvram -lnvram
 
+include $(SRCBASE)/.config
+
+ifneq ($(findstring DSL,$(BUILD_NAME)),)
+MODEL = $(subst -,_,$(BUILD_NAME))
+else
+MODEL = $(subst -,,$(BUILD_NAME))
+endif
+
+export CFLAGS += -D$(MODEL)
+
 depend:
 	$(CC) $(CFLAGS) -M $(DCFILES) >.depend
 
@@ -30,7 +40,7 @@ else ifeq ($(RTN56U)$(RTN65U), y)
 else ifeq ($(DSLN55U), y)
 	install -D icon.DSL-N55U.ico $(INSTALLDIR)/rom/etc/icon.ico
 	install -D icon.large.DSL-N55U.ico $(INSTALLDIR)/rom/etc/icon.large.ico
-else ifeq ($(RTN14U)$(RTAC52U),y)
+else ifeq ($(RTN14U)$(RTAC52U)$(RTAC51U),y)
 	install -D icon.RT-N14U.ico $(INSTALLDIR)/rom/etc/icon.ico
 	install -D icon.large.RT-N14U.ico $(INSTALLDIR)/rom/etc/icon.large.ico
 else

@@ -39,7 +39,7 @@ wan_proto = '<% nvram_get("wan_proto"); %>';
 var wans_dualwan = '<% nvram_get("wans_dualwan"); %>';
 var nowWAN = '<% get_parameter("flag"); %>';
 
-if(dualWAN_support){
+if(dualWAN_support && ( wans_dualwan.search("wan") >= 0 || wans_dualwan.search("lan") >= 0)){
 	var wan_type_name = wans_dualwan.split(" ")[<% nvram_get("wan_unit"); %>].toUpperCase();
 	switch(wan_type_name){
 		case "DSL":
@@ -74,6 +74,7 @@ function initial(){
 	change_wan_type(document.form.wan_proto.value, 0);	
 	fixed_change_wan_type(document.form.wan_proto.value);
 	genWANSoption();
+	//change_wan_unit(document.form.wan_unit);
 	addOnlineHelp($("faq"), ["UPnP"]);
 	change_wan_type(document.form.wan_proto.value, 0);	
 	
@@ -86,15 +87,24 @@ function initial(){
 	}
 }
 
-function change_wan_unit(){
-	if(document.form.wan_unit.options[document.form.wan_unit.selectedIndex].text == "DSL")
-		document.form.current_page.value = "Advanced_DSL_Content.asp";
-	else if(document.form.wan_unit.options[document.form.wan_unit.selectedIndex].text == "USB")
+var dsltmp_transmode = "<% nvram_get("dsltmp_transmode"); %>";
+function change_wan_unit(obj){
+	if(!dualWAN_support) return;
+	
+	if(obj.options[obj.selectedIndex].text == "DSL"){	
+		if(dsltmp_transmode == "atm")
+			document.form.current_page.value = "Advanced_DSL_Content.asp";
+		else //ptm
+			document.form.current_page.value = "Advanced_VDSL_Content.asp";	
+	}else if(document.form.dsltmp_transmode){
+		document.form.dsltmp_transmode.style.display = "none";
+	}
+	
+	if(obj.options[obj.selectedIndex].text == "USB") {
 		document.form.current_page.value = "Advanced_Modem_Content.asp";
-	else if(document.form.wan_unit.options[document.form.wan_unit.selectedIndex].text == "WAN" || document.form.wan_unit.options[document.form.wan_unit.selectedIndex].text == "LAN")
-		document.form.current_page.value = "Advanced_WAN_Content.asp";	
-	else
-		return false;	
+	}else if(obj.options[obj.selectedIndex].text == "WAN"|| obj.options[obj.selectedIndex].text == "Ethernet LAN"){
+		return false;					
+	}
 
 	FormActions("apply.cgi", "change_wan_unit", "", "");
 	document.form.target = "";
@@ -102,8 +112,12 @@ function change_wan_unit(){
 }
 
 function genWANSoption(){
-	for(i=0; i<wans_dualwan.split(" ").length; i++)
-		document.form.wan_unit.options[i] = new Option(wans_dualwan.split(" ")[i].toUpperCase(), i);
+	for(i=0; i<wans_dualwan.split(" ").length; i++){
+		var wans_dualwan_NAME = wans_dualwan.split(" ")[i].toUpperCase();
+		if(wans_dualwan_NAME == "LAN")
+			wans_dualwan_NAME = "Ethernet LAN";
+		document.form.wan_unit.options[i] = new Option(wans_dualwan_NAME, i);
+	}	
 	document.form.wan_unit.selectedIndex = '<% nvram_get("wan_unit"); %>';
 
 	if(wans_dualwan.search(" ") < 0 || wans_dualwan.split(" ")[1] == 'none' || !dualWAN_support)
@@ -276,9 +290,21 @@ function validForm(){
 			return false;
 	}
 	
-	if(document.form.wan_hostname.value.length > 0)
-		 if(!validate_string(document.form.wan_hostname))
-		 	return false;
+	if(document.form.wan_hostname.value.length > 0){
+		var alert_str = validate_hostname(document.form.wan_hostname);
+	
+		if(alert_str != ""){
+			showtext($("alert_msg1"), alert_str);
+			$("alert_msg1").style.display = "";
+			document.form.wan_hostname.focus();
+			document.form.wan_hostname.select();
+			return false;
+		}else{
+			$("alert_msg1").style.display = "none";
+  	}
+
+		document.form.wan_hostname.value = trim(document.form.wan_hostname.value);
+	}	
 	
 	if(document.form.wan_hwaddr_x.value.length > 0)
 			if(!check_macaddr(document.form.wan_hwaddr_x,check_hwaddr_flag(document.form.wan_hwaddr_x))){
@@ -653,10 +679,8 @@ function pass_checked(obj){
 <form method="post" name="form" id="ruleForm" action="/start_apply.htm" target="hidden_frame">
 <input type="hidden" name="productid" value="<% nvram_get("productid"); %>">
 <input type="hidden" name="support_cdma" value="<% nvram_get("support_cdma"); %>">
-
 <input type="hidden" name="current_page" value="Advanced_WAN_Content.asp">
 <input type="hidden" name="next_page" value="">
-<input type="hidden" name="next_host" value="">
 <input type="hidden" name="group_id" value="">
 <input type="hidden" name="modified" value="0">
 <input type="hidden" name="action_mode" value="apply">
@@ -698,13 +722,17 @@ function pass_checked(obj){
 						<table id="WANscap" width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
 							<thead>
 							<tr>
-								<td colspan="2">WAN index</td>
+								<td colspan="2"><#wan_index#></td>
 							</tr>
 							</thead>							
 							<tr>
-								<th>WAN Type</th>
+								<th><#wan_type#></th>
 								<td align="left">
-									<select id="" class="input_option" name="wan_unit" onchange="change_wan_unit();"></select>
+									<select class="input_option" name="wan_unit" onchange="change_wan_unit(this);"></select>
+									<!--select id="dsltmp_transmode" name="dsltmp_transmode" class="input_option" style="margin-left:7px;" onChange="change_dsl_transmode(this);">
+													<option value="atm" <% nvram_match("dsltmp_transmode", "atm", "selected"); %>>ADSL WAN (ATM)</option>
+													<option value="ptm" <% nvram_match("dsltmp_transmode", "ptm", "selected"); %>>VDSL WAN (PTM)</option>
+									</select-->
 								</td>
 							</tr>
 						</table>
@@ -721,8 +749,8 @@ function pass_checked(obj){
 								<td align="left">
 									<select id="wan_proto_menu" class="input_option" name="wan_proto" onchange="change_wan_type(this.value);fixed_change_wan_type(this.value);">
 										<option value="dhcp" <% nvram_match("wan_proto", "dhcp", "selected"); %>><#BOP_ctype_title1#></option>
-										<option value="pppoe" <% nvram_match("wan_proto", "pppoe", "selected"); %>>PPPoE</option>
 										<option value="static" <% nvram_match("wan_proto", "static", "selected"); %>><#BOP_ctype_title5#></option>
+										<option value="pppoe" <% nvram_match("wan_proto", "pppoe", "selected"); %>>PPPoE</option>
 										<option value="pptp" <% nvram_match("wan_proto", "pptp", "selected"); %>>PPTP</option>
 										<option value="l2tp" <% nvram_match("wan_proto", "l2tp", "selected"); %>>L2TP</option>										
 									</select>
@@ -898,7 +926,9 @@ function pass_checked(obj){
         	</tr>
         	<tr>
           	<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,15);"><#PPPConnection_x_HostNameForISP_itemname#></a></th>
-          	<td><input type="text" name="wan_hostname" class="input_32_table" maxlength="32" value="<% nvram_get("wan_hostname"); %>" onkeypress="return is_string(this, event)"></td>
+          	<td>
+          		<div><input type="text" name="wan_hostname" class="input_32_table" maxlength="32" value="<% nvram_get("wan_hostname"); %>" onkeypress="return is_string(this, event)"><br/><span id="alert_msg1" style="color:#FC0;"></span></div>
+          	</td>
         	</tr>
         	<tr>
           	<th ><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,16);"><#PPPConnection_x_MacAddressForISP_itemname#></a></th>
@@ -909,11 +939,11 @@ function pass_checked(obj){
         	</tr>
 
 		<tr>
-		<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,30);">DHCP query frequency</a></th>
+		<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,30);"><#DHCP_query_freq#></a></th>
 		<td>
 		<select name="dhcpc_mode" class="input_option">
-			<option value="0" <% nvram_match(" dhcpc_mode", "0","selected"); %>>Normal Mode</option>
-			<option value="1" <% nvram_match(" dhcpc_mode", "1","selected"); %>>Aggressive Mode</option>
+			<option value="0" <% nvram_match(" dhcpc_mode", "0","selected"); %>><#DHCPnormal#></option>
+			<option value="1" <% nvram_match(" dhcpc_mode", "1","selected"); %>><#DHCPaggressive#></option>
 		</select>
 		</td>
 		</tr>

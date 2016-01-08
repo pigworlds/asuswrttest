@@ -292,7 +292,11 @@ void init_switch_mode()
 		
 		nvram_set("wl0_vifs", "wl0.1");
 		
+#ifdef RTCONFIG_RGMII_BRCM5301X
+		nvram_set("wl0.1_hwaddr", nvram_safe_get("lan_hwaddr"));
+#else
 		nvram_set("wl0.1_hwaddr", nvram_safe_get("et0macaddr"));
+#endif
 #ifdef RTCONFIG_BCMWL6
 		if (nvram_match("wl0_phytype", "v"))
 			nvram_set("wl0_bw_cap", "7");
@@ -1011,10 +1015,18 @@ void set_mac(const char *ifname, const char *nvname, int plus)
 	}
 
 	if (!ether_atoe(nvram_safe_get(nvname), (unsigned char *)&ifr.ifr_hwaddr.sa_data)) {
+#ifdef RTCONFIG_RGMII_BRCM5301X
+		if (!ether_atoe(nvram_safe_get("lan_hwaddr"), (unsigned char *)&ifr.ifr_hwaddr.sa_data)) {
+#else
 		if (!ether_atoe(nvram_safe_get("et0macaddr"), (unsigned char *)&ifr.ifr_hwaddr.sa_data)) {
+#endif
 
 			// goofy et0macaddr, make something up
+#ifdef RTCONFIG_RGMII_BRCM5301X
+			nvram_set("lan_hwaddr", "00:01:23:45:67:89");
+#else
 			nvram_set("et0macaddr", "00:01:23:45:67:89");
+#endif
 			ifr.ifr_hwaddr.sa_data[0] = 0;
 			ifr.ifr_hwaddr.sa_data[1] = 0x01;
 			ifr.ifr_hwaddr.sa_data[2] = 0x23;
@@ -1417,7 +1429,7 @@ void setup_dnsmq(int mode)
 		// setup ebtables
 		eval("ebtables", "-F");
 		eval("ebtables", "-t", "broute", "-F");
-		eval("ebtables", "-t", "broute", "-I", "BROUTING", "-p", "ipv4", "-d", "00:E0:11:22:33:44", "-j", "redirect", "--redirect-target", "DROP");
+		eval("ebtables", "-t", "broute", "-I", "BROUTING", "-d", "00:E0:11:22:33:44", "-j", "redirect", "--redirect-target", "DROP");
 	}
 	else {
 		eval("ebtables", "-F");

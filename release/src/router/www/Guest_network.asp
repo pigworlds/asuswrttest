@@ -40,17 +40,9 @@ var wireless = [<% wl_auth_list(); %>];	// [[MAC, associated, authorized], ...]
 wl_channel_list_2g = '<% channel_list_2g(); %>';
 wl_channel_list_5g = '<% channel_list_5g(); %>';
 
-function handle_show_str(show_str)
-{
-	show_str = show_str.replace(/\&/g, "&amp;");
-	show_str = show_str.replace(/\</g, "&lt;");
-	show_str = show_str.replace(/\>/g, "&gt;");
-	return show_str;
-}
-
 function initial(){
 	$('ACL_disabled_hint').innerHTML = Untranslated.Guest_Network_enable_ACL;
-	$('enable_macfilter').innerHTML = Untranslated.enable_macmode;
+	$('enable_macfilter').innerHTML = "<#enable_macmode#>";
 	show_menu();	
 	//insertExtChannelOption();		
 
@@ -144,7 +136,7 @@ function gen_gntable_tr(unit, gn_array, slicesb){
 	htmlcode += '"><tr><th align="left" width="160px">';
 	htmlcode += '<table id="GNW_'+GN_band+'G" class="gninfo_th_table" align="left" style="margin:auto;border-collapse:collapse;">';
 	htmlcode += '<tr><th align="left" style="height:40px;"><#QIS_finish_wireless_item1#></th></tr>';
-	htmlcode += '<tr><th align="left" style="height:40px;"><#WLANConfig11b_AuthenticationMethod_itemname#></th></tr>';
+	htmlcode += "<tr><th align=\"left\" style=\"height:40px;\"><#WLANConfig11b_AuthenticationMethod_itemname#></th></tr>";
 	htmlcode += '<tr><th align="left" style="height:40px;"><#Network_key#></th></tr>';
 	htmlcode += '<tr><th align="left" style="height:40px;"><#mssid_time_remaining#></th></tr>';
 	if(sw_mode != "3"){
@@ -166,7 +158,9 @@ function gen_gntable_tr(unit, gn_array, slicesb){
 					htmlcode += '<tr><td align="center" onclick="change_guest_unit('+ unit +','+ subunit +');">'+ show_str +'</td></tr>';
 					htmlcode += '<tr><td align="center" onclick="change_guest_unit('+ unit +','+ subunit +');">'+ translate_auth(gn_array[i][2]) +'</td></tr>';
 					
-					if(gn_array[i][2].indexOf("psk") >= 0)
+					if(gn_array[i][2].indexOf("wpa") >= 0 || gn_array[i][2].indexOf("radius") >= 0)
+							show_str = "";
+					else if(gn_array[i][2].indexOf("psk") >= 0)
 							show_str = gn_array[i][4];
 					else if(gn_array[i][2] == "open" && gn_array[i][5] == "0")
 							show_str = "None";
@@ -561,7 +555,11 @@ function genBWTable(_unit){
 				<br/>
 				<br/>
 		    </div>
-		  <div class="drImg"><img src="images/alertImg.png"></div>
+			<div id="wireless_client_detect" style="margin-left:10px;position:absolute;display:none">
+				<img src="images/loading.gif">
+				<div style="margin:-45px 0 0 75px;"><#QKSet_Internet_Setup_fail_method1#></div>
+			</div>
+			<div class="drImg"><img src="images/alertImg.png"></div>
 			<div style="height:70px; "></div>
 		</td>
 		</tr>
@@ -585,7 +583,6 @@ function genBWTable(_unit){
 <input type="hidden" name="wan_nat_x" value="<% nvram_get("wan_nat_x"); %>" disabled>
 <input type="hidden" name="current_page" value="Guest_network.asp">
 <input type="hidden" name="next_page" value="Guest_network.asp">
-<input type="hidden" name="next_host" value="">
 <input type="hidden" name="modified" value="0">
 <input type="hidden" name="action_mode" value="apply_new">
 <input type="hidden" name="action_script" value="restart_wireless">

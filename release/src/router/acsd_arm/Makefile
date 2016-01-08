@@ -1,7 +1,7 @@
 #
 # Linux acsd Makefile
 #
-# Copyright (C) 2013, Broadcom Corporation
+# Copyright (C) 2014, Broadcom Corporation
 # All Rights Reserved.
 # 
 # This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
@@ -9,7 +9,7 @@
 # or duplicated in any form, in whole or in part, without the prior
 # written permission of Broadcom Corporation.
 #
-# $Id: Makefile 394451 2013-04-02 18:21:38Z $
+# $Id: Makefile 428284 2013-10-08 09:07:30Z $
 #
 
 CFLAGS	+= -I. -I$(TOP)/shared -I$(SRCBASE)/include -I$(SRCBASE)/common/include -Wall -Werror
@@ -20,6 +20,10 @@ LDFLAGS += -L$(TOP)/nvram${BCMEX} -L$(INSTALLDIR)/nvram/usr/lib -lnvram
 LDFLAGS += -L$(TOP)/shared -L$(INSTALLDIR)/shared/usr/lib -lshared
 LDFLAGS += -lgcc_s
 
+include ../.config
+ifeq ($(RTCONFIG_QTN),y)
+LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
+endif
 
 vpath %.c $(SRCBASE)/shared/ $(SRCBASE)/shared/bcmwifi/src
 
@@ -36,9 +40,9 @@ OBJS += acs_dfsr.o chan_utils.o
 install: all
 	install -d $(INSTALLDIR)/usr/sbin/
 	install acsd $(INSTALLDIR)/usr/sbin/
-	#install acs_cli $(INSTALLDIR)/usr/sbin/
+#	install acs_cli $(INSTALLDIR)/usr/sbin/
 	$(STRIP) $(INSTALLDIR)/usr/sbin/acsd
-	#$(STRIP) $(INSTALLDIR)/usr/sbin/acs_cli
+#	$(STRIP) $(INSTALLDIR)/usr/sbin/acs_cli
 
 clean:
 	rm -f *.o *.a *.so acsd acs_cli
@@ -48,5 +52,5 @@ ${OBJS}: acsd.h acsd_svr.h acs_dfsr.h
 acsd: bcmutils.o ${OBJS}
 	$(CC) $(CFLAGS) $^ -o $@  $(LDFLAGS)
 
-acs_cli: acsd_cli.o acsd_utils.o
+acs_cli: acsd_cli.o acsd_utils.o bcmwifi_channels.o
 	$(CC) $(CFLAGS) $^ -o $@  $(LDFLAGS)

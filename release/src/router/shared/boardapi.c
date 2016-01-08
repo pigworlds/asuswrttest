@@ -65,6 +65,9 @@ int btn_swmode_sw_router = 0xff;
 int btn_swmode_sw_repeater = 0xff;
 int btn_swmode_sw_ap = 0xff;
 #endif
+#ifdef RTCONFIG_QTN
+int reset_qtn_gpio = 0xff;
+#endif
 
 int init_gpio(void)
 {
@@ -85,6 +88,9 @@ int init_gpio(void)
 #endif  /* LAN4WAN_LED */
 #ifdef RTCONFIG_LED_ALL
 		, "led_all_gpio"
+#endif
+#ifdef RTCONFIG_QTN
+		, "reset_qtn_gpio"
 #endif
 			   };
 	int use_gpio, gpio_pin;
@@ -138,12 +144,13 @@ int init_gpio(void)
 int set_pwr_usb(int boolOn){
 	int use_gpio, gpio_pin;
 
-        switch(get_model()) {
-                case MODEL_RTAC68U:
-			if(atoi(nvram_safe_get("HW_ver"))!=170)
-				return;
-                        break;
-        }
+	switch(get_model()) {
+		case MODEL_RTAC68U:
+			if((nvram_get_int("HW_ver") != 170) &&
+				(atof(nvram_safe_get("HW_ver")) != 1.10))
+				return 0;
+			break;
+	}
 
 	if((gpio_pin = (use_gpio = nvram_get_int("pwr_usb_gpio"))&0xff) != 0xff){
 		if(boolOn)
@@ -212,6 +219,9 @@ void get_gpio_values_once(void)
 #endif
 #ifdef RTCONFIG_LED_BTN
 	btn_led_gpio = nvram_get_int("btn_led_gpio");
+#endif
+#ifdef RTCONFIG_QTN
+	reset_qtn_gpio = nvram_get_int("reset_qtn_gpio");
 #endif
 }
 
@@ -310,6 +320,10 @@ int led_control(int which, int mode)
 			break;
 		case LED_5G:
 			use_gpio = led_5g_gpio;
+#if defined(RTAC56U) || defined(RTAC56S)
+			if(nvram_match("5g_fail", "1"))
+				return -1;
+#endif
 			break;
 #ifdef RTCONFIG_LAN4WAN_LED
 		case LED_LAN1:
@@ -339,13 +353,18 @@ int led_control(int which, int mode)
 			use_gpio = have_fan_gpio;
 			break;
 #ifdef RTCONFIG_LED_ALL
-                case LED_ALL:
-                        use_gpio = led_all_gpio;
-                        break;
+		case LED_ALL:
+			use_gpio = led_all_gpio;
+			break;
 #endif
-                case LED_TURBO:
-                        use_gpio = led_turbo_gpio;
-                        break;
+		case LED_TURBO:
+			use_gpio = led_turbo_gpio;
+			break;
+#ifdef RTCONFIG_QTN
+		case BTN_QTN_RESET:
+			use_gpio = reset_qtn_gpio;
+			break;
+#endif
 		default:
 			use_gpio = 0xff;
 			break;
@@ -372,17 +391,22 @@ int led_control(int which, int mode)
 	return 0;
 }
 
+extern uint32_t get_phy_status(uint32_t portmask);
+extern uint32_t set_phy_ctrl(uint32_t portmask, int ctrl);
+
 int wanport_status(int wan_unit)
 {
 #ifdef RTCONFIG_RALINK
-	return rtkswitch_wanPort_phyStatus();
+	return rtkswitch_wanPort_phyStatus(wan_unit);
 #else
 	char word[100], *next;
 	int mask;
 	char wan_ports[16];
 
 	memset(wan_ports, 0, 16);
-	if(wan_unit == 1)
+	if(nvram_get_int("sw_mode") == SW_MODE_AP)
+		strcpy(wan_ports, "lanports");
+	else if(wan_unit == 1)
 		strcpy(wan_ports, "wan1ports");
 	else
 		strcpy(wan_ports, "wanports");
@@ -391,6 +415,8 @@ int wanport_status(int wan_unit)
 
 	foreach(word, nvram_safe_get(wan_ports), next) {
 		mask |= (0x0001<<atoi(word));
+		if(nvram_get_int("sw_mode") == SW_MODE_AP)
+			break;
 	}
 #ifdef RTCONFIG_WIRELESSWAN
 	// to do for report wireless connection status

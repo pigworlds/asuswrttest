@@ -98,8 +98,10 @@ ipup_main(int argc, char **argv)
 #ifdef RTCONFIG_USB_MODEM
 	// wanX_ifname is used for device for USB Modem
 	if ((value = getenv("DEVICE")) &&
-	    (isSerialNode(value) || isACMNode(value)))
+	    (isSerialNode(value) || isACMNode(value))){
 		nvram_set(strcat_r(prefix, "ifname", tmp), value);
+		nvram_set(strcat_r(prefix, "proto", tmp), "pppoe");
+	}
 #endif
 
 	/* Touch connection file */
@@ -211,12 +213,9 @@ ippreup_main(int argc, char **argv)
 int ip6up_main(int argc, char **argv)
 {
 	char *wan_ifname = safe_getenv("IFNAME");
-	char *llremote = safe_getenv("LLREMOTE");
 
 	if (!wan_ifname || strlen(wan_ifname) <= 0)
 		return 0;
-
-	nvram_set("ipv6_ll_remote", llremote);
 
         switch (get_ipv6_service()) {
                 case IPV6_NATIVE:

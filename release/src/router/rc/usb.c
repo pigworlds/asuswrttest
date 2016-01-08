@@ -66,11 +66,12 @@ char *find_sddev_by_mountpoint(char *mountpoint);
 #ifdef LINUX26
 void tune_bdflush(void)
 {
+	f_write_string("/proc/sys/vm/dirty_writeback_centisecs", "200", 0, 0);
+
 #ifndef RTCONFIG_BCMARM
 	f_write_string("/proc/sys/vm/dirty_expire_centisecs", "200", 0, 0);
-	f_write_string("/proc/sys/vm/dirty_writeback_centisecs", "200", 0, 0);
 #else
-        printf("no tune_bdflush\n");
+	printf("no tune_bdflush\n");
 #endif
 }
 #else
@@ -185,24 +186,20 @@ test_user(char *target, char *pattern)
 	return 0;
 }
 
-#define MOUNT_VAL_FAIL 	0
-#define MOUNT_VAL_RONLY	1
-#define MOUNT_VAL_RW 	2
-
 int
 fill_smbpasswd_input_file(const char *passwd)
 {
 	FILE *fp;
-	
+
 	unlink("/tmp/smbpasswd");
 	fp = fopen("/tmp/smbpasswd", "w");
-	
+
 	if (fp && passwd)
 	{
 		fprintf(fp,"%s\n", passwd);
 		fprintf(fp,"%s\n", passwd);
 		fclose(fp);
-		
+
 		return 1;
 	}
 	else
@@ -223,7 +220,7 @@ void start_usb(void)
 
 	if (nvram_get_int("usb_enable")) {
 #ifdef RTCONFIG_BCMARM
-                hotplug_usb_init();
+		hotplug_usb_init();
 #endif
 		modprobe(USBCORE_MOD);
 
@@ -268,19 +265,51 @@ void start_usb(void)
 			}
 
 			if (nvram_get_int("usb_fs_fat")) {
-				modprobe("fat");
+#ifdef RTCONFIG_TFAT
+				modprobe("tfat");
+#else
 				modprobe("vfat");
+#endif
 			}
 #ifdef RTCONFIG_NTFS
 #ifndef RTCONFIG_NTFS3G
-			if (nvram_get_int("usb_fs_ntfs"))
-				modprobe("/usr/lib/ufsd.ko");
+			if(nvram_get_int("usb_fs_ntfs")){
+#ifdef RTCONFIG_TUXERA
+				modprobe("tntfs");
+#else
+#ifdef RTCONFIG_UFSD_DEBUG
+				modprobe("ufsd_debug");
+#else
+				modprobe("ufsd");
 #endif
+#endif
+			}
+#endif
+#endif
+#ifdef RTCONFIG_HFS
+			if(nvram_get_int("usb_fs_hfs")){
+#ifdef RTCONFIG_TUXERA_HFS
+				modprobe("thfsplus");
+#elif defined(RTCONFIG_PARAGON_HFS)
+#ifdef RTCONFIG_UFSD_DEBUG
+				modprobe("ufsd_debug");
+#else
+				modprobe("ufsd");
+#endif
+#endif
+			}
+#endif
+#ifdef RTCONFIG_EXFAT
+			if(nvram_get_int("usb_fs_exfat")){
+#ifdef RTCONFIG_TUXERA
+				modprobe("texfat");
+#endif
+			}
 #endif
 		}
 #endif
 
-#if defined (RTCONFIG_USB_XHCI) || defined (RTCONFIG_USB_2XHCI2)
+#if defined (RTCONFIG_USB_XHCI)
 #if defined(RTN65U)
 		{
 			char *param = "u3intf=0";
@@ -313,7 +342,6 @@ void start_usb(void)
 		if (nvram_get_int("usb_uhci") == 1) {
 			modprobe(USBUHCI_MOD);
 		}
-
 		if (nvram_get_int("usb_ohci") == 1) {
 			modprobe(USBOHCI_MOD);
 		}
@@ -327,9 +355,11 @@ void start_usb(void)
 		modprobe("usbnet");
 		modprobe("asix");
 		modprobe("cdc_ether");
-		modprobe("net1080");
 		modprobe("rndis_host");
-		modprobe("zaurus");
+		modprobe("cdc_ncm");
+		modprobe("cdc_wdm");
+		modprobe("qmi_wwan");
+		modprobe("cdc_mbim");
 #endif
 	}
 }
@@ -340,9 +370,11 @@ void remove_usb_modem_modules(void)
 #ifdef RTCONFIG_USB_BECEEM
 	modprobe_r("drxvi314");
 #endif
-	modprobe_r("zaurus");
+	modprobe_r("cdc_mbim");
+	modprobe_r("qmi_wwan");
+	modprobe_r("cdc_wdm");
+	modprobe_r("cdc_ncm");
 	modprobe_r("rndis_host");
-	modprobe_r("net1080");
 	modprobe_r("cdc_ether");
 	modprobe_r("asix");
 	modprobe_r("usbnet");
@@ -369,11 +401,43 @@ void remove_usb_storage_module(void)
 #ifdef LINUX26
 	modprobe_r("mbcache");
 #endif
+#ifdef RTCONFIG_TFAT
+	modprobe_r("tfat");
+#else
 	modprobe_r("vfat");
 	modprobe_r("fat");
+#endif
 #ifdef RTCONFIG_NTFS
 #ifndef RTCONFIG_NTFS3G
+#ifdef RTCONFIG_TUXERA
+	modprobe_r("tntfs");
+#else
+#ifdef RTCONFIG_UFSD_DEBUG
+	modprobe_r("ufsd_debug");
+	modprobe_r("jnl_debug");
+#else
 	modprobe_r("ufsd");
+	modprobe_r("jnl");
+#endif
+#endif
+#endif
+#endif
+#ifdef RTCONFIG_HFS
+#ifdef RTCONFIG_TUXERA_HFS
+	modprobe_r("thfsplus");
+#elif defined(RTCONFIG_PARAGON_HFS)
+#ifdef RTCONFIG_UFSD_DEBUG
+	modprobe_r("ufsd_debug");
+	modprobe_r("jnl_debug");
+#else
+	modprobe_r("ufsd");
+	modprobe_r("jnl");
+#endif
+#endif
+#endif
+#ifdef RTCONFIG_EXFAT
+#ifdef RTCONFIG_TUXERA
+	modprobe_r("texfat");
 #endif
 #endif
 	modprobe_r("fuse");
@@ -416,7 +480,7 @@ void remove_usb_host_module(void)
 	modprobe_r(USBOHCI_MOD);
 	modprobe_r(USBUHCI_MOD);
 	modprobe_r(USB20_MOD);
-#if defined (RTCONFIG_USB_XHCI) || defined (RTCONFIG_USB_2XHCI2)
+#if defined (RTCONFIG_USB_XHCI)
 	modprobe_r(USB30_MOD);
 #endif
 
@@ -465,7 +529,8 @@ void stop_usb_program(int mode)
 #ifdef RTCONFIG_WEBDAV
 	stop_webdav();
 #else
-	system("sh /opt/etc/init.d/S50aicloud scan");
+	if(f_exists("/opt/etc/init.d/S50aicloud"))
+		system("sh /opt/etc/init.d/S50aicloud scan");
 #endif
 
 #ifdef RTCONFIG_USB_PRINTER
@@ -499,7 +564,7 @@ void stop_usb(void)
 	if (disabled || nvram_get_int("usb_ohci") != 1) modprobe_r(USBOHCI_MOD);
 	if (disabled || nvram_get_int("usb_uhci") != 1) modprobe_r(USBUHCI_MOD);
 	if (disabled || nvram_get_int("usb_usb2") != 1) modprobe_r(USB20_MOD);
-#if defined (RTCONFIG_USB_XHCI) || defined (RTCONFIG_USB_2XHCI2)
+#if defined (RTCONFIG_USB_XHCI)
 #if defined(RTN65U)
 	if (disabled) modprobe_r(USB30_MOD);
 #elif defined(RTCONFIG_XHCIMODE)
@@ -515,7 +580,7 @@ void stop_usb(void)
 		modprobe_r(USBOHCI_MOD);
 		modprobe_r(USBUHCI_MOD);
 		modprobe_r(USB20_MOD);
-#if defined (RTCONFIG_USB_XHCI) || defined (RTCONFIG_USB_2XHCI2)
+#if defined (RTCONFIG_USB_XHCI)
 		modprobe_r(USB30_MOD);
 #endif
 		modprobe_r(USBCORE_MOD);
@@ -540,15 +605,25 @@ void start_usblpsrv(void)
 #define MOUNT_VAL_RW 	2
 #define MOUNT_VAL_EXIST	3
 
-int mount_r(char *mnt_dev, char *mnt_dir, char *type)
+int mount_r(char *mnt_dev, char *mnt_dir, char *_type)
 {
 	struct mntent *mnt;
 	int ret;
 	char options[140];
 	char flagfn[128];
 	int dir_made;
+	char type[16];
 
-	if ((mnt = findmntents(mnt_dev, 0, NULL, 0))) {
+	memset(type, 0, 16);
+	if(_type != NULL)
+		strncpy(type, _type, 16);
+
+	if(strlen(type) > 0 && !strcmp(type, "apple_efi")){
+		TRACE_PT("Don't mount the EFI partition(%s) of APPLE!\n", mnt_dev, type);
+		return MOUNT_VAL_EXIST;
+	}
+
+	if((mnt = findmntents(mnt_dev, 0, NULL, 0))){
 		syslog(LOG_INFO, "USB partition at %s already mounted on %s",
 			mnt_dev, mnt->mnt_dir);
 		return MOUNT_VAL_EXIST;
@@ -556,7 +631,7 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *type)
 
 	options[0] = 0;
 
-	if (type) {
+	if(strlen(type) > 0){
 #ifndef RTCONFIG_BCMARM
 		unsigned long flags = MS_NOATIME | MS_NODEV;
 #else
@@ -567,26 +642,22 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *type)
 			/* not a mountable partition */
 			flags = 0;
 		}
-		else if (strcmp(type, "ext2") == 0 || strcmp(type, "ext3") == 0
-#if defined(RTCONFIG_BCMARM) || defined(RTCONFIG_EXT4FS)
-			|| strcmp(type, "ext4") == 0
-#endif
-			)
-		{
+		else if(!strncmp(type, "ext", 3)){
 			sprintf(options, "user_xattr");
 
 			if (nvram_invmatch("usb_ext_opt", ""))
 				sprintf(options + strlen(options), "%s%s", options[0] ? "," : "", nvram_safe_get("usb_ext_opt"));
 		}
 		else if (strcmp(type, "vfat") == 0) {
+			sprintf(options, "umask=0000");
+
 #ifdef RTCONFIG_BCMARM
-			flags |= MS_NOATIME;
+			sprintf(options + strlen(options), ",allow_utime=0022" + (options[0] ? 0 : 1));
 #endif
-			sprintf(options, "umask=0000,allow_utime=0000");
 
 			if (nvram_invmatch("smbd_cset", ""))
-				sprintf(options + strlen(options), ",iocharset=%s%s", 
-					isdigit(nvram_get("smbd_cset")[0]) ? "cp" : "",
+				sprintf(options + strlen(options), ",iocharset=%s%s",
+						isdigit(nvram_get("smbd_cset")[0]) ? "cp" : "",
 						nvram_get("smbd_cset"));
 
 			if (nvram_invmatch("smbd_cpage", "")) {
@@ -604,22 +675,26 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *type)
 			}
 
 			sprintf(options + strlen(options), ",shortname=winnt" + (options[0] ? 0 : 1));
+#ifdef RTCONFIG_TFAT
+#ifndef RTCONFIG_BCMARM
+			sprintf(options + strlen(options), ",noatime" + (options[0] ? 0 : 1));
+#endif
+			sprintf(options + strlen(options), ",nodev,iostreaming" + (options[0] ? 0 : 1));
+#else
 #ifdef LINUX26
 			sprintf(options + strlen(options), ",flush" + (options[0] ? 0 : 1));
 #endif
+#endif
+
 			if (nvram_invmatch("usb_fat_opt", ""))
 				sprintf(options + strlen(options), "%s%s", options[0] ? "," : "", nvram_safe_get("usb_fat_opt"));
-
 		}
 		else if (strncmp(type, "ntfs", 4) == 0) {
-#ifdef RTCONFIG_BCMARM
-			flags |= MS_NOATIME;
-#endif
-			sprintf(options, "umask=0000");
+			sprintf(options, "umask=0000,nodev");
 
 			if (nvram_invmatch("smbd_cset", ""))
-				sprintf(options + strlen(options), "%siocharset=%s%s", options[0] ? "," : "",
-					isdigit(nvram_get("smbd_cset")[0]) ? "cp" : "",
+				sprintf(options + strlen(options), "%snls=%s%s", options[0] ? "," : "",
+						isdigit(nvram_get("smbd_cset")[0]) ? "cp" : "",
 						nvram_get("smbd_cset"));
 
 			if (nvram_invmatch("smbd_cpage", "")) {
@@ -627,17 +702,38 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *type)
 				sprintf(options + strlen(options), ",codepage=%s" + (options[0] ? 0 : 1), cp);
 				sprintf(flagfn, "nls_cp%s", cp);
 				TRACE_PT("USB %s(%s) is setting the code page to %s!\n", mnt_dev, type, flagfn);
-			
+
 				cp = nvram_get("smbd_nlsmod");
 				if ((cp) && (*cp != 0) && (strcmp(cp, flagfn) != 0))
 				modprobe_r(cp);
-			
+
 				modprobe(flagfn);
 				nvram_set("smbd_nlsmod", flagfn);
 			}
 
+#ifndef RTCONFIG_BCMARM
+			sprintf(options + strlen(options), ",noatime" + (options[0] ? 0 : 1));
+#endif
+
+#ifdef RTCONFIG_TUXERA
+			sprintf(options + strlen(options), ",iostreaming" + (options[0] ? 0 : 1));
+#endif
+
 			if (nvram_invmatch("usb_ntfs_opt", ""))
 				sprintf(options + strlen(options), "%s%s", options[0] ? "," : "", nvram_safe_get("usb_ntfs_opt"));
+		}
+		else if(!strncmp(type, "hfs", 3)){
+			sprintf(options, "umask=0000,nodev,force");
+
+#ifndef RTCONFIG_BCMARM
+			sprintf(options + strlen(options), ",noatime" + (options[0] ? 0 : 1));
+#endif
+#ifdef RTCONFIG_KERNEL_HFSPLUS
+			sprintf(options + strlen(options), ",force" + (options[0] ? 0 : 1));
+#endif
+
+			if(nvram_invmatch("usb_hfs_opt", ""))
+				sprintf(options + strlen(options), "%s%s", options[0] ? "," : "", nvram_safe_get("usb_hfs_opt"));
 		}
 
 		if (flags) {
@@ -647,21 +743,59 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *type)
 				f_write(flagfn, NULL, 0, 0, 0);
 			}
 
-			ret = mount(mnt_dev, mnt_dir, type, flags, options[0] ? options : "");
-			if(ret != 0){
-				syslog(LOG_INFO, "USB %s(%s) failed to mount at the first try!"
-						, mnt_dev, type);
-				TRACE_PT("USB %s(%s) failed to mount at the first try!\n", mnt_dev, type);
+#ifdef RTCONFIG_TFAT
+			if(!strncmp(type, "vfat", 4)){
+				ret = eval("mount", "-t", "tfat", "-o", options, mnt_dev, mnt_dir);
+				if(ret != 0){
+					syslog(LOG_INFO, "USB %s(%s) failed to mount at the first try!" , mnt_dev, type);
+					TRACE_PT("USB %s(%s) failed to mount at the first try!\n", mnt_dev, type);
+				}
+			}
+
+			else
+#endif
+			{
+				ret = mount(mnt_dev, mnt_dir, type, flags, options[0] ? options : "");
+				if(ret != 0){
+					if(strncmp(type, "ext", 3)){
+						syslog(LOG_INFO, "USB %s(%s) failed to mount at the first try!", mnt_dev, type);
+						TRACE_PT("USB %s(%s) failed to mount at the first try!\n", mnt_dev, type);
+					}
+					else{
+						if(!strcmp(type, "ext4")){
+							snprintf(type, 16, "ext3");
+							ret = mount(mnt_dev, mnt_dir, type, flags, options[0] ? options : "");
+						}
+
+						if(ret != 0 && !strcmp(type, "ext3")){
+							snprintf(type, 16, "ext2");
+							ret = mount(mnt_dev, mnt_dir, type, flags, options[0] ? options : "");
+						}
+
+						if(ret != 0 && !strcmp(type, "ext2")){
+							snprintf(type, 16, "ext");
+							ret = mount(mnt_dev, mnt_dir, type, flags, options[0] ? options : "");
+						}
+
+						if(ret != 0){
+							syslog(LOG_INFO, "USB %s(ext) failed to mount at the first try!", mnt_dev);
+							TRACE_PT("USB %s(ext) failed to mount at the first try!\n", mnt_dev);
+						}
+					}
+				}
 			}
 
 #ifdef RTCONFIG_NTFS
 			/* try ntfs-3g in case it's installed */
 			if (ret != 0 && strncmp(type, "ntfs", 4) == 0) {
-				sprintf(options + strlen(options), ",noatime,nodev" + (options[0] ? 0 : 1));
-
 				if (nvram_get_int("usb_fs_ntfs")) {
 #ifdef RTCONFIG_NTFS3G
 					ret = eval("ntfs-3g", "-o", options, mnt_dev, mnt_dir);
+#elif defined(RTCONFIG_TUXERA)
+					if(nvram_get_int("usb_fs_ntfs_sparse"))
+						ret = eval("mount", "-t", "tntfs", "-o", options, "-o", "sparse", mnt_dev, mnt_dir);
+					else
+						ret = eval("mount", "-t", "tntfs", "-o", options, mnt_dev, mnt_dir);
 #else
 					if(nvram_get_int("usb_fs_ntfs_sparse"))
 						ret = eval("mount", "-t", "ufsd", "-o", options, "-o", "force", "-o", "sparse", mnt_dev, mnt_dir);
@@ -672,15 +806,51 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *type)
 			}
 #endif
 
-			if (ret != 0) /* give it another try - guess fs */
+#ifdef RTCONFIG_HFS
+			/* try HFS in case it's installed */
+			if(ret != 0 && !strncmp(type, "hfs", 3)){
+				if (nvram_get_int("usb_fs_hfs")) {
+#ifdef RTCONFIG_TUXERA_HFS
+					ret = eval("mount", "-t", "thfsplus", "-o", options, mnt_dev, mnt_dir);
+#elif defined(RTCONFIG_PARAGON_HFS)
+					ret = eval("mount", "-t", "ufsd", "-o", options, mnt_dev, mnt_dir);
+#elif defined(RTCONFIG_KERNEL_HFSPLUS)
+					eval("fsck.hfsplus", "-f", mnt_dev);//Scan
+					ret = eval("mount", "-t", "hfsplus", "-o", options, mnt_dev, mnt_dir);
+#endif
+				}
+			}
+#endif
+
+#ifdef RTCONFIG_EXFAT
+			if(ret != 0 && !strncmp(type, "exfat", 3)){
+				sprintf(options + strlen(options), ",iostreaming" + (options[0] ? 0 : 1));
+
+				if(nvram_invmatch("usb_exfat_opt", ""))
+					sprintf(options + strlen(options), "%s%s", options[0] ? "," : "", nvram_safe_get("usb_exfat_opt"));
+
+				if(nvram_get_int("usb_fs_exfat")){
+#ifdef RTCONFIG_TUXERA
+					ret = eval("mount", "-t", "texfat", "-o", options, mnt_dev, mnt_dir);
+#endif
+				}
+			}
+#endif
+
+			if (ret != 0){ /* give it another try - guess fs */
+				TRACE_PT("give it another try - guess fs.\n");
 #ifndef RTCONFIG_BCMARM
 				ret = eval("mount", "-o", "noatime,nodev", mnt_dev, mnt_dir);
 #else
 				ret = eval("mount", "-o", "nodev", mnt_dev, mnt_dir);
 #endif
+			}
+
 			if (ret == 0) {
 				syslog(LOG_INFO, "USB %s%s fs at %s mounted on %s",
-					type, (flags & MS_RDONLY) ? " (ro)" : "", mnt_dev, mnt_dir);
+						type, (flags & MS_RDONLY) ? " (ro)" : "", mnt_dev, mnt_dir);
+				TRACE_PT("USB %s%s fs at %s mounted on %s.\n",
+						type, (flags & MS_RDONLY) ? " (ro)" : "", mnt_dev, mnt_dir);
 				return (flags & MS_RDONLY) ? MOUNT_VAL_RONLY : MOUNT_VAL_RW;
 			}
 
@@ -1006,7 +1176,6 @@ int mount_partition(char *dev_name, int host_num, char *dsc_name, char *pt_name,
 	static char *swp_argv[] = { "swapon", "-a", NULL };
 	struct mntent *mnt;
 	char command[PATH_MAX];
-	char word[PATH_MAX], *next_word;
 
 	if ((type = detect_fs_type(dev_name)) == NULL)
 		return 0;
@@ -1057,50 +1226,32 @@ done:
 		chmod(mountpoint, 0777);
 
 #ifdef RTCONFIG_USB_MODEM
-		int got_port, port_num = 0;
-		char nvram_name[32], usb_port[8];
+		char usb_node[32], port_path[8];
+		char prefix[] = "usb_pathXXXXXXXXXXXXXXXXX_", tmp[100];
+		unsigned int vid, pid;
 
 		ptr = dev_name+5;
 
-		// Get USB port.
-		got_port = 0;
-		if(get_usb_port_by_device(ptr, usb_port, sizeof(usb_port)) != NULL){
-			port_num = 1;
-			foreach(word, nvram_safe_get("ehci_ports"), next_word){
-				if(!strcmp(usb_port, word)){
-					got_port = 1;
-					memset(nvram_name, 0, 32);
-					sprintf(nvram_name, "usb_path%d_fs_path0", port_num);
-					nvram_set(nvram_name, ptr);
+		// Get USB node.
+		if(get_usb_node_by_device(ptr, usb_node, 32) != NULL){
+			if(get_path_by_node(usb_node, port_path, 8) != NULL){
+				snprintf(prefix, sizeof(prefix), "usb_path%s", port_path);
+				// for ATE.
+				if(strlen(nvram_safe_get(strcat_r(prefix, "_fs_path0", tmp))) <= 0)
+					nvram_set(tmp, ptr);
 
-					break;
+				vid = strtoul(nvram_safe_get(strcat_r(prefix, "_vid", tmp)), NULL, 16);
+				pid = strtoul(nvram_safe_get(strcat_r(prefix, "_pid", tmp)), NULL, 16);
+
+				if(is_create_file_dongle(vid, pid)){
+					if(strcmp(nvram_safe_get("stop_sg_remove"), "1")){
+						memset(command, 0, PATH_MAX);
+						sprintf(command, "touch %s/wcdma.cfg", mountpoint);
+						system(command);
+					}
+
+					return 0; // skip to restart_nasapps.
 				}
-
-				++port_num;
-			}
-		}
-
-		if(got_port){
-			char vid[8], pid[8];
-
-			memset(nvram_name, 0, 32);
-			sprintf(nvram_name, "usb_path%d_vid", port_num);
-			memset(vid, 0, 8);
-			strcpy(vid, nvram_safe_get(nvram_name));
-
-			memset(nvram_name, 0, 32);
-			sprintf(nvram_name, "usb_path%d_pid", port_num);
-			memset(pid, 0, 8);
-			strcpy(pid, nvram_safe_get(nvram_name));
-
-			if(is_create_file_dongle(vid, pid)){
-				if(strcmp(nvram_safe_get("stop_sg_remove"), "1")){
-					memset(command, 0, PATH_MAX);
-					sprintf(command, "touch %s/wcdma.cfg", mountpoint);
-					system(command);
-				}
-
-				return 0; // skip to restart_nasapps.
 			}
 		}
 #endif
@@ -1131,7 +1282,7 @@ done:
 						|| !strcmp(type, "ext4")
 #endif
 						|| !strcmp(type, "vfat") || !strcmp(type, "msdos")
-						|| !strcmp(type, "ntfs") || !strcmp(type, "ufsd"))
+						|| !strcmp(type, "ntfs") || !strncmp(type, "hfs", 3))
 						){
 					findmntents(dev_name, 0, umount_mountpoint, EFH_HP_REMOVE);
 					memset(command, 0, PATH_MAX);
@@ -1547,9 +1698,9 @@ void hotplug_usb(void)
 				}
 				TRACE_PT(" mount to dev: %s\n", devname);
 				if (mount_partition(devname, host, NULL, device, EFH_HP_ADD)) {
-//_dprintf("restart_nas_services(%d): test 5.\n", getpid());
+_dprintf("restart_nas_services(%d): test 5.\n", getpid());
 					//restart_nas_services(1, 1); // restart all NAS applications
-					notify_rc_after_wait("restart_nasapps");
+					notify_rc_and_wait("restart_nasapps");
 				}
 				TRACE_PT(" end of mount\n");
 			}
@@ -1560,7 +1711,7 @@ void hotplug_usb(void)
 			/* Restart NAS applications (they could be killed by umount_mountpoint),
 			 * or just re-read the configuration.
 			 */
-//_dprintf("restart_nas_services(%d): test 6.\n", getpid());
+_dprintf("restart_nas_services(%d): test 6.\n", getpid());
 			//restart_nas_services(1, 1);
 			notify_rc_after_wait("restart_nasapps");
 		}
@@ -1600,7 +1751,9 @@ void write_ftpd_conf()
 	fp=fopen("/etc/vsftpd.conf", "w");
 	if (fp==NULL) return;
 
-	if (nvram_match("st_ftp_mode", "2"))
+	if (nvram_match("st_ftp_mode", "2")
+			|| (nvram_match("st_ftp_mode", "1") && !strcmp(nvram_safe_get("st_ftp_force_mode"), ""))
+			)
 		fprintf(fp, "anonymous_enable=NO\n");
 	else{
 		fprintf(fp, "anonymous_enable=YES\n");
@@ -1646,8 +1799,8 @@ void write_ftpd_conf()
 	{
 		fprintf(fp, "enable_iconv=YES\n");
 		if (nvram_match("ftp_lang", "TW")) {
-			fprintf(fp, "remote_charset=cp950\n");		
-			modprobe("nls_cp950");	
+			fprintf(fp, "remote_charset=cp950\n");
+			modprobe("nls_cp950");
 		}
 		else if (nvram_match("ftp_lang", "CN")) {
 			fprintf(fp, "remote_charset=cp936\n");
@@ -1664,7 +1817,7 @@ void write_ftpd_conf()
 }
 
 /*
- * st_ftp_modex: 0:no-ftp, 1:anonymous, 2:account 
+ * st_ftp_modex: 0:no-ftp, 1:anonymous, 2:account
  */
 
 void
@@ -1678,9 +1831,9 @@ start_ftpd(void)
 	if (nvram_match("enable_ftp", "0")) return;
 
 	write_ftpd_conf();
-	
+
 	killall("vsftpd", SIGHUP);
-	
+
 	if (!pids("vsftpd"))
 		system("vsftpd /etc/vsftpd.conf &");
 
@@ -1798,12 +1951,12 @@ int suit_double_quote(const char *output, const char *input, int outsize){
 
 	return dst-output;
 }
-
+#if 0
 #ifdef RTCONFIG_BCMARM
 extern void del_samba_rules(void);
 extern void add_samba_rules(void);
 #endif
-
+#endif
 void
 start_samba(void)
 {
@@ -1812,8 +1965,8 @@ start_samba(void)
 	char *nv, *nvp, *b;
 	char *tmp_ascii_user, *tmp_ascii_passwd;
 #ifdef RTCONFIG_BCMARM
-        int cpu_num = sysconf(_SC_NPROCESSORS_CONF);
-        int taskset_ret = -1;
+	int cpu_num = sysconf(_SC_NPROCESSORS_CONF);
+	int taskset_ret = -1;
 #endif
 
 	if (getpid() != 1) {
@@ -1826,13 +1979,14 @@ start_samba(void)
 #ifdef RTCONFIG_GROCTRL
 	enable_gro(2);
 #endif
-	
+#if 0
 #ifdef RTCONFIG_BCMARM
-        add_samba_rules();
+	add_samba_rules();
+#endif
 #endif
 	mkdir_if_none("/var/run/samba");
 	mkdir_if_none("/etc/samba");
-	
+
 	unlink("/etc/smb.conf");
 	unlink("/etc/smbpasswd");
 
@@ -1842,7 +1996,7 @@ start_samba(void)
 	/* write smbpasswd  */
 	system("smbpasswd nobody \"\"");
 
-	acc_num = atoi(nvram_safe_get("acc_num"));
+	acc_num = nvram_get_int("acc_num");
 	if(acc_num < 0)
 		acc_num = 0;
 
@@ -1877,16 +2031,23 @@ _dprintf("%s: cmd=%s.\n", __FUNCTION__, cmd);
 
 	xstart("nmbd", "-D", "-s", "/etc/smb.conf");
 #ifdef RTCONFIG_BCMARM
-#ifdef SMP 
-        if (cpu_num > 1)
-                taskset_ret = cpu_eval(NULL, "1", "ionice", "-c1", "-n0", "smbd", "-D", "-s", "/etc/smb.conf");
-        else
-                taskset_ret = eval("ionice", "-c1", "-n0", "smbd", "-D", "-s", "/etc/smb.conf");
+#ifdef SMP
+#if 0
+	if(cpu_num > 1)
+		taskset_ret = cpu_eval(NULL, "1", "ionice", "-c1", "-n0", "smbd", "-D", "-s", "/etc/smb.conf");
+	else
+		taskset_ret = eval("ionice", "-c1", "-n0", "smbd", "-D", "-s", "/etc/smb.conf");
+#else
+	if(cpu_num > 1)
+		taskset_ret = cpu_eval(NULL, "1", "smbd", "-D", "-s", "/etc/smb.conf");
+	else
+		taskset_ret = eval("smbd", "-D", "-s", "/etc/smb.conf");
+#endif
 
-        if (taskset_ret != 0)
+	if(taskset_ret != 0)
 #endif
 #endif
-                xstart("smbd", "-D", "-s", "/etc/smb.conf");
+		xstart("smbd", "-D", "-s", "/etc/smb.conf");
 
 	logmessage("Samba Server", "daemon is started");
 
@@ -1904,17 +2065,17 @@ void stop_samba(void)
 	/* clean up */
 	unlink("/var/log/smb");
 	unlink("/var/log/nmb");
-	
+
 	eval("rm", "-rf", "/var/run/samba");
 
 	logmessage("Samba Server", "smb daemon is stoped");
-
+#if 0
 #ifdef RTCONFIG_BCMARM
-        del_samba_rules();
+	del_samba_rules();
 #endif
-
+#endif
 #ifdef RTCONFIG_GROCTRL
-        enable_gro(0);
+	enable_gro(0);
 #endif
 }
 #endif	// RTCONFIG_SAMBASRV
@@ -1922,45 +2083,45 @@ void stop_samba(void)
 #ifdef RTCONFIG_MEDIA_SERVER
 #define MEDIA_SERVER_APP	"minidlna"
 
-/* 
+/*
  * 1. if (dms_dbdir) exist and file.db there, use it
  * 2. find the first and the largest write-able directory in /tmp/mnt
- * 3. /var/cache/minidlna 
+ * 3. /var/cache/minidlna
  */
 int find_dms_dbdir_candidate(char *dbdir)
 {
-        disk_info_t *disk_list, *disk_info;
-        partition_info_t *partition_info, *picked;
-        u64 max_size = 256*1024;
+	disk_info_t *disk_list, *disk_info;
+	partition_info_t *partition_info, *picked;
+	u64 max_size = 256*1024;
 	int found;
 
-        disk_list = read_disk_data();
-        if(disk_list == NULL){
-                cprintf("Can't get any disk's information.\n");
-                return 0;
-        }
+	disk_list = read_disk_data();
+	if(disk_list == NULL){
+		cprintf("Can't get any disk's information.\n");
+		return 0;
+	}
 
 	found = 0;
 	picked = NULL;
 
-        for(disk_info = disk_list; disk_info != NULL; disk_info = disk_info->next) {
-                for(partition_info = disk_info->partitions; partition_info != NULL; partition_info = partition_info->next){
-                        if(partition_info->mount_point == NULL){
-                                cprintf("Skip if it can't be mounted.\n");
-                                continue;
-                        }
-			if(strncmp(partition_info->permission, "rw", 2)!=0) {
-				cprintf("Skip if permission is not rw\n"); 
+	for(disk_info = disk_list; disk_info != NULL; disk_info = disk_info->next) {
+		for(partition_info = disk_info->partitions; partition_info != NULL; partition_info = partition_info->next){
+			if(partition_info->mount_point == NULL){
+				cprintf("Skip if it can't be mounted.\n");
 				continue;
 			}
-                               
+			if(strncmp(partition_info->permission, "rw", 2)!=0) {
+				cprintf("Skip if permission is not rw\n");
+				continue;
+			}
+
 			if(partition_info->size_in_kilobytes > max_size && (partition_info->size_in_kilobytes - partition_info->used_kilobytes)>128*1024) {
 				max_size = partition_info->size_in_kilobytes;
 				picked = partition_info;
-			} 
-                }
-        }                          
-        if(picked && picked->mount_point) {
+			}
+		}
+	}
+	if(picked && picked->mount_point) {
 		strcpy(dbdir, picked->mount_point);
 		found = 1;
 	}
@@ -1977,30 +2138,34 @@ void find_dms_dbdir(char *dbdir)
 
   	strcpy(dbdir_t, nvram_safe_get("dms_dbdir"));
 
-        /* if previous dms_dbdir there, use it */
-        if(!strcmp(dbdir, nvram_default_get("dms_dbdir"))==0) {
-                sprintf(dbfile, "%s/file.db", dbdir_t);
-                if (check_if_file_exist(dbfile)) {
-                        strcpy(dbdir, dbdir_t);
-                        found = 1;
-                }
-        }
+	/* if previous dms_dbdir there, use it */
+	if(!strcmp(dbdir_t, nvram_default_get("dms_dbdir"))) {
+		sprintf(dbfile, "%s/file.db", dbdir_t);
+		if (check_if_file_exist(dbfile)) {
+			strcpy(dbdir, dbdir_t);
+			found = 1;
+		}
+	}
 
 	/* find the first write-able directory */
-        if(!found && find_dms_dbdir_candidate(dbdir_t)) {
+	if(!found && find_dms_dbdir_candidate(dbdir_t)) {
       		sprintf(dbdir, "%s/minidlna", dbdir_t);
 		found = 1;
 	}
-	
+
  	/* use default dir */
 	if(!found)
 		strcpy(dbdir, nvram_default_get("dms_dbdir"));
 
-end:
 	nvram_set("dms_dbdir", dbdir);
 
 	return;
 }
+
+#define TYPE_AUDIO	0x01
+#define TYPE_VIDEO	0x02
+#define TYPE_IMAGES	0x04
+#define ALL_MEDIA	0x07
 
 void start_dms(void)
 {
@@ -2009,15 +2174,23 @@ void start_dms(void)
 	char dbdir[100], *dmsdir;
 	char *argv[] = { MEDIA_SERVER_APP, "-f", "/etc/"MEDIA_SERVER_APP".conf", "-R", NULL };
 	static int once = 1;
-	int i;
+	int i, j;
 	char serial[18];
+	char *nv, *nvp, *b, *c;
+	char *nv2, *nvp2;
+	int dircount = 0, sharecount = 0;
+	char dirlist[32][1024];
+	unsigned char typelist[32];
+	int default_dms_dir_used = 0;
+	unsigned char type = 0;
+	char types[5];
 
 	if (getpid() != 1) {
 		notify_rc("start_dms");
 		return;
 	}
 
-	if(!is_routing_enabled() && !is_lan_connected())
+	if (!is_routing_enabled() && !is_lan_connected())
 		set_invoke_later(INVOKELATER_DMS);
 
 	if (nvram_get_int("dms_sas") == 0)
@@ -2036,18 +2209,80 @@ void start_dms(void)
 			// default: dmsdir=/tmp/mnt, dbdir=/var/cache/minidlna
 			// after setting dmsdir, dbdir="dmsdir"/minidlna
 
-			dmsdir = nvram_safe_get("dms_dir");
-			if(!check_if_dir_exist(dmsdir)) 
-				dmsdir = nvram_default_get("dms_dir");
+			nv = nvp = strdup(nvram_safe_get("dms_dir_x"));
+			nv2 = nvp2 = strdup(nvram_safe_get("dms_dir_type_x"));
 
-			if(strcmp(dmsdir, nvram_default_get("dms_dir"))==0) {
-				find_dms_dbdir(dbdir);
+			if (nv) {
+				while ((b = strsep(&nvp, "<")) != NULL) {
+					if (!strlen(b)) continue;
+
+					if (!default_dms_dir_used &&
+						!strcmp(b, nvram_default_get("dms_dir")))
+						default_dms_dir_used = 1;
+
+					if (check_if_dir_exist(b))
+						strncpy(dirlist[dircount++], b, 1024);
+				}
 			}
+
+			dircount = 0;
+			if (nv2) {
+				while ((c = strsep(&nvp2, "<")) != NULL) {
+					if (!strlen(c)) continue;
+
+					type = 0;
+					while (*c)
+					{
+						if (*c == ',')
+							break;
+
+						if (*c == 'A' || *c == 'a')
+							type |= TYPE_AUDIO;
+						else if (*c == 'V' || *c == 'v')
+							type |= TYPE_VIDEO;
+						else if (*c == 'P' || *c == 'p')
+							type |= TYPE_IMAGES;
+						else
+							type = ALL_MEDIA;
+
+						c++;
+					}
+
+					typelist[dircount++] = type;
+				}
+			}
+
+			if (nv) free(nv);
+			if (nv2) free(nv2);
+
+			if (!dircount)
+			{
+				strcpy(dirlist[dircount++], nvram_default_get("dms_dir"));
+				default_dms_dir_used = 1;
+			}
+
+			if (default_dms_dir_used)
+				find_dms_dbdir(dbdir);
 			else {
-				if(dmsdir[strlen(dmsdir)-1]=='/') sprintf(dbdir, "%sminidlna", dmsdir);
-				else sprintf(dbdir, "%s/minidlna", dmsdir);
+				for (i = 0; i < dircount; i++)
+				{
+					if (!strcmp(dirlist[i], nvram_default_get("dms_dir")))
+						continue;
+
+					if (dirlist[i][strlen(dirlist[i])-1]=='/')
+						sprintf(dbdir, "%sminidlna", dirlist[i]);
+					else
+						sprintf(dbdir, "%s/minidlna", dirlist[i]);
+
+					break;
+				}
 			}
 			mkdir_if_none(dbdir);
+			if (!check_if_dir_exist(dbdir))
+			{
+				strcpy(dbdir, nvram_default_get("dms_dbdir"));
+				mkdir_if_none(dbdir);
+			}
 
 			nvram_set("dms_dbcwd", dbdir);
 
@@ -2060,28 +2295,62 @@ void start_dms(void)
 				"network_interface=%s\n"
 				"port=%d\n"
 				"friendly_name=%s\n"
-//				"db_dir=%s/.db\n"
 				"db_dir=%s\n"
 				"enable_tivo=%s\n"
 				"strict_dlna=%s\n"
 				"presentation_url=http://%s:80/\n"
 				"inotify=yes\n"
 				"notify_interval=600\n"
-				"album_art_names=Cover.jpg/cover.jpg/Thumb.jpg/thumb.jpg\n"
-				"media_dir=%s\n"
-				"serial=%s\n"
-				"model_number=%s.%s\n",
+				"album_art_names=Cover.jpg/cover.jpg/Thumb.jpg/thumb.jpg\n",
 				nvram_safe_get("lan_ifname"),
 				(port < 0) || (port >= 0xffff) ? 0 : port,
-				is_valid_hostname(nvram_get("computer_name")) ? nvram_get("computer_name") : get_productid(),
+				is_valid_hostname(nvram_get("dms_friendly_name")) ? nvram_get("dms_friendly_name") : get_productid(),
 				dbdir,
 				nvram_get_int("dms_tivo") ? "yes" : "no",
 				nvram_get_int("dms_stdlna") ? "yes" : "no",
-				nvram_safe_get("lan_ipaddr"),
-				dmsdir,
+				nvram_safe_get("lan_ipaddr"));
+
+			for (i = 0; i < dircount; i++)
+			{
+				type = typelist[i];
+
+				if (type == ALL_MEDIA)
+					types[0] = 0;
+				else
+				{
+					j = 0;
+					if (type & TYPE_AUDIO)
+						types[j++] = 'A';
+					if (type & TYPE_VIDEO)
+						types[j++] = 'V';
+					if (type & TYPE_IMAGES)
+						types[j++] = 'P';
+
+					types[j++] =  ',';
+					types[j] =  0;
+				}
+
+				if (check_if_dir_exist(dirlist[i]))
+				{
+					fprintf(f,
+						"media_dir=%s%s\n",
+						types,
+						dirlist[i]);
+
+					sharecount++;
+				}
+			}
+
+			if (!sharecount)
+			fprintf(f,
+				"media_dir=%s\n",
+				nvram_default_get("dms_dir"));
+
+			fprintf(f,
+				"serial=%s\n"
+				"model_number=%s.%s\n",
 				serial,
-				rt_version, rt_serialno
-				);
+				rt_version, rt_serialno);
 
 			fclose(f);
 		}
@@ -2137,7 +2406,7 @@ write_mt_daapd_conf(char *servername)
 		return;
 
 	dmsdir = nvram_safe_get("dms_dir");
-	if(!check_if_dir_exist(dmsdir)) 
+	if(!check_if_dir_exist(dmsdir))
 		dmsdir = nvram_default_get("dms_dir");
 #if 1
 	fprintf(fp, "web_root /etc/web\n");
@@ -2186,8 +2455,8 @@ start_mt_daapd()
 	if (nvram_invmatch("daapd_enable", "1"))
 		return;
 
-	if (is_valid_hostname(nvram_safe_get("computer_name")))
-		strncpy(servername, nvram_safe_get("computer_name"), sizeof(servername));
+	if (is_valid_hostname(nvram_safe_get("daapd_friendly_name")))
+		strncpy(servername, nvram_safe_get("daapd_friendly_name"), sizeof(servername));
 	else
 		servername[0] = '\0';
 	if(strlen(servername)==0) strncpy(servername, get_productid(), sizeof(servername));
@@ -2196,10 +2465,19 @@ start_mt_daapd()
 	if (is_routing_enabled())
 	{
 		system("mt-daapd -m");
+#if defined(RTCONFIG_TIMEMACHINE) || defined(RTCONFIG_MDNS)
+		restart_mdns();
+#else
 		doSystem("mDNSResponder %s thehost %s _daap._tcp. 3689 &", nvram_safe_get("lan_ipaddr"), servername);
+#endif
 	}
-	else
+	else{
 		system("mt-daapd");
+#if defined(RTCONFIG_TIMEMACHINE) || defined(RTCONFIG_MDNS)
+	if (pids("avahi-daemon"))
+		restart_mdns();
+#endif
+	}
 
 	if (pids("mt-daapd"))
 	{
@@ -2219,11 +2497,22 @@ stop_mt_daapd()
 		return;
 	}
 
-	if (!pids("mDNSResponder") && !pids("mt-daapd"))
+	if(!pids("mt-daapd") &&
+#if defined(RTCONFIG_TIMEMACHINE) || defined(RTCONFIG_MDNS)
+			!pids("avahi-daemon")
+#else
+			!pids("mDNSResponder")
+#endif
+			)
 		return;
 
+#if defined(RTCONFIG_TIMEMACHINE) || defined(RTCONFIG_MDNS)
+	if (pids("avahi-daemon"))
+		restart_mdns();
+#else
 	if (pids("mDNSResponder"))
 		system("killall mDNSResponder");
+#endif
 
 	if (pids("mt-daapd"))
 		system("killall -SIGKILL mt-daapd");
@@ -2251,7 +2540,7 @@ void write_webdav_permissions()
 	fp = fopen("/tmp/lighttpd/permissions", "w");
 	if (fp==NULL) return;
 
-	acc_num = atoi(nvram_safe_get("acc_num"));
+	acc_num = nvram_get_int("acc_num");
 	if(acc_num < 0)
 		acc_num = 0;
 
@@ -2306,7 +2595,7 @@ void start_webdav(void)	// added by Vanic
 	}
 /*
 #ifndef RTCONFIG_WEBDAV
-        system("sh /opt/etc/init.d/S50aicloud scan");
+	system("sh /opt/etc/init.d/S50aicloud scan");
 #else
 */
 	//static char *lighttpd_monitor_argv[] = { "lighttpd-monitor", NULL, NULL };
@@ -2314,7 +2603,7 @@ void start_webdav(void)	// added by Vanic
 
 	if (nvram_get_int("webdav_aidisk") || nvram_get_int("webdav_proxy"))
 		nvram_set("enable_webdav", "1");
-	else if (!nvram_get_int("webdav_aidisk") && !nvram_get_int("webdav_proxy") && nvram_get_int("enable_webdav")) 
+	else if (!nvram_get_int("webdav_aidisk") && !nvram_get_int("webdav_proxy") && nvram_get_int("enable_webdav"))
 	{
 		// enable both when enable_webdav by other apps
 		nvram_set("webdav_aidisk", "1");
@@ -2324,7 +2613,8 @@ void start_webdav(void)	// added by Vanic
 	if (nvram_match("enable_webdav", "0")) return;
 
 #ifndef RTCONFIG_WEBDAV
-        system("sh /opt/etc/init.d/S50aicloud scan");
+	if(f_exists("/opt/etc/init.d/S50aicloud"))
+		system("sh /opt/etc/init.d/S50aicloud scan");
 #else
 	/* WebDav directory */
 	mkdir_if_none("/tmp/lighttpd");
@@ -2335,13 +2625,13 @@ void start_webdav(void)	// added by Vanic
 
 	/* tmp/lighttpd/permissions */
 	write_webdav_permissions();
-	
+
 	/* WebDav SSL support */
-	write_webdav_server_pem();
+	//write_webdav_server_pem();
 
 	/* write WebDav configure file*/
 	system("/sbin/write_webdav_conf");
-	
+
 	if (!f_exists("/tmp/lighttpd.conf")) return;
 
 	if (!pids("lighttpd")){
@@ -2365,8 +2655,9 @@ void stop_webdav(void)
 	}
 
 #ifndef RTCONFIG_WEBDAV
-	system("sh /opt/etc/init.d/S50aicloud scan");
-#else	
+	if(f_exists("/opt/etc/init.d/S50aicloud"))
+		system("sh /opt/etc/init.d/S50aicloud scan");
+#else
 	if (pids("lighttpd-monitor")){
 		kill_pidfile_tk("/tmp/lighttpd/lighttpd-monitor.pid");
 		unlink("/tmp/lighttpd/lighttpd-monitor.pid");
@@ -2613,13 +2904,17 @@ void start_nas_services(int force)
 		return;
 	}
 
-	if(!check_if_dir_empty("/mnt")) 
+	if(check_if_dir_exist("/mnt"))
+		eval("/usr/sbin/usbtest.sh");
+
+	if(!check_if_dir_empty("/mnt"))
 	{
 #ifdef RTCONFIG_WEBDAV
 		// webdav still needed if no disk is mounted
 		start_webdav();
 #else
-		system("sh /opt/etc/init.d/S50aicloud scan");
+		if(f_exists("/opt/etc/init.d/S50aicloud"))
+			system("sh /opt/etc/init.d/S50aicloud scan");
 #endif
 		return;
 	}
@@ -2641,6 +2936,9 @@ if (nvram_match("asus_mfg", "0")) {
 	//start_webdav();
 #endif
 }
+#ifdef RTCONFIG_TIMEMACHINE
+	start_timemachine();
+#endif
 }
 
 void stop_nas_services(int force)
@@ -2662,6 +2960,9 @@ void stop_nas_services(int force)
 #endif
 #ifdef RTCONFIG_WEBDAV
 	//stop_webdav();
+#endif
+#ifdef RTCONFIG_TIMEMACHINE
+	stop_timemachine();
 #endif
 }
 
@@ -2692,10 +2993,11 @@ void restart_sambaftp(int stop, int start)
 #ifdef RTCONFIG_WEBDAV
 		stop_webdav();
 #else
-		system("sh /opt/etc/init.d/S50aicloud scan");
+		if(f_exists("/opt/etc/init.d/S50aicloud"))
+			system("sh /opt/etc/init.d/S50aicloud scan");
 #endif
 	}
-	
+
 	if (start) {
 #ifdef RTCONFIG_SAMBA_SRV
 		create_passwd();
@@ -2707,7 +3009,8 @@ void restart_sambaftp(int stop, int start)
 #ifdef RTCONFIG_WEBDAV
 		start_webdav();
 #else
-		system("sh /opt/etc/init.d/S50aicloud scan");
+		if(f_exists("/opt/etc/init.d/S50aicloud"))
+			system("sh /opt/etc/init.d/S50aicloud scan");
 #endif
 	}
 	file_unlock(fd);
@@ -2719,7 +3022,7 @@ void restart_sambaftp(int stop, int start)
 
 static void ejusb_usage(void)
 {
-	printf(	"Usage: ejusb [-1|1|2] [0|1*]\n"
+	printf(	"Usage: ejusb [-1|1|2|1.*|2.*] [0|1*]\n"
 		"First parameter means disk_port.\n"
 		"\t-1: All ports\n"
 		"\t 1: disk port 1\n"
@@ -2735,46 +3038,33 @@ static void ejusb_usage(void)
  * 	-2:	read disk data fail
  * 	-3:	device not found
  */
-int __ejusb_main(int got_usb_port)
+int __ejusb_main(const char *port_path)
 {
 	disk_info_t *disk_list, *disk_info;
 	partition_info_t *partition_info;
-	char nvram_name[32], device_name[8], devpath[16];
-
-	if (got_usb_port < 1 || got_usb_port > 3)
-		return -1;
+	char nvram_name[32], devpath[16];
 
 	disk_list = read_disk_data();
 	if(disk_list == NULL){
 		printf("Can't get any disk's information.\n");
-		return -2;
+		return -1;
 	}
 
-	memset(nvram_name, 0, 32);
-	sprintf(nvram_name, "usb_path%d_act", got_usb_port);
-	memset(device_name, 0, 8);
-	strcpy(device_name, nvram_safe_get(nvram_name));
+	for(disk_info = disk_list; disk_info != NULL; disk_info = disk_info->next){
+		if(strcmp(port_path, "-1") && strcmp(disk_info->port, port_path))
+			continue;
 
-	for(disk_info = disk_list; disk_info != NULL; disk_info = disk_info->next)
-		if(!strcmp(disk_info->device, device_name))
-			break;
+		memset(nvram_name, 0, 32);
+		sprintf(nvram_name, "usb_path%s_removed", disk_info->port);
+		nvram_set(nvram_name, "1");
 
-	if(disk_info == NULL){
-		printf("Can't find the information of the device: %s\n", device_name);
-		free_disk_data(&disk_list);
-		return -3;
-	}
+		for(partition_info = disk_info->partitions; partition_info != NULL; partition_info = partition_info->next){
+			if(partition_info->mount_point != NULL){
+				memset(devpath, 0, 16);
+				sprintf(devpath, "/dev/%s", partition_info->device);
 
-	memset(nvram_name, 0, 32);
-	sprintf(nvram_name, "usb_path%d_removed", got_usb_port);
-	nvram_set(nvram_name, "1");
-
-	for(partition_info = disk_info->partitions; partition_info != NULL; partition_info = partition_info->next){
-		if(partition_info->mount_point != NULL){
-			memset(devpath, 0, 16);
-			sprintf(devpath, "/dev/%s", partition_info->device);
-
-			umount_partition(devpath, 0, NULL, NULL, EFH_HP_REMOVE);
+				umount_partition(devpath, 0, NULL, NULL, EFH_HP_REMOVE);
+			}
 		}
 	}
 	free_disk_data(&disk_list);
@@ -2803,7 +3093,7 @@ int ejusb_main(int argc, char *argv[])
 		if (ports != -1 && i != ports)
 			continue;
 
-		__ejusb_main(i);
+		__ejusb_main(argv[1]);
 	}
 
 	if (restart_nasapps) {
@@ -3085,10 +3375,10 @@ cprintf("disk_monitor: Port %d: val_day=%d, val_hour=%d.\n", port_num, val_day[p
 		++port_num;
 	}
 
-	if(diskmon_enable == 0){
+	/*if(diskmon_enable == 0){
 		cprintf("disk_monitor: Disable the disk_monitor.\n");
 		exit(0);
-	}
+	}//*/
 
 	while(1){
 		time(&now);
@@ -3226,10 +3516,12 @@ _dprintf("diskremove: pool_act=%s.\n", pool_act);
 _dprintf("diskremove: host=%d, channel=%d, id=%d, lun=%d.\n", host, channel, id, lun);
 				remove_scsi_device(host, channel, id, lun);
 			}
+#if defined(RTCONFIG_APP_PREINSTALLED) || defined(RTCONFIG_APP_NETINSTALLED)
 			else{
 _dprintf("diskremove: stop_app.\n");
 				stop_app();
 			}
+#endif
 
 			break;
 		}
@@ -3249,6 +3541,8 @@ int diskremove_main(int argc, char *argv[]){
 			|| !flag || strlen(flag) <= 0)
 		return -1;
 _dprintf("diskremove: SUBSYSTEM=%s, DEVICE=%s, FLAG=%s.\n", subsystem, device, flag);
+
+	return 0;
 
 	record_pool_error(device, flag);
 
@@ -3386,7 +3680,7 @@ void webdav_account_default(void)
 			if((vstrsep(b, ">", &accname, &accpasswd) != 2)) continue;
 
 			right = find_webdav_right(accname);
-				
+
 			if(i==0) sprintf(new, "%s>%d", accname, right);
 			else sprintf(new, "%s<%s>%d", new, accname, right);
 			i++;

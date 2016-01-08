@@ -1,4 +1,13 @@
 include ../common.mak
+include $(SRCBASE)/.config
+
+ifneq ($(findstring DSL,$(BUILD_NAME)),)
+MODEL = $(subst -,_,$(BUILD_NAME))
+else
+MODEL = $(subst -,,$(BUILD_NAME))
+endif
+
+export CFLAGS += -D$(MODEL)
 
 ifeq ($(RTCONFIG_BCMARM),y)
 	pkg_type=arm
@@ -54,7 +63,7 @@ endif
 	install -m 0755 apps_scripts/asusrouter $(INSTALLDIR)/rom/.asusrouter
 	mkdir -p $(INSTALLDIR)/usr/sbin
 	install -m 0755 apps_scripts/*.sh $(INSTALLDIR)/usr/sbin
-	install -m 0755 webs_scripts/*.sh $(INSTALLDIR)/usr/sbin
+	#install -m 0755 webs_scripts/*.sh $(INSTALLDIR)/usr/sbin
 ifeq ($(RTCONFIG_AUTOLIVEUPDATE_ZIP),y)
 	cp -f webs_scripts/zip_webs_upgrade.sh $(INSTALLDIR)/usr/sbin/webs_upgrade.sh
 	cp -f webs_scripts/zip_webs_update.sh $(INSTALLDIR)/usr/sbin/webs_update.sh
@@ -62,6 +71,7 @@ else
 	cp -f webs_scripts/nozip_webs_upgrade.sh $(INSTALLDIR)/usr/sbin/webs_upgrade.sh
 	cp -f webs_scripts/nozip_webs_update.sh $(INSTALLDIR)/usr/sbin/webs_update.sh
 endif
+	cp -f others/usbtest.sh $(INSTALLDIR)/usr/sbin/usbtest.sh
 
 	# remove comments, compress whitespace
 	sed 's/#.*//g;s/[ \t]\+/ /g;s/^[ \t]*//;s/[ \t]*$$//;/^$$/d' < rom/etc/services > $(INSTALLDIR)/rom/etc/services
@@ -84,6 +94,7 @@ ifeq ($(RTCONFIG_RALINK_RT3883),y)
 	cp -rf wlan/RT3662_AP_2T2R_V0_0.bin $(INSTALLDIR)/rom/wlan/
 endif
 
+
 ifeq ($(RTCONFIG_BCMARM),y)
 	mkdir -p $(INSTALLDIR)/rom/dlna
 ifeq ($(RTAC56U), y)
@@ -91,7 +102,7 @@ ifeq ($(RTAC56U), y)
 	cp -rf dlna/icon_sm.rtac56u.png $(INSTALLDIR)/rom/dlna/icon_sm.png
 	cp -rf dlna/icon_lrg.rtac56u.jpg $(INSTALLDIR)/rom/dlna/icon_lrg.jpg
 	cp -rf dlna/icon_lrg.rtac56u.png $(INSTALLDIR)/rom/dlna/icon_lrg.png
-else ifeq ($(RTAC68U), y)
+else ifneq (,$(filter y, $(RTAC68U) $(DSLAC68U) ) )
 	cp -rf dlna/icon_sm.rtac68u.jpg $(INSTALLDIR)/rom/dlna/icon_sm.jpg
 	cp -rf dlna/icon_sm.rtac68u.png $(INSTALLDIR)/rom/dlna/icon_sm.png
 	cp -rf dlna/icon_lrg.rtac68u.jpg $(INSTALLDIR)/rom/dlna/icon_lrg.jpg

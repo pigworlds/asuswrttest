@@ -56,7 +56,7 @@ String.prototype.width = function(font) {
 
 function getFileExt(filename){
 	var ext = /^.+\.([^.]+)$/.exec(filename);
-  return ext == null ? "" : ext[1].toLowerCase();
+  	return ext == null ? "" : ext[1].toLowerCase();
 }
 
 function isPrivateIP(ip){
@@ -188,54 +188,100 @@ function mydecodeURI(iurl){
 	
 	//iurl = String(iurl).replace("%7f", "~"); 
 	
-	var myurl = decodeURIComponent(iurl);
-	/*
-	myurl = String(myurl).replace("%22", "\""); 
-	myurl = String(myurl).replace("%23", "#");
-	myurl = String(myurl).replace("%24", "$");
-	myurl = String(myurl).replace("%25", "%");
-	myurl = String(myurl).replace("%26", "&");
-	myurl = String(myurl).replace("%2b", "+");
-	myurl = String(myurl).replace("%40", "@");
-	*/
+	try{
+		var myurl = decodeURIComponent(iurl);
+		/*
+		myurl = String(myurl).replace("%22", "\""); 
+		myurl = String(myurl).replace("%23", "#");
+		myurl = String(myurl).replace("%24", "$");
+		myurl = String(myurl).replace("%25", "%");
+		myurl = String(myurl).replace("%26", "&");
+		myurl = String(myurl).replace("%2b", "+");
+		myurl = String(myurl).replace("%40", "@");
+		*/
+	}
+	catch(err){
+		//Handle errors here
+	  	//alert('catch error: '+ err);
+		return iurl;
+	}
+	
 	return myurl;
 }
 
 function myencodeURI(iurl){
-	var myurl = iurl;
-	/*
-	myurl = String(myurl).replace("%", "%25");
+	try{
+		var myurl = iurl;
+		/*
+		myurl = String(myurl).replace("%", "%25");
+		
+		myurl = String(myurl).replace("\"", "%22"); 
+		myurl = String(myurl).replace("#", "%23");
+		myurl = String(myurl).replace("$", "%24");
+		myurl = String(myurl).replace("&", "%26");
+		myurl = String(myurl).replace("+", "%2b");
+		myurl = String(myurl).replace("@", "%40");
+		
+		myurl = encodeURI(myurl);
+		
+		myurl = String(myurl).replace("\"", "%22"); 
+		myurl = String(myurl).replace("#", "%23");
+		myurl = String(myurl).replace("$", "%24");
+		myurl = String(myurl).replace("&", "%26");
+		myurl = String(myurl).replace("+", "%2b");
+		myurl = String(myurl).replace("@", "%40");
+		*/
+		myurl = encodeURIComponent(myurl);
+	}
+	catch(err){
+		//Handle errors here
+	  	//alert('catch error: '+ err);
+		return iurl;
+	}
 	
-	myurl = String(myurl).replace("\"", "%22"); 
-	myurl = String(myurl).replace("#", "%23");
-	myurl = String(myurl).replace("$", "%24");
-	myurl = String(myurl).replace("&", "%26");
-	myurl = String(myurl).replace("+", "%2b");
-	myurl = String(myurl).replace("@", "%40");
-	
-	myurl = encodeURI(myurl);
-	
-	myurl = String(myurl).replace("\"", "%22"); 
-	myurl = String(myurl).replace("#", "%23");
-	myurl = String(myurl).replace("$", "%24");
-	myurl = String(myurl).replace("&", "%26");
-	myurl = String(myurl).replace("+", "%2b");
-	myurl = String(myurl).replace("@", "%40");
-	*/
-	myurl = encodeURIComponent(myurl);
 	return myurl;
 }
 
+function isIE(){
+	var is_ie = false;
+	
+	if(navigator.userAgent.indexOf("MSIE")!=-1){
+		is_ie = true;
+	}
+	else if (!document.all) {
+		
+    	if (navigator.appName == 'Netscape')
+	   	{
+			var ua = navigator.userAgent;
+	        var re  = new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})");
+	        if (re.exec(ua) != null){	        	
+	        	rv = parseFloat( RegExp.$1 );
+	        	if(rv>=11)
+	        		is_ie = true;
+	        }
+		}
+	}
+	
+	return is_ie;
+}
+
 function getInternetExplorerVersion(){
-   var rv = -1; // Return value assumes failure.
-   if (navigator.appName == 'Microsoft Internet Explorer')
-   {
-      var ua = navigator.userAgent;
-      var re  = new RegExp("MSIE ([0-9]{1,}[\.0-9]{0,})");
-      if (re.exec(ua) != null)
-         rv = parseFloat( RegExp.$1 );
-   }
-   return rv;
+	var rv = -1; // Return value assumes failure.
+	if (navigator.appName == 'Microsoft Internet Explorer')
+   	{
+    	var ua = navigator.userAgent;
+      	var re  = new RegExp("MSIE ([0-9]{1,}[\.0-9]{0,})");
+      	if (re.exec(ua) != null)
+        	rv = parseFloat( RegExp.$1 );
+   	}
+   	else if (navigator.appName == 'Netscape')
+   	{
+		var ua = navigator.userAgent;
+        var re  = new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})");
+        if (re.exec(ua) != null)
+        	rv = parseFloat( RegExp.$1 );
+	}
+	return rv;
 }
 
 function getPageSize() {

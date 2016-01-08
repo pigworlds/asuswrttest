@@ -174,6 +174,13 @@ uint8 nvram_calc_crc(struct nvram_header * nvh);
 #else
 #define NVRAM_SPACE		0x8000
 #endif
+/* For CFE builds this gets passed in thru the makefile */
+#ifndef MAX_NVRAM_SPACE
+#define MAX_NVRAM_SPACE		NVRAM_SPACE
+#endif
+
+#define DEF_NVRAM_SPACE		0x8000
+#define NVRAM_LZMA_MAGIC	0x4c5a4d41	/* 'LZMA' */
 
 #define NVRAM_MAX_VALUE_LEN 255
 #define NVRAM_MAX_PARAM_LEN 64

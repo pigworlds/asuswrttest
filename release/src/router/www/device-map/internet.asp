@@ -596,7 +596,7 @@ function manualSetup(){
 				<script type="text/javascript">
 						$j('#radio_dualwan_enable').iphoneSwitch(parent.wans_flag, 
 							 function() {
-								document.internetForm.wans_dualwan.value = "wan usb";
+								document.internetForm.wans_dualwan.value = wans_dualwan.split(" ")[0]+" usb";
 								document.internetForm.action_wait.value = '<% get_default_reboot_time(); %>';
 								document.internetForm.action_script.value = "reboot";
 								parent.showLoading();
@@ -604,9 +604,10 @@ function manualSetup(){
 								return true;
 							 },
 							 function() {
-								document.internetForm.wans_dualwan.value = "wan none";
+								document.internetForm.wans_dualwan.value = wans_dualwan.split(" ")[0]+" none";
+								document.internetForm.wan_unit.value = 0;
 								document.internetForm.action_wait.value = '<% get_default_reboot_time(); %>';
-								document.internetForm.action_script.value = "reboot";
+								document.internetForm.action_script.value = "reboot";								
 								parent.showLoading();
 								document.internetForm.submit();	
 								return true;
@@ -630,7 +631,7 @@ function manualSetup(){
 
 <tr id=dualwan_row_primary style="display:none">
     <td style="padding:5px 10px 5px 15px;">
-    		<p class="formfonttitle_nwm">WAN Type</p>
+    		<p class="formfonttitle_nwm"><#wan_type#></p>
     		<p style="padding-left:10px; margin-top:3px; background-color:#444f53; line-height:20px;" id="dualwan_primary_if"></p>
       	<img style="margin-top:5px;" src="/images/New_ui/networkmap/linetwo2.png">
     </td>
@@ -638,7 +639,7 @@ function manualSetup(){
 
 <tr id=dualwan_row_secondary style="display:none">
     <td style="padding:5px 10px 5px 15px;">
-    		<p class="formfonttitle_nwm">WAN Type</p>
+    		<p class="formfonttitle_nwm"><#wan_type#></p>
     		<p style="padding-left:10px; margin-top:3px; background-color:#444f53; line-height:20px;" id="dualwan_secondary_if"></p>
       	<img style="margin-top:5px;" src="/images/New_ui/networkmap/linetwo2.png">
     </td>

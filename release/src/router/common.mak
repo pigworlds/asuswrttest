@@ -28,6 +28,9 @@ export BCMEX := _arm
 export EXTRA_FLAG := -lgcc_s
 export ARCH := arm
 export HOST := arm-linux
+export TOOLS := $(SRCBASE)/toolchains/hndtools-arm-linux-2.6.36-uclibc-4.5.3
+export RTVER := 0.9.32.1
+export BCMSUB := brcmarm
 else
 export PLATFORM := mipsel-uclibc
 export CROSS_COMPILE := mipsel-uclibc-
@@ -36,6 +39,8 @@ export CONFIGURE := ./configure --host=mipsel-linux --build=$(BUILD)
 export HOSTCONFIG := linux-mipsel
 export ARCH := mips
 export HOST := mipsel-linux
+export TOOLS := $(SRCBASE)/../../tools/brcm/hndtools-mipsel-linux
+export RTVER := 0.9.30.1
 endif
 
 export PLT := $(ARCH)
@@ -108,12 +113,30 @@ else # CONFIG_RALINK != y
 
 # Broadcom SoC
 ifeq ($(CONFIG_LINUX26),y)
+ifeq ($(RTCONFIG_BCMWL6),y)
+ifneq ($(RTCONFIG_BCMARM),y)
+# e.g. RT-AC66U
+export KERNELCC := /opt/brcm/K26/hndtools-mipsel-linux-uclibc-4.2.3/bin/mipsel-linux-uclibc-gcc
+else # RTCONFIG_BCMARM = y
 export KERNELCC := $(CC)
-else
+endif
+else # RTCONFIG_BCMWL6 != y
+export KERNELCC := $(CC)
+endif
+else # CONFIG_LINUX26 != y
 export KERNELCC := $(CC)-3.4.6
 endif
 
+ifeq ($(RTCONFIG_BCMWL6),y)
+ifneq ($(RTCONFIG_BCMARM),y)
+# e.g. RT-AC66U
+export KERNELLD := /opt/brcm/K26/hndtools-mipsel-linux-uclibc-4.2.3/bin/mipsel-linux-uclibc-ld
+else # RTCONFIG_BCMARM = y
 export KERNELLD := $(LD)
+endif
+else # RTCONFIG_BCMWL6 != y
+export KERNELLD := $(LD)
+endif
 endif
 
 #	ifneq ($(STATIC),1)

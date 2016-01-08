@@ -85,22 +85,17 @@ function initial(){
 	wans_flag = (wans_dualwan_orig.search("none") == -1) ? 1:0;
 	wans_caps_primary = wans_caps;
 	wans_caps_secondary = wans_caps;
-	//wans_caps_secondary = wans_caps.replace("dsl", "").replace("  ", " ");
 	
 	addWANOption(document.form.wans_primary, wans_caps_primary.split(" "));
-	//addWANOption(document.form.wans_second, wans_caps_secondary.split(" ").filter(function(x){return x!="dsl"}));
 	addWANOption(document.form.wans_second, wans_caps_secondary.split(" "));
 	document.form.wans_primary.value = wans_dualwan_orig.split(" ")[0];	
-	form_show(wans_flag);
-		
-	$('pull_arrow').title = Untranslated.select_network_host;
+	form_show(wans_flag);		
 	showLANIPList();	
 }
 
 function form_show(v){
 	if(v == 0){
 		inputCtrl(document.form.wans_second, 0);
-		inputCtrl(document.form.wans_mode, 0);
 		inputCtrl(document.form.wans_lb_ratio_0, 0);
 		inputCtrl(document.form.wans_lb_ratio_1, 0);
 		inputCtrl(document.form.wans_isp_unit[0], 0);
@@ -121,25 +116,53 @@ function form_show(v){
 		document.form.wandog_enable_radio[1].checked = true;		
 		document.form.wandog_enable_radio[0].disabled = true;
 		document.form.wandog_enable_radio[1].disabled = true;
-	}else if(v == 1){
+		document.getElementById("wans_mode_tr").style.display = "none";
+		document.getElementById("watchdog_table").style.display = "none";		
+		document.getElementById("routing_table").style.display = "none";		
+	}else{
 		document.form.wans_primary.value = wans_dualwan_orig.split(" ")[0];
 		if(wans_dualwan_orig.split(" ")[1] == "none"){
-			document.form.wans_second.value = "usb";
-			document.form.wans_second.index = 1;
+			if(wans_dualwan_orig.split(" ")[0] == "wan" || wans_dualwan_orig.split(" ")[0] == "dsl"){
+				document.form.wans_second.value = "usb";
+				document.form.wans_second.index = 1;
+			}
+			else if(wans_dualwan_orig.split(" ")[0] == "usb"){
+				document.form.wans_second.value = "lan";
+				document.form.wans_second.index = 2;	
+			}
+			else{
+				if(dsl_support){
+					document.form.wans_second.value = "usb";
+					document.form.wans_second.index = 1;
+				}	
+				else{	
+					document.form.wans_second.value = "wan";
+					document.form.wans_second.index = 0;
+				}			
+			}
 		}	
 		else
 			document.form.wans_second.value = wans_dualwan_orig.split(" ")[1];
 		
 		appendLANoption1(document.form.wans_primary);
 		appendLANoption2(document.form.wans_second);
+
+		if(document.form.wans_mode.value == "lb")
+			document.getElementById("wans_mode_option").value = "lb";
+		else{
+			document.getElementById("wans_mode_option").value = "fo";
+		}
+
 		appendModeOption(document.form.wans_mode.value);
-		show_wans_rules();		
+		show_wans_rules();
+		document.getElementById("wans_mode_tr").style.display = "";
 	}		
 }
 
 function applyRule(){
 	if(wans_flag == 1){
 		document.form.wans_dualwan.value = document.form.wans_primary.value +" "+ document.form.wans_second.value;
+		document.form.wan_unit.value = "<% nvram_get("wan_unit"); %>";
 		if(document.form.wans_mode.value == "lb"){
 			if(document.form.wans_lb_ratio_0.value !=0 && document.form.wans_lb_ratio_1.value!=0)	// To check LoadBalance ratio value is zero or not, Jieming add 2012/08/01
 				document.form.wans_lb_ratio.value = document.form.wans_lb_ratio_0.value + ":" + document.form.wans_lb_ratio_1.value;
@@ -149,7 +172,7 @@ function applyRule(){
 				else
 					document.form.wans_lb_ratio_1.focus();
 				
-				alert("Load Balance ratio value cloundn't be 0");
+				alert("<#dualwan_mode_lb_note#>");
 				return false;
 			}
 			
@@ -167,7 +190,7 @@ function applyRule(){
 			
 			save_table();
 		}
-		else if(document.form.wans_mode.value == "fo"){
+		else{
 			document.form.wans_lb_ratio.disabled = true;
 			document.form.wan0_routing_isp_enable.disabled = true;
 			document.form.wan0_routing_isp.disabled = true;	
@@ -181,6 +204,8 @@ function applyRule(){
 		}		
 	}
 	else{
+		document.form.wans_mode.value = "fo";
+		appendModeOption("fo");
 		document.form.wans_lb_ratio.disabled = true;
 		document.form.wan0_routing_isp_enable.disabled = true;
 		document.form.wan0_routing_isp.disabled = true;	
@@ -188,8 +213,8 @@ function applyRule(){
 		document.form.wan1_routing_isp.disabled = true;
 		document.form.wans_routing_rulelist.disabled =true;		
 		document.form.wans_dualwan.value = document.form.wans_primary.value + " none";
+		document.form.wan_unit.value = 0;
 		document.form.wandog_enable.value = "0";
-		
 	}	
 
 	if(document.form.wans_primary.value == "lan")
@@ -199,9 +224,7 @@ function applyRule(){
 	else	
 		document.form.wans_lanport.disabled = true;
 
-	var tmp_pri_if = wans_dualwan_orig.split(" ")[0].toUpperCase();
-	var tmp_sec_if = wans_dualwan_orig.split(" ")[1].toUpperCase();	
-	if (tmp_pri_if == 'LAN' || tmp_sec_if == 'LAN') {
+	if (document.form.wans_primary.value == "lan" || document.form.wans_second.value == "lan") {
 		var port_conflict = false;
 		var lan_port_num = document.form.wans_lanport.value;
 		
@@ -213,7 +236,7 @@ function applyRule(){
 			port_conflict = true;	
 						
 		if (port_conflict) {
-			alert("IPTV port number is same as dual wan LAN port number");
+			alert("<#RouterConfig_IPTV_conflict#>");
 			return;
 		}
 	}	
@@ -221,6 +244,14 @@ function applyRule(){
 	if (document.form.wans_primary.value == "dsl") document.form.next_page.value = "Advanced_DSL_Content.asp";
 	if (document.form.wans_primary.value == "lan") document.form.next_page.value = "Advanced_WAN_Content.asp";
 	if (document.form.wans_primary.value == "usb") document.form.next_page.value = "Advanced_Modem_Content.asp";
+
+	if(wans_dualwan_orig.split(" ")[1] == "none")
+		document.form.wan_unit.value = 0;
+		
+	var reboot_time	= eval("<% get_default_reboot_time(); %>");
+	if(based_modelid =="DSL-AC68U")
+		reboot_time += 70;
+	document.form.action_wait.value = reboot_time;	
 
 	showLoading();
 	document.form.submit();
@@ -231,20 +262,23 @@ function addWANOption(obj, wanscapItem){
 	if(dsl_support && obj.name == "wans_second"){
 		for(i=0; i<wanscapItem.length; i++){
 			if(wanscapItem[i] == "dsl"){
-				wanscapItem.splice(i,1);
+				wanscapItem.splice(i,1);	
 			}
 		}
 	}
 	
 	for(i=0; i<wanscapItem.length; i++){
 		if(wanscapItem[i].length > 0){
-			obj.options[i] = new Option(wanscapItem[i].toUpperCase(), wanscapItem[i]);
+			var wanscapName = wanscapItem[i].toUpperCase();
+			if(wanscapName == "LAN")
+				wanscapName = "Ethernet LAN";
+			obj.options[i] = new Option(wanscapName, wanscapItem[i]);
 		}	
 	}
 }
 
 function changeWANProto(obj){	
-	if(wans_flag == 1){
+	if(wans_flag == 1){	//dual WAN on
 		if(document.form.wans_primary.value == document.form.wans_second.value){
 			if(obj.name == "wans_primary"){
 				if(obj.value == "wan"){			
@@ -262,6 +296,9 @@ function changeWANProto(obj){
 						document.form.wans_second.value = "usb";
 						document.form.wans_second.index = 1;				
 					}
+				}else if (obj.value == "dsl"){
+					document.form.wans_second.value = "usb";
+					document.form.wans_second.index = 1;
 				}
 			}else if(obj.name == "wans_second"){
 				if(obj.value == "wan"){
@@ -291,22 +328,8 @@ function changeWANProto(obj){
 function appendLANoption1(obj){
 	if(obj.value == "lan"){
 		if(document.form.wans_lanport1){
-			/*var childsel=document.createElement("select");
-			childsel.setAttribute("id","wans_lanport1");
-			childsel.setAttribute("name","wans_lanport1");
-			childsel.setAttribute("class","input_option");
-			obj.parentNode.appendChild(childsel);
-			document.form.wans_lanport1.options[0] = new Option("LAN Port 1", "1");
-			document.form.wans_lanport1.options[1] = new Option("LAN Port 2", "2");
-			document.form.wans_lanport1.options[2] = new Option("LAN Port 3", "3");
-			document.form.wans_lanport1.options[3] = new Option("LAN Port 4", "4");
-
-		}else{*/
 			document.form.wans_lanport1.style.display = "";	
 		}		
-
-		//document.form.wans_lanport1.selectedIndex = '<% nvram_get("wans_lanport"); %>' - 1;		
-		
 	}
 	else if(document.form.wans_lanport1){
 		document.form.wans_lanport1.style.display = "none";
@@ -316,22 +339,8 @@ function appendLANoption1(obj){
 function appendLANoption2(obj){
 	if(obj.value == "lan"){
 		if(document.form.wans_lanport2){
-			//var childsel=document.createElement("select");
-			//childsel.setAttribute("id","wans_lanport2");
-			//childsel.setAttribute("name","wans_lanport2");
-			//childsel.setAttribute("class","input_option");
-			//bj.parentNode.appendChild(childsel);
-			//document.form.wans_lanport2.options[0] = new Option("LAN Port 1", "1");
-			//document.form.wans_lanport2.options[1] = new Option("LAN Port 2", "2");
-			//document.form.wans_lanport2.options[2] = new Option("LAN Port 3", "3");
-			//document.form.wans_lanport2.options[3] = new Option("LAN Port 4", "4");
-			
-
-		//}else{
 			document.form.wans_lanport2.style.display = "";
 		}	
-
-		//document.form.wans_lanport2.selectedIndex = '<% nvram_get("wans_lanport"); %>' - 1;			
 	}
 	else if(document.form.wans_lanport2){
 		document.form.wans_lanport2.style.display = "none";
@@ -340,34 +349,12 @@ function appendLANoption2(obj){
 
 function appendModeOption(v){
 		var wandog_enable_orig = "<% nvram_get("wandog_enable"); %>";
-		if(v == "fo"){
-			inputCtrl(document.form.wans_lb_ratio_0, 0);
-			inputCtrl(document.form.wans_lb_ratio_1, 0);
-			inputCtrl(document.form.wans_isp_unit[0], 0);
-			inputCtrl(document.form.wans_isp_unit[1], 0);
-			inputCtrl(document.form.wans_isp_unit[2], 0);
-			inputCtrl(document.form.wan0_isp_country, 0);
-			inputCtrl(document.form.wan0_isp_list, 0);				
-			inputCtrl(document.form.wan1_isp_country, 0);
-			inputCtrl(document.form.wan1_isp_list, 0);				
-			document.form.wans_routing_enable[1].checked = true;				
-			document.form.wans_routing_enable[0].disabled = true;
-			document.form.wans_routing_enable[1].disabled = true;
-			$('Routing_rules_table').style.display = "none";
-			$('wans_RoutingRules_Block').style.display = "none";
-			
-			document.form.wandog_enable_radio[0].disabled = false;
-			document.form.wandog_enable_radio[1].disabled = false;
-			if(wandog_enable_orig == "1")
-				document.form.wandog_enable_radio[0].checked = true;
-			else
-				document.form.wandog_enable_radio[1].checked = true;
-			appendModeOption2(wandog_enable_orig);
-		}else{	//lb, rt
+		if(v == "lb"){
+			document.getElementById("lb_note").style.display = "";
 			inputCtrl(document.form.wans_lb_ratio_0, 1);
 			inputCtrl(document.form.wans_lb_ratio_1, 1);
 			document.form.wans_lb_ratio_0.value = '<% nvram_get("wans_lb_ratio"); %>'.split(':')[0];
-			document.form.wans_lb_ratio_1.value = '<% nvram_get("wans_lb_ratio"); %>'.split(':')[1];								
+			document.form.wans_lb_ratio_1.value = '<% nvram_get("wans_lb_ratio"); %>'.split(':')[1];			
 			inputCtrl(document.form.wans_isp_unit[0], 1);
 			inputCtrl(document.form.wans_isp_unit[1], 1);
 			inputCtrl(document.form.wans_isp_unit[2], 1);
@@ -399,20 +386,49 @@ function appendModeOption(v){
 			document.form.wandog_enable_radio[1].checked = true;				
 			document.form.wandog_enable_radio[0].disabled = true;
 			document.form.wandog_enable_radio[1].disabled = true;
+			document.getElementById("watchdog_table").style.display = "none";
+			document.getElementById("routing_table").style.display = "";
+			document.getElementById("fb_span").style.display = "none";
+			document.form.wans_mode.value = "lb";
+		}else{
+			document.getElementById('lb_note').style.display = "none";
+			inputCtrl(document.form.wans_lb_ratio_0, 0);
+			inputCtrl(document.form.wans_lb_ratio_1, 0);
+			inputCtrl(document.form.wans_isp_unit[0], 0);
+			inputCtrl(document.form.wans_isp_unit[1], 0);
+			inputCtrl(document.form.wans_isp_unit[2], 0);
+			inputCtrl(document.form.wan0_isp_country, 0);
+			inputCtrl(document.form.wan0_isp_list, 0);				
+			inputCtrl(document.form.wan1_isp_country, 0);
+			inputCtrl(document.form.wan1_isp_list, 0);				
+			document.form.wans_routing_enable[1].checked = true;				
+			document.form.wans_routing_enable[0].disabled = true;
+			document.form.wans_routing_enable[1].disabled = true;
+			$('Routing_rules_table').style.display = "none";
+			$('wans_RoutingRules_Block').style.display = "none";
+			
+			document.form.wandog_enable_radio[0].disabled = false;
+			document.form.wandog_enable_radio[1].disabled = false;
+			if(wandog_enable_orig == "1")
+				document.form.wandog_enable_radio[0].checked = true;
+			else
+				document.form.wandog_enable_radio[1].checked = true;
+			appendModeOption2(wandog_enable_orig);
+
+			document.getElementById("watchdog_table").style.display = "";
+			document.getElementById("routing_table").style.display = "none";
+
+			document.getElementById("fb_span").style.display = "";
+			document.form.wans_mode.value = '<% nvram_get("wans_mode"); %>';
+			document.getElementById("fb_checkbox").checked = (document.form.wans_mode.value == "fb" ? true : false);
 		}
 }
 
 function appendModeOption2(v){
 	if(v == "1"){			
 			inputCtrl(document.form.wandog_target, 1);
-			inputCtrl(document.form.wandog_interval, 1);
-			inputCtrl(document.form.wandog_delay, 1);
-			inputCtrl(document.form.wandog_maxfail, 1);
 	}else{
 			inputCtrl(document.form.wandog_target, 0);
-			inputCtrl(document.form.wandog_interval, 0);
-			inputCtrl(document.form.wandog_delay, 0);
-			inputCtrl(document.form.wandog_maxfail, 0);
 	}	
 }
 
@@ -725,14 +741,14 @@ function pullLANIPList(obj){
 <form method="post" name="form" id="ruleForm" action="/start_apply.htm" target="hidden_frame">
 <input type="hidden" name="current_page" value="Advanced_WANPort_Content.asp">
 <input type="hidden" name="next_page" value="Advanced_WANPort_Content.asp">
-<input type="hidden" name="next_host" value="">
 <input type="hidden" name="modified" value="0">
 <input type="hidden" name="action_mode" value="apply">
-<input type="hidden" name="action_wait" value="<% get_default_reboot_time(); %>">
+<input type="hidden" name="action_wait" value="">
 <input type="hidden" name="action_script" value="reboot">
 <input type="hidden" name="preferred_lang" id="preferred_lang" value="<% nvram_get("preferred_lang"); %>">
 <input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>">
 <input type="hidden" name="wl_ssid" value="<% nvram_get("wl_ssid"); %>">
+<input type="hidden" name="wan_unit" value="<% nvram_get("wan_unit"); %>">
 <input type="hidden" name="wans_dualwan" value="<% nvram_get("wans_dualwan"); %>">
 <input type="hidden" name="wans_lanport" value="<% nvram_get("wans_lanport"); %>">
 <input type="hidden" name="wans_lb_ratio" value="<% nvram_get("wans_lb_ratio"); %>">
@@ -763,9 +779,9 @@ function pullLANIPList(obj){
 								<tr>
 								  <td bgcolor="#4D595D" valign="top">
 								  <div>&nbsp;</div>
-								  <div class="formfonttitle"><#dualwan_port#></div>
+								  <div class="formfonttitle"><#menu5_3#> - <#dualwan#></div>
 								  <div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
-					  			<div class="formfontdesc"><#Layer3Forwarding_x_ConnectionType_sectiondesc#></div>
+					  			<div class="formfontdesc"><#dualwan_desc#></div>
 									<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">
 										
 			  						<thead>
@@ -783,30 +799,13 @@ function pullLANIPList(obj){
 													$j('#radio_dualwan_enable').iphoneSwitch(wans_dualwan_orig.split(' ')[1] != 'none',
 														 function() {												 													 	
 															wans_flag = 1;
-															inputCtrl(document.form.wans_second, 1);
-															inputCtrl(document.form.wans_mode, 1);
-																
-
-														
-															form_show(wans_flag);
-															
-															/*
-															document.form.wans_dualwan.value = '<% nvram_get("wans_dualwan"); %>';
-															save_table();
-															showLoading();
-															document.form.submit();
-															*/
+															inputCtrl(document.form.wans_second, 1);												
+															form_show(wans_flag);														
 														 },
 														 function() {
 															wans_flag = 0;
 															document.form.wans_dualwan.value = document.form.wans_primary.value + ' none';
-															form_show(wans_flag);
-															
-															/*
-															save_table();
-															showLoading();
-															document.form.submit();
-															*/
+															form_show(wans_flag);													
 														 },
 														 {
 															switch_on_container_path: '/switcherplugin/iphone_switch_container_off.png'
@@ -842,14 +841,22 @@ function pullLANIPList(obj){
 											</td>
 									  </tr>
 
-										<tr>
+										<tr id="wans_mode_tr">
 											<th><#dualwan_mode#></th>
 											<td>
-												<select name="wans_mode" class="input_option" onchange="appendModeOption(this.value);">
-													<option value="fo" <% nvram_match("wans_mode", "fo", "selected"); %>><#dualwan_mode_fo#></option>
+												<input type="hidden" name="wans_mode" value='<% nvram_get("wans_mode"); %>'>
+												<select id="wans_mode_option" class="input_option" onchange="appendModeOption(this.value);">
+													<option value="fo"><#dualwan_mode_fo#></option>
 													<option value="lb" <% nvram_match("wans_mode", "lb", "selected"); %>><#dualwan_mode_lb#></option>
-													<!--option value="rt" <% nvram_match("wans_mode", "rt", "selected"); %>>Routing</option-->
-												</select>			
+												</select>
+										  		<span id="fb_span" style="display:none"><input type="checkbox" id="fb_checkbox">Allow failback</span>
+										  		<script>
+										  			document.getElementById("fb_checkbox").onclick = function(){
+										  				document.form.wans_mode.value = (this.checked == true ? "fb" : "fo");
+										  				document.getElementById("wandog_fb_count_tr").style.display = (this.checked == true ? "" : "none");
+										  			}
+										  		</script>
+												<div id="lb_note" style="color:#FFCC00; display:none;"><#dualwan_lb_note#></div>
 											</td>
 									  </tr>
 
@@ -858,7 +865,7 @@ function pullLANIPList(obj){
 			            		<td>
 												<input type="text" maxlength="1" class="input_3_table" name="wans_lb_ratio_0" value="" onkeypress="return is_number(this,event);" />
 												&nbsp; : &nbsp;
-												<input type="text" maxlength="1" class="input_3_table" name="wans_lb_ratio_1" value="" onkeypress="return is_number(this,event);" />
+												<input type="text" maxlength="1" class="input_3_table" name="wans_lb_ratio_1" value="" onkeypress="return is_number(this,event);" />												
 											</td>
 			          		</tr>
 
@@ -890,58 +897,67 @@ function pullLANIPList(obj){
 									</table>
 									
 	<!-- -----------Enable Ping time watch dog start----------------------- -->			
-				<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable" style="margin-top:8px;">
+				<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable" style="margin-top:8px;" id="watchdog_table">
 					<thead>
 					<tr>
-						<td colspan="2">Ping Time Watch Dog</td>
+						<td colspan="2"><#dualwan_pingtime_wd#></td>
 					</tr>
 					</thead>
 					<tr>
-						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(26,1);">Enable Watch Dog</a></th>
-            <td>
-						 		<input type="radio" value="1" name="wandog_enable_radio" class="content_input_fd" <% nvram_match("wandog_enable", "1", "checked"); %> onClick="appendModeOption2(this.value);"><#checkbox_Yes#>
-		 						<input type="radio" value="0" name="wandog_enable_radio" class="content_input_fd" <% nvram_match("wandog_enable", "0", "checked"); %> onClick="appendModeOption2(this.value);"><#checkbox_No#>
+						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(26,3);"><#Interval#></a></th>
+						<td>
+		        		<input type="text" name="wandog_interval" class="input_3_table" maxlength="1" value="<% nvram_get("wandog_interval"); %>" onKeyPress="return is_number(this, event);" placeholder="5">&nbsp;&nbsp;<#Second#>
+						</td>
+					</tr>	
+					<tr>
+						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(26,4);"><#Delay#></a></th>
+						<td>
+		        		<input type="text" name="wandog_delay" class="input_3_table" maxlength="2" value="<% nvram_get("wandog_delay"); %>" onKeyPress="return is_number(this, event);" placeholder="0">&nbsp;&nbsp;<#Second#>
+						</td>
+					</tr>
+					<tr>
+						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(26,5);"><#dualwan_pingtime_fc#></a></th>
+						<td>
+		        		<input type="text" name="wandog_maxfail" class="input_3_table" maxlength="2" value="<% nvram_get("wandog_maxfail"); %>" onKeyPress="return is_number(this, event);" placeholder="12">
+						</td>
+					</tr>
+
+					<tr id="wandog_fb_count_tr">
+						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(26,6);">Failback count</a></th>
+						<td>
+		        		<input type="text" name="wandog_fb_count" class="input_3_table" maxlength="2" value="<% nvram_get("wandog_fb_count"); %>" onKeyPress="return is_number(this, event);" placeholder="12">
+						</td>
+					</tr>
+
+					<tr>
+						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(26,1);"><#wandog_enable#></a></th>
+				        <td>
+					 		<input type="radio" value="1" name="wandog_enable_radio" class="content_input_fd" <% nvram_match("wandog_enable", "1", "checked"); %> onClick="appendModeOption2(this.value);"><#checkbox_Yes#>
+	 						<input type="radio" value="0" name="wandog_enable_radio" class="content_input_fd" <% nvram_match("wandog_enable", "0", "checked"); %> onClick="appendModeOption2(this.value);"><#checkbox_No#>
 						</td>
 					</tr>	
 					<tr>
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(26,2);"><#NetworkTools_target#></a></th>
 						<td>
 								<input type="text" class="input_32_table" name="wandog_target" maxlength="100" value="<% nvram_get("wandog_target"); %>" placeholder="ex: www.google.com">
-								<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullLANIPList(this);" title="" onmouseover="over_var=1;" onmouseout="over_var=0;">
+								<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullLANIPList(this);" title="<#select_network_host#>" onmouseover="over_var=1;" onmouseout="over_var=0;">
 								<div id="ClientList_Block_PC" class="ClientList_Block_PC" style="display:none;"></div>
 						</td>
 					</tr>
-					<tr>
-						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(26,3);">Interval</a></th>
-						<td>
-		        		<input type="text" name="wandog_interval" class="input_3_table" maxlength="1" value="<% nvram_get("wandog_interval"); %>" onKeyPress="return is_number(this, event);" placeholder="5">&nbsp;&nbsp;<#Second#>
-						</td>
-					</tr>	
-					<tr>
-						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(26,4);">Delay</a></th>
-						<td>
-		        		<input type="text" name="wandog_delay" class="input_3_table" maxlength="2" value="<% nvram_get("wandog_delay"); %>" onKeyPress="return is_number(this, event);" placeholder="0">&nbsp;&nbsp;<#Second#>
-						</td>
-					</tr>
-					<tr>
-						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(26,5);">Fail Count</a></th>
-						<td>
-		        		<input type="text" name="wandog_maxfail" class="input_3_table" maxlength="2" value="<% nvram_get("wandog_maxfail"); %>" onKeyPress="return is_number(this, event);" placeholder="12">
-						</td>
-					</tr>
+
 				</table>
 				<!-- -----------Enable Ping time watch dog end----------------------- -->									
 												
 				<!-- -----------Enable Routing rules table start----------------------- -->				
-	    		<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable" style="margin-top:8px;">
+	    		<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable" style="margin-top:8px;" id="routing_table">
 					  <thead>
 					  <tr>
-						<td colspan="2">Routing rules for dual WAN</td>
+						<td colspan="2"><#dualwan_routing_rule#></td>
 					  </tr>
 					  </thead>		
 
           				<tr>
-            				<th>Enable the Routing rules</th>
+            				<th><#dualwan_routing_rule_enable#></th>
             				<td>
 						  		<input type="radio" value="1" name="wans_routing_enable" class="content_input_fd" <% nvram_match("wans_routing_enable", "1", "checked"); %>><#checkbox_Yes#>
 		 							<input type="radio" value="0" name="wans_routing_enable" class="content_input_fd" <% nvram_match("wans_routing_enable", "0", "checked"); %>><#checkbox_No#>
@@ -952,14 +968,14 @@ function pullLANIPList(obj){
 				<!-- ----------Routing Rules Table  ---------------- -->
 				<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table" style="margin-top:8px;" id="Routing_rules_table">
 			  	<thead>
-			  		<tr><td colspan="4" id="Routing_table">Routing rules&nbsp;(<#List_limit#>&nbsp;32)</td></tr>
+			  		<tr><td colspan="4" id="Routing_table"><#dualwan_routing_rule_list#>&nbsp;(<#List_limit#>&nbsp;32)</td></tr>
 			  	</thead>
 			  
 			  	<tr>
 		  			<th><!--a class="hintstyle" href="javascript:void(0);"--><#FirewallConfig_LanWanSrcIP_itemname#><!--/a--></th>
         		<th><#FirewallConfig_LanWanDstIP_itemname#></th>
         		<th><#dualwan_unit#></th>
-        		<th>Add / Delete</th>
+        		<th><#list_add_delete#></th>
 			  	</tr>			  
 			  	<tr>
 			  			<!-- rules info -->

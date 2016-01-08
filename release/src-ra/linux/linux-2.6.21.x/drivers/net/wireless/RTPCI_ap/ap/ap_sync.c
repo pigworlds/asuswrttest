@@ -1545,7 +1545,7 @@ UCHAR get_regulatory_class(
 		i++;
 	} while (reg_class[i].regclass != 0);
 
-	ASSERT(regclass);
+//	ASSERT(regclass);
 
 	return regclass;
 }

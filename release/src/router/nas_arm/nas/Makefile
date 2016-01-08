@@ -34,6 +34,11 @@ LDFLAGS += -L$(TOP)/shared -L$(INSTALLDIR)/shared/usr/lib -lshared
 LDFLAGS += -L$(TOP)/libbcmcrypto -L$(INSTALLDIR)/libbcmcrypto/usr/lib -lbcmcrypto
 LDFLAGS += -lgcc_s
 
+include ../../common.mak
+ifeq ($(RTCONFIG_QTN),y)
+LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
+endif
+
 vpath %.c $(SRCBASE)/router/nas${BCMEX} $(SRCBASE)/shared $(SRCBASE)/router/shared
 
 # build target
@@ -41,7 +46,12 @@ NASOBJS = mppe.o wpa.o nas.o nas_linux.o nas_wl.o nas_wksp.o
 NASOBJS += nas_radius.o nas_wksp_radius.o
 UTLOBJS = bcmwpa.o bcmutils.o
 
+ifeq ($(wildcard ../*.c), )
+all:
+	-cp ./prebuilt/nas .
+else
 all: nas
+endif
 
 nas: $(NASOBJS) $(UTLOBJS)
 	$(CC) -o $@ $^ $(LDFLAGS)

@@ -1521,6 +1521,11 @@ int rtl8367m_ioctl(struct inode *inode, struct file *file, unsigned int req,
 		{
 			printk("LAN: P0,P1 WAN: P2,P3,P4\n");
 		}
+		else
+		{
+			printk(KERN_ERR "ERROR: not support wan_stb_x(%d)\n", wan_stb_x);
+			break;
+		}
 		wan_stb_g = wan_stb_x;
 		LANWANPartition_adv(wan_stb_x);
 
@@ -2096,6 +2101,14 @@ int rtl8367m_ioctl(struct inode *inode, struct file *file, unsigned int req,
 		copy_from_user(&is_singtel_mio, (unsigned int __user *)arg, sizeof(unsigned int));
 		break;
 
+	case 50:	/* Fix-up hwnat for WiFi interface */
+		/* FIXME:
+		 * This ioctl is occupied by RT-N14U/RT-AC52U/RT-AC51U.
+		 * See router/shared/sysdeps/ralink/mt7620.c
+		 */
+		return -ENOIOCTLCMD;
+		break;
+		
 	case 99:	/* Forward specific input port traffic to another ports */
 		/* FIXME:
 		 * This ioctl is occupied by RT-N65U.
@@ -2137,6 +2150,10 @@ int rtl8367m_ioctl(struct inode *inode, struct file *file, unsigned int req,
 			rtk_port_phyReg_set(port_nr, PHY_CONTROL_REG, pData);
 		}
 		break;
+
+	case 200:	/* set LAN port number that is used as WAN port */
+		/* FIXME: See rtl8367rb_drv.c */
+		return -ENOIOCTLCMD;
 
 	default:
 		return -ENOIOCTLCMD;

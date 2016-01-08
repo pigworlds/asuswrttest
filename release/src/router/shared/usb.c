@@ -96,12 +96,23 @@ char *detect_fs_type(char *device)
 	/* detect ext2/3/4 */
 	else if (buf[0x438] == 0x53 && buf[0x439] == 0xEF)
 	{
-		if(check_magic(&buf[0x45c], "ext3_chk"))
+		if(check_magic((char *) &buf[0x45c], "ext3_chk"))
 			return "ext3";
-		else if(check_magic(&buf[0x45c], "ext4_chk"))
+		else if(check_magic((char *) &buf[0x45c], "ext4_chk"))
 			return "ext4";
 		else
 			return "ext2";
+	}
+	/* detect hfs */
+	else if(buf[1024] == 0x48){
+		if(!memcmp(buf+1032, "HFSJ", 4)){
+			if(buf[1025] == 0x58) // with case-sensitive
+				return "hfs+jx";
+			else
+				return "hfs+j";
+		}
+		else
+			return "hfs";
 	}
 	/* detect ntfs */
 	else if (buf[510] == 0x55 && buf[511] == 0xAA && /* signature */
@@ -114,7 +125,10 @@ char *detect_fs_type(char *device)
 		buf[11] == 0 && buf[12] >= 1 && buf[12] <= 8 /* sector size 512 - 4096 */ &&
 		buf[13] != 0 && (buf[13] & (buf[13] - 1)) == 0) /* sectors per cluster */
 	{
-		return "vfat";
+		if(buf[6] == 0x20 && buf[7] == 0x20 && !memcmp(buf+71, "EFI        ", 11))
+			return "apple_efi";
+		else
+			return "vfat";
 	}
 
 	return "unknown";
@@ -520,12 +534,12 @@ void *xmalloc(size_t siz)
 {
 	return (malloc(siz));
 }
-
+#if 0
 static void *xrealloc(void *old, size_t size)
 {
 	return realloc(old, size);
 }
-
+#endif
 ssize_t full_read(int fd, void *buf, size_t len)
 {
 	return read(fd, buf, len);

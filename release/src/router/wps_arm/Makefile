@@ -11,6 +11,8 @@
 #
 # $Id: Makefile 383955 2013-02-08 06:00:32Z $
 #
+REBUILD = $(shell if [ -f "prebuilt/wps_monitor" ]; then echo 0; else echo 1; fi)
+
 ifneq (true,$(parallel))
   .NOTPARALLEL:
 endif
@@ -96,6 +98,10 @@ CFLAGS += -I$(SRCBASE)/include -I$(SRCBASE)/common/include -I$(SRCBASE)/wps/comm
 	-I$(SRCBASE)/include/bcmcrypto ${WLAN_ComponentIncPath}
 
 LDFLAGS += -lgcc_s
+
+ifeq ($(RTCONFIG_QTN),y)
+LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
+endif
 
 WPSM_LIBS = -lnvram -lbcm -lshared -lbcmcrypto -lm
 # Set link libraries search path
@@ -184,8 +190,12 @@ mkversion :
 
 # target
 # force compile wps_monitor in case the library changed.
+ifeq ($(wildcard ./prebuilt),)
 wps_monitor : objs FORCE
 	$(CC) $(LIBPATH) $(WPS_OSLOBJS) -l$(WPS_LIB_FILE) $(WPSM_LIBS) $(LDFLAGS) -o $@
+else
+wps_monitor :
+endif
 
 FORCE:
 
@@ -198,8 +208,12 @@ clean:
 
 # install
 install: all
-	install -d $(INSTALLDIR)/wps/bin
-	install wps_monitor $(INSTALLDIR)/wps/bin
-	$(STRIP) $(INSTALLDIR)/wps/bin/wps_monitor
+	install -d $(INSTALLDIR)/wps${BCMEX}/bin
+ifeq ($(REBUILD),0)
+	install prebuilt/wps_monitor $(INSTALLDIR)/wps${BCMEX}/bin
+else
+	install wps_monitor $(INSTALLDIR)/wps${BCMEX}/bin
+endif
+	$(STRIP) $(INSTALLDIR)/wps${BCMEX}/bin/wps_monitor
 
 .PHONY: all clean install libs dirs osl

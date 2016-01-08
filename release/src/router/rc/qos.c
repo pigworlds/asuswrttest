@@ -176,7 +176,7 @@ int add_iQosRules(char *pcWANIF)
 
 	inuse = sticky_enable = 0;
 
-        if(get_model()==MODEL_RTAC56U || get_model()==MODEL_RTAC68U)
+        if(get_model()==MODEL_RTAC56U || get_model()==MODEL_RTAC56S || get_model()==MODEL_RTAC68U || get_model()==MODEL_DSLAC68U || get_model()==MODEL_RTAC87U)
                 manual_return = 1;
 
 	if (nvram_match("qos_sticky", "0"))
@@ -252,7 +252,7 @@ int add_iQosRules(char *pcWANIF)
 		if(strcmp(transferred, "") != 0 ) 
 			method = 1;
 		else
-			method = atoi(nvram_safe_get("qos_method"));	// strict rule ordering
+			method = nvram_get_int("qos_method");	// strict rule ordering
 		gum = (method == 0) ? 0x100 : 0;
 #else
 		method = 1;
@@ -754,10 +754,10 @@ int start_iQos(void)
 	fprintf(stderr, "[qos] tc START!\n");
 
 	/* qos_burst */
-	i = atoi(nvram_safe_get("qos_burst0"));
+	i = nvram_get_int("qos_burst0");
 	if (i > 0) sprintf(burst_root, "burst %dk", i);
 		else burst_root[0] = 0;
-	i = atoi(nvram_safe_get("qos_burst1"));
+	i = nvram_get_int("qos_burst1");
 
 	if (i > 0) sprintf(burst_leaf, "burst %dk", i);
 		else burst_leaf[0] = 0;
@@ -796,9 +796,9 @@ int start_iQos(void)
 		"# upload 1:1\n"
 		"\t$TCA parent 1: classid 1:1 htb rate %ukbit ceil %ukbit %s\n" ,
 			get_wan_ifname(0), // judge WAN interface 
-			(atoi(nvram_safe_get("qos_default")) + 1) * 10,	
+			(nvram_get_int("qos_default") + 1) * 10,
 #ifdef CLS_ACT
-			(atoi(nvram_safe_get("qos_default")) + 1) * 10,
+			(nvram_get_int("qos_default") + 1) * 10,
 #endif
 			bw, bw, burst_root);
 
@@ -815,7 +815,7 @@ int start_iQos(void)
 		);
 #endif
 
-	inuse = atoi(nvram_safe_get("qos_inuse"));
+	inuse = nvram_get_int("qos_inuse");
 
 	g = buf = strdup(nvram_safe_get("qos_orates"));
 	for (i = 0; i < 5; ++i) { // 0~4 , 0:highest, 4:lowest

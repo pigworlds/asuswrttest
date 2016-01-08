@@ -34,6 +34,10 @@
 #include <bcmparams.h>
 #include <bcmdevs.h>
 #include <shared.h>
+#ifdef RTCONFIG_BCMFA
+#include <linux/ethtool.h>
+#include <linux/sockios.h>
+#endif
 
 #include "rc.h"
 #include "interface.h"
@@ -63,8 +67,9 @@ static struct switch_config {
  * int swmask	- mask of logical ports to return
  * char *cputag	- NULL: return config string excluding CPU port
  *		  PSTR: return config string including CPU port, tagged with PSTR, eg. 8|8t|8*
+ * int wan	- config wan port or not
  */
-void _switch_gen_config(char *buf, const int ports[SWPORT_COUNT], int swmask, char *cputag)
+void _switch_gen_config(char *buf, const int ports[SWPORT_COUNT], int swmask, char *cputag, int wan)
 {
 	struct {
 		int port;
@@ -76,7 +81,18 @@ void _switch_gen_config(char *buf, const int ports[SWPORT_COUNT], int swmask, ch
 	if (!cputag)
 		mask &= ~SW_CPU;
 
-	for (i = count = 0; i < SWPORT_COUNT && mask; mask >>= 1, i++) {
+	if (wan && !cputag) {
+            for (n = i = count = 0; i < SWPORT_COUNT && mask; mask >>= 1, i++) {
+                if ((mask & 1U) == 0)
+                        continue;
+                res[n].port = ports[i];
+                res[n].tag = (i == SWPORT_CPU) ? cputag : "";
+                count++;
+                n++; 
+            }
+	}
+	else {
+	    for (i = count = 0; i < SWPORT_COUNT && mask; mask >>= 1, i++) {
 		if ((mask & 1U) == 0)
 			continue;
 		for (n = count; n > 0 && ports[i] < res[n - 1].port; n--)
@@ -84,8 +100,8 @@ void _switch_gen_config(char *buf, const int ports[SWPORT_COUNT], int swmask, ch
 		res[n].port = ports[i];
 		res[n].tag = (i == SWPORT_CPU) ? cputag : "";
 		count++;
+	    }
 	}
-
 	for (i = 0, ptr = buf; ptr && i < count; i++)
 		ptr += sprintf(ptr, i ? " %d%s" : "%d%s", res[i].port, res[i].tag);
 }
@@ -107,7 +123,7 @@ void switch_gen_config(char *buf, const int ports[SWPORT_COUNT], int index, int 
 		return;
 
 	mask = wan ? sw_config[index].wanmask : sw_config[index].lanmask;
-	_switch_gen_config(buf, ports, mask, cputag);
+	_switch_gen_config(buf, ports, mask, cputag, wan);
 }
 
 void gen_lan_ports(char *buf, const int sample[SWPORT_COUNT], int index, int index1, char *cputag){
@@ -337,13 +353,18 @@ int start_vlan(void)
 		char vlan_id[16];
 		char *hwname, *hwaddr;
 		char prio[8];
+#ifdef RTCONFIG_BCMFA
+		struct ethtool_drvinfo info;
+#endif
 		/* get the address of the EMAC on which the VLAN sits */
 		snprintf(nvvar_name, sizeof(nvvar_name), "vlan%dhwname", i);
 		if (!(hwname = nvram_get(nvvar_name)))
 			continue;
+
 		snprintf(nvvar_name, sizeof(nvvar_name), "%smacaddr", hwname);
 		if (!(hwaddr = nvram_get(nvvar_name)))
 			continue;
+
 		ether_atoe(hwaddr, ea);
 		/* find the interface name to which the address is assigned */
 		for (j = 1; j <= DEV_NUMIFS; j ++) {
@@ -354,9 +375,24 @@ int start_vlan(void)
 				continue;
 			if (ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER)
 				continue;
+#ifdef RTCONFIG_BCMFA
+			if (bcmp(ifr.ifr_hwaddr.sa_data, ea, ETHER_ADDR_LEN))
+				continue;
+
+			/* Get driver info, it can handle both et0 and et2 have same MAC */
+			memset(&info, 0, sizeof(info));
+			info.cmd = ETHTOOL_GDRVINFO;
+			ifr.ifr_data = (caddr_t)&info;
+			if (ioctl(s, SIOCETHTOOL, &ifr) < 0)
+				continue;
+			if (strcmp(info.driver, hwname) == 0)
+				break;
+#else
 			if (!bcmp(ifr.ifr_hwaddr.sa_data, ea, ETHER_ADDR_LEN))
 				break;
+#endif
 		}
+
 		if (j > DEV_NUMIFS)
 			continue;
 		if (ioctl(s, SIOCGIFFLAGS, &ifr))
@@ -374,7 +410,7 @@ int start_vlan(void)
 			eval("vconfig", "set_ingress_map", vlan_id, prio, prio);
 		}
 	}
-#if defined(RTN14U) || defined(RTAC52U)
+#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P)
 	eval("vconfig", "set_egress_map", "vlan2", "0", nvram_safe_get("switch_wan0prio"));
 #endif
 	close(s);
@@ -383,6 +419,10 @@ int start_vlan(void)
 	if(!nvram_match("switch_wantag", "none")&&!nvram_match("switch_wantag", ""))
 		set_wan_tag(&ifr.ifr_name);
 #endif
+#ifdef RTCONFIG_RGMII_BRCM5301X
+	eval("et", "robowr", "0x0", "0x5d", "0xfb", "1");
+#endif
+
 	return 0;
 }
 

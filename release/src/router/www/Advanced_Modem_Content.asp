@@ -85,7 +85,7 @@ var wans_dualwan = '<% nvram_get("wans_dualwan"); %>';
 <% wan_get_parameter(); %>
 
 var $j = jQuery.noConflict();
-if(dualWAN_support){
+if(dualWAN_support && wans_dualwan.search("usb") >= 0 ){
 	var wan_type_name = wans_dualwan.split(" ")[<% nvram_get("wan_unit"); %>];
 	wan_type_name = wan_type_name.toUpperCase();
 	switch(wan_type_name){
@@ -93,6 +93,7 @@ if(dualWAN_support){
 			location.href = "Advanced_DSL_Content.asp";
 			break;
 		case "WAN":
+			location.href = "Advanced_WAN_Content.asp";
 			break;
 		case "LAN":
 			location.href = "Advanced_WAN_Content.asp";
@@ -103,19 +104,26 @@ if(dualWAN_support){
 }
 
 function genWANSoption(){
-	for(i=0; i<wans_dualwan.split(" ").length; i++)
-		document.form.wan_unit.options[i] = new Option(wans_dualwan.split(" ")[i].toUpperCase(), i);
+	for(i=0; i<wans_dualwan.split(" ").length; i++){
+	var wans_dualwan_NAME = wans_dualwan.split(" ")[i].toUpperCase();
+		if(wans_dualwan_NAME == "LAN")
+			wans_dualwan_NAME = "Ethernet LAN";
+		document.form.wan_unit.options[i] = new Option(wans_dualwan_NAME, i);
+	}
 	document.form.wan_unit.selectedIndex = '<% nvram_get("wan_unit"); %>';
-
-	if(wans_dualwan.search(" ") < 0 || wans_dualwan.split(" ")[1] == 'none' || !dualWAN_support)
-		$("WANscap").style.display = "none";
 }
 /* end of DualWAN */ 
 	
 function initial(){
-	$('pull_arrow').title = Untranslated.select_APN_service;
 	show_menu();
-	genWANSoption();
+	if(dualWAN_support && '<% nvram_get("wans_dualwan"); %>'.search("none") < 0){
+				genWANSoption();
+	}
+	else{
+		document.form.wan_unit.disabled = true;
+		$("WANscap").style.display = "none";	
+	}
+
 	switch_modem_mode('<% nvram_get("modem_enable"); %>');
 	gen_country_list();
 	reloadProfile();
@@ -133,6 +141,7 @@ function initial(){
 			}
 		}
   }
+	//change_wan_unit(document.form.wan_unit);
 	check_dongle_status();	
 }
 
@@ -301,14 +310,14 @@ function switch_modem_mode(mode){
 
 function show_ISP_list(){
 	var removeItem = 0;
-	free_options($("modem_isp"));
-	$("modem_isp").options.length = isplist.length;
+	free_options(document.form.modem_isp);
+	document.form.modem_isp.options.length = isplist.length;
 
 	for(var i = 0; i < isplist.length; i++){
 	  if(protolist[i] == 4 && !wimax_support){
-			$("modem_isp").options.length = $("modem_isp").options.length - 1;
+			document.form.modem_isp.options.length = document.form.modem_isp.options.length - 1;
 
-			if($("modem_isp").options.length > 0)
+			if(document.form.modem_isp.options.length > 0)
 				continue;
 			else{
 				alert('We currently do not support this location, please use "Manual"!');
@@ -318,16 +327,16 @@ function show_ISP_list(){
 			}
 		}
 		else
-			$("modem_isp").options[i] = new Option(isplist[i], isplist[i]);
+			document.form.modem_isp.options[i] = new Option(isplist[i], isplist[i]);
 
 		if(isplist[i] == isp)
-			$("modem_isp").options[i].selected = 1;
+			document.form.modem_isp.options[i].selected = 1;
 	}
 }
 
 function show_APN_list(){
-	var ISPlist = $("modem_isp").value;
-	var Countrylist = $("isp_countrys").value;
+	var ISPlist = document.form.modem_isp.value;
+	var Countrylist = document.form.modem_country.value;
 
 	var isp_order = -1;
 	for(isp_order = 0; isp_order < isplist.length; ++isp_order){
@@ -481,19 +490,30 @@ function hideClients_Block(){
 }
 /*----------} Mouse event of fake LAN IP select menu-----------------*/
 
-function change_wan_unit(){
-	if(document.form.wan_unit.options[document.form.wan_unit.selectedIndex].text == "DSL")
-		document.form.current_page.value = "Advanced_DSL_Content.asp";
-	else if(document.form.wan_unit.options[document.form.wan_unit.selectedIndex].text == "WAN"||
-					document.form.wan_unit.options[document.form.wan_unit.selectedIndex].text == "LAN")
+var dsltmp_transmode = "<% nvram_get("dsltmp_transmode"); %>";
+function change_wan_unit(obj){
+	if(!dualWAN_support) return;
+	
+	if(obj.options[obj.selectedIndex].text == "DSL"){
+		if(dsltmp_transmode == "atm")
+			document.form.current_page.value = "Advanced_DSL_Content.asp";
+		else //ptm
+			document.form.current_page.value = "Advanced_VDSL_Content.asp";	
+	}else if(document.form.dsltmp_transmode){
+		document.form.dsltmp_transmode.style.display = "none";
+	}
+
+	if(obj.options[obj.selectedIndex].text == "WAN" ||	obj.options[obj.selectedIndex].text == "Ethernet LAN"){
 		document.form.current_page.value = "Advanced_WAN_Content.asp";
-	else
-		return false;	
+	}else	if(obj.options[obj.selectedIndex].text == "USB") {
+		return false;
+	}
 
 	FormActions("apply.cgi", "change_wan_unit", "", "");
 	document.form.target = "";
 	document.form.submit();
 }
+
 
 function done_validating(action){
 	refreshpage();
@@ -546,7 +566,6 @@ function check_dongle_status(){
 <input type="hidden" name="productid" value="<% nvram_get("productid"); %>">
 <input type="hidden" name="current_page" value="Advanced_Modem_Content.asp">
 <input type="hidden" name="next_page" value="Advanced_Modem_Content.asp">
-<input type="hidden" name="next_host" value="">
 <input type="hidden" name="modified" value="0">
 <input type="hidden" name="action_mode" value="apply">
 <input type="hidden" name="action_script" value="reboot">
@@ -583,7 +602,7 @@ function check_dongle_status(){
 								<span class="formfonttitle"><#menu5_4_4#></span>
 							</td>
 							<td align="right">
-								<img onclick="go_setting('/APP_Installation.asp')" align="right" style="cursor:pointer;position:absolute;margin-left:-20px;margin-top:-30px;" title="Back to USB Extension" src="/images/backprev.png" onMouseOver="this.src='/images/backprevclick.png'" onMouseOut="this.src='/images/backprev.png'">
+								<img onclick="go_setting('/APP_Installation.asp')" align="right" style="cursor:pointer;position:absolute;margin-left:-20px;margin-top:-30px;" title="<#Menu_usb_application#>" src="/images/backprev.png" onMouseOver="this.src='/images/backprevclick.png'" onMouseOut="this.src='/images/backprev.png'">
 							</td>
 						</tr>
 					</table>
@@ -594,14 +613,18 @@ function check_dongle_status(){
 						<table  width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" id="WANscap">
 							<thead>
 							<tr>
-								<td colspan="2">WAN index</td>
+								<td colspan="2"><#wan_index#></td>
 							</tr>
 							</thead>							
 							<tr>
-								<th>WAN Type</th>
+								<th><#wan_type#></th>
 								<td align="left">
-									<select id="" class="input_option" name="wan_unit" onchange="change_wan_unit();">
+									<select class="input_option" name="wan_unit" onchange="change_wan_unit(this);">
 									</select>
+									<!--select id="dsltmp_transmode" name="dsltmp_transmode" class="input_option" style="margin-left:7px;" onChange="change_dsl_transmode(this);">
+											<option value="atm" <% nvram_match("dsltmp_transmode", "atm", "selected"); %>>ADSL WAN (ATM)</option>
+											<option value="ptm" <% nvram_match("dsltmp_transmode", "ptm", "selected"); %>>VDSL WAN (PTM)</option>
+									</select-->
 								</td>
 							</tr>
 						</table>
@@ -624,14 +647,14 @@ function check_dongle_status(){
 					<tr>
           	<th><a class="hintstyle"  href="javascript:void(0);" onClick="openHint(21,9);"><#HSDPAConfig_Country_itemname#></a></th>
             <td>
-            	<select name="modem_country" id="isp_countrys" class="input_option" onchange="switch_modem_mode(document.form.modem_enable_option.value);reloadProfile();"></select>
+            	<select name="modem_country" class="input_option" onchange="switch_modem_mode(document.form.modem_enable_option.value);reloadProfile();"></select>
 						</td>
 					</tr>
                                 
           <tr>
           	<th><a class="hintstyle"  href="javascript:void(0);" onClick="openHint(21,8);"><#HSDPAConfig_ISP_itemname#></a></th>
             <td>
-            	<select name="modem_isp" id="modem_isp" class="input_option" onchange="show_APN_list();"></select>
+            	<select name="modem_isp" class="input_option" onchange="show_APN_list();"></select>
             </td>
           </tr>
 
@@ -650,12 +673,26 @@ function check_dongle_status(){
 							<br/><span id="hsdpa_hint" style="display:none;"><#HSDPAConfig_hsdpa_enable_hint2#></span>
 						</td>
 					</tr>
+					<tr>
+						<th width="40%">
+							<a class="hintstyle" href="javascript:void(0);">Network Type</a>
+						</th>
+						<td>
+							<select name="modem_mode" id=modem_mode" class="input_option">
+								<option value="0" <% nvram_match("modem_mode", "0", "selected"); %>>Auto</option>
+								<option value="43" <% nvram_match("modem_mode", "43", "selected"); %>>4G/3G</option>
+								<option value="4" <% nvram_match("modem_mode", "4", "selected"); %>>4G only</option>
+								<option value="3" <% nvram_match("modem_mode", "3", "selected"); %>>3G only</option>
+								<option value="2" <% nvram_match("modem_mode", "2", "selected"); %>>2G only</option>
+							</select>
+						</td>
+					</tr>
 
           <tr>
 						<th><a class="hintstyle"  href="javascript:void(0);" onClick="openHint(21,3);"><#HSDPAConfig_private_apn_itemname#></a></th>
             <td>
             	<input id="modem_apn" name="modem_apn" class="input_20_table" type="text" value=""/>
-           		<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullLANIPList(this);" title="" onmouseover="over_var=1;" onmouseout="over_var=0;">
+           		<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullLANIPList(this);" title="<#select_APN_service#>" onmouseover="over_var=1;" onmouseout="over_var=0;">
 							<div id="ClientList_Block_PC" class="ClientList_Block_PC"></div>
 						</td>
 					</tr>
@@ -671,7 +708,7 @@ function check_dongle_status(){
 						<th><a class="hintstyle"  href="javascript:void(0);" onClick="openHint(21,2);"><#PIN_code#></a></th>
 						<td>
 							<input id="modem_pincode" name="modem_pincode" class="input_20_table" type="password" autocapitalization="off" maxLength="8" value="<% nvram_get("modem_pincode"); %>"/>
-							<br><span id="pincode_status" style="display:none;">There's something wrong with the PIN code. Please correct the PIN code and re-plug in the USB modem. If the error is still existed, please turn off the PIN code with the SIM card and try again.</span>
+							<br><span id="pincode_status" style="display:none;"><#pincode_wrong#></span>
 						</td>
 					</tr>
                                 

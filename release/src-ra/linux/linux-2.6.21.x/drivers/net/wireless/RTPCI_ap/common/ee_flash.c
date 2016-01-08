@@ -344,8 +344,14 @@ static NDIS_STATUS rtmp_ee_flash_init(PRTMP_ADAPTER pAd, PUCHAR start)
 
 USHORT DB[] = {0x8888, 0xCCCC, 0x88AA, 0xCCCC, 0x88AA, 0xCCCC, 0x88AA, 0xCCCC, 0x88AA};
 USHORT US[] = {0x2222, 0x5555, 0x5555, 0x5555, 0x5555, 0x2222, 0x2222, 0x2222, 0x2222};
+#ifdef CONFIG_RAETH_DSL
+USHORT GB[] = {0x3333, 0x6666, 0x6666, 0x6666, 0x6666, 0x3333, 0x3333, 0x3333, 0x3333};
+USHORT SG_1[] = {0x7777, 0x9999, 0x8888, 0x9999, 0x8888, 0x7777, 0x7777, 0x7777, 0x7777};
+USHORT SG_2[] = {0x6666, 0x9999, 0x7788, 0x9999, 0x7788, 0x6666, 0x6666, 0x6666, 0x6666};
+#else
 USHORT GB[] = {0x1111, 0x5555, 0x5555, 0x4444, 0x4444, 0x1111, 0x1111, 0x1111, 0x1111};
 USHORT SG[] = {0x4444, 0x9999, 0x8899, 0x9999, 0x8899, 0x6666, 0x5566, 0x6666, 0x5566};
+#endif
 
 NDIS_STATUS rtmp_nv_init(PRTMP_ADAPTER pAd)
 {
@@ -386,9 +392,12 @@ NDIS_STATUS rtmp_nv_init(PRTMP_ADAPTER pAd)
 	RtmpFlashRead(pAd->eebuf, RF_OFFSET, EEPROM_SIZE);
 #endif /* MULTIPLE_CARD_SUPPORT */
 
-#ifndef CONFIG_RAETH_DSL	//DSL-N55U will modify the default bin file
 	char *cc = nvram_safe_get("wl0_country_code");
+#ifdef CONFIG_RAETH_DSL
+	if (!strcmp(cc, "DE") || !strcmp(cc, "GB") || !strcmp(cc, "SG"))
+#else
 	if (!strcmp(cc, "DB") || !strcmp(cc, "US") || !strcmp(cc, "GB") || !strcmp(cc, "SG"))
+#endif
 	{
 		USHORT *p = pAd->eebuf;
 		USHORT *pcc;
@@ -408,8 +417,21 @@ NDIS_STATUS rtmp_nv_init(PRTMP_ADAPTER pAd)
 		}
 		else if (!strcmp(cc, "SG"))
 		{
+#ifdef CONFIG_RAETH_DSL
+			if( (p[113] & 0xFF00) == 0x8800)
+				pcc = SG_1;
+			else
+				pcc = SG_2;
+#else
 			pcc = SG;
+#endif
 		}
+#ifdef CONFIG_RAETH_DSL
+		else if (!strcmp(cc, "DE"))
+		{
+			pcc = GB;
+		}
+#endif
 #if 0
 		for (i = 0; i < (EEPROM_SIZE >> 1); i++)
 		{
@@ -436,7 +458,6 @@ NDIS_STATUS rtmp_nv_init(PRTMP_ADAPTER pAd)
 		}
 #endif
 	}
-#endif
 
 	return rtmp_ee_flash_init(pAd, pAd->eebuf);
 }

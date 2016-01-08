@@ -214,4 +214,7 @@
 #define SN_Huawei_E173_MoiveStar                0x031c
 #define SN_Onda_MSA14_4                         0x031d
 
+#define SN_WeTelecom_WMD300                     0x031e
+#define SN_Huawei_K5150                         0x031f
+
 #endif

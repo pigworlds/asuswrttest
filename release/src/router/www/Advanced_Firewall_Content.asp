@@ -28,11 +28,36 @@ var filter_lwlist_array = '<% nvram_get("filter_lwlist"); %>';
 function initial(){
 	show_menu();
 	showfilter_lwlist();
-	load_body();
+	init_setting();
 	check_Timefield_checkbox();
 	if(svc_ready == "0")
 		$('svc_hint_div').style.display = "";	
 	corrected_timezone();	
+}
+
+function init_setting(){
+	wItem = new Array(new Array("WWW", "80", "TCP"),new Array("TELNET", "23", "TCP"),new Array("FTP", "20:21", "TCP"));
+	free_options(document.form.LWKnownApps);
+	add_option(document.form.LWKnownApps, "<#IPConnection_TriggerList_userdefined#>", "User Defined", 1);
+	for (i = 0; i < wItem.length; i++){
+		add_option(document.form.LWKnownApps, wItem[i][0], wItem[i][0], 0);
+	}
+	
+	document.form.filter_lw_date_x_Sun.checked = getDateCheck(document.form.filter_lw_date_x.value, 0);
+	document.form.filter_lw_date_x_Mon.checked = getDateCheck(document.form.filter_lw_date_x.value, 1);
+	document.form.filter_lw_date_x_Tue.checked = getDateCheck(document.form.filter_lw_date_x.value, 2);
+	document.form.filter_lw_date_x_Wed.checked = getDateCheck(document.form.filter_lw_date_x.value, 3);
+	document.form.filter_lw_date_x_Thu.checked = getDateCheck(document.form.filter_lw_date_x.value, 4);
+	document.form.filter_lw_date_x_Fri.checked = getDateCheck(document.form.filter_lw_date_x.value, 5);
+	document.form.filter_lw_date_x_Sat.checked = getDateCheck(document.form.filter_lw_date_x.value, 6);
+	document.form.filter_lw_time_x_starthour.value = getTimeRange(document.form.filter_lw_time_x.value, 0);
+	document.form.filter_lw_time_x_startmin.value = getTimeRange(document.form.filter_lw_time_x.value, 1);
+	document.form.filter_lw_time_x_endhour.value = getTimeRange(document.form.filter_lw_time_x.value, 2);
+	document.form.filter_lw_time_x_endmin.value = getTimeRange(document.form.filter_lw_time_x.value, 3);
+	document.form.filter_lw_time2_x_starthour.value = getTimeRange(document.form.filter_lw_time2_x.value, 0);
+	document.form.filter_lw_time2_x_startmin.value = getTimeRange(document.form.filter_lw_time2_x.value, 1);
+	document.form.filter_lw_time2_x_endhour.value = getTimeRange(document.form.filter_lw_time2_x.value, 2);
+	document.form.filter_lw_time2_x_endmin.value = getTimeRange(document.form.filter_lw_time2_x.value, 3);
 }
 
 function applyRule(){
@@ -386,10 +411,8 @@ function updateDateTime(){
 <iframe name="hidden_frame" id="hidden_frame" src="" width="0" height="0" frameborder="0"></iframe>
 <form method="post" name="form" id="ruleForm" action="/start_apply.htm" target="hidden_frame">
 <input type="hidden" name="productid" value="<% nvram_get("productid"); %>">
-
 <input type="hidden" name="current_page" value="Advanced_Firewall_Content.asp">
 <input type="hidden" name="next_page" value="">
-<input type="hidden" name="next_host" value="">
 <input type="hidden" name="group_id" value="filter_lwlist">
 <input type="hidden" name="modified" value="0">
 <input type="hidden" name="action_mode" value="apply">
@@ -402,7 +425,6 @@ function updateDateTime(){
 <input type="hidden" name="filter_lw_time_x" value="<% nvram_get("filter_lw_time_x"); %>">
 <input type="hidden" name="filter_lw_time2_x" value="<% nvram_get("filter_lw_time2_x"); %>">
 <input type="hidden" name="filter_lw_num_x_0" value="<% nvram_get("filter_lw_num_x"); %>" readonly="1">
-
 <input type="hidden" name="filter_lwlist" value=''>
 <table class="content" align="center" cellpadding="0" cellspacing="0">
 <tr>
@@ -430,7 +452,7 @@ function updateDateTime(){
 		  				<div class="formfontdesc"><#FirewallConfig_display1_sectiondesc#></div>
 		  				<div class="formfontdesc"><#FirewallConfig_display3_sectiondesc#></div>
 		  				<div class="formfontdesc" style="color:#FFCC00;"><#FirewallConfig_display4_sectiondesc#></div>	
-		  				<div id="svc_hint_div" style="display:none;"><span onClick="location.href='Advanced_System_Content.asp?af=ntp_server0'" style="color:#FFCC00;text-decoration:underline;cursor:pointer;">* Remind: Did not synchronize your system time with NTP server yet.</span></div>
+		  				<div id="svc_hint_div" style="display:none;"><span onClick="location.href='Advanced_System_Content.asp?af=ntp_server0'" style="color:#FFCC00;text-decoration:underline;cursor:pointer;"><#General_x_SystemTime_syncNTP#></span></div>
 		  				<div id="timezone_hint_div" style="display:none;"><span id="timezone_hint" onclick="location.href='Advanced_System_Content.asp?af=time_zone_select'" style="color:#FFCC00;text-decoration:underline;cursor:pointer;"></span></div>
 
 						<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">
@@ -462,7 +484,7 @@ function updateDateTime(){
           						<th><#IPConnection_TriggerList_widzarddesc#></th>
             					<td>
             						<select name="LWKnownApps" class="input_option" onChange="change_wizard(this, 'LWKnownApps');">
-              							<option value="User Defined">User Defined</option>
+              							<option value="User Defined"><#IPConnection_TriggerList_userdefined#></option>
             						</select>
             					</td>
           					</tr>
@@ -523,7 +545,7 @@ function updateDateTime(){
             					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(18,3);"><#FirewallConfig_LanWanDstIP_itemname#></a></th>
             					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(18,2);"><#FirewallConfig_LanWanSrcPort_itemname#></a></th>
             					<th><#IPConnection_VServerProto_itemname#></th>
-            					<th>Add / Delete</th>
+            					<th><#list_add_delete#></th>
           					</tr>
           					<tr>
           						<td width="20%"><input type="text" maxlength="15" class="input_15_table" name="filter_lw_srcip_x_0" onKeyPress="return is_iprange(this, event)"></td>

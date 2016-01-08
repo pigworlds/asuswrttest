@@ -63,13 +63,12 @@ function showDST(){
 	var system_timezone_dut = "<% nvram_get("time_zone"); %>";
 	if(system_timezone_dut.search("DST") >= 0 && "<% nvram_get("time_zone_dst"); %>" == "1"){
 		document.getElementById('dstzone').style.display = "";
-		document.getElementById('dstzone').innerHTML = "* Daylight saving time is implemented in this time zone.";
+		document.getElementById('dstzone').innerHTML = "<#General_x_SystemTime_dst#>";
 	}
 }
 
 function initial(){
 	show_menu();
-	load_body();
 	showclock();
 	showbootTime();
 	showDST();
@@ -87,7 +86,6 @@ function initial(){
 <form method="post" name="form" action="apply.cgi" target="hidden_frame">
 <input type="hidden" name="current_page" value="Main_LogStatus_Content.asp">
 <input type="hidden" name="next_page" value="Main_LogStatus_Content.asp">
-<input type="hidden" name="next_host" value="">
 <input type="hidden" name="group_id" value="">
 <input type="hidden" name="modified" value="0">
 <input type="hidden" name="action_mode" value="">
@@ -139,13 +137,11 @@ function initial(){
 												<form method="post" name="form1" action="apply.cgi">
 													<input type="hidden" name="current_page" value="Main_LogStatus_Content.asp">
 													<input type="hidden" name="action_mode" value=" Clear ">
-													<input type="hidden" name="next_host" value="">
-													<input type="submit" onClick="document.form1.next_host.value = location.host; onSubmitCtrl(this, ' Clear ')" value="<#CTL_clear#>" class="button_gen">
+													<input type="submit" onClick="onSubmitCtrl(this, ' Clear ')" value="<#CTL_clear#>" class="button_gen">
 												</form>
 											</td>	
 											<td width="20%" align="center">
 												<form method="post" name="form2" action="syslog.txt">
-													<input type="hidden" name="next_host" value="">
 													<input type="submit" onClick="onSubmitCtrl(this, ' Save ');" value="<#CTL_onlysave#>" class="button_gen">
 												</form>
 											</td>	
@@ -153,7 +149,6 @@ function initial(){
 											<form method="post" name="form3" action="apply.cgi">
 												<input type="hidden" name="current_page" value="Main_LogStatus_Content.asp">
 												<input type="hidden" name="action_mode" value=" Refresh ">
-												<input type="hidden" name="next_host" value="">
 												<input type="button" onClick="location.href=location.href" value="<#CTL_refresh#>" class="button_gen">
 											</form>
 											</td>	

@@ -17,6 +17,7 @@
 
 #define _GNU_SOURCE
 
+#include <rtconfig.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -44,7 +45,7 @@
 #define OLD_DUT_DOMAIN_NAME2 "www.asusrouter.com"
 
 #define USBCORE_MOD	"usbcore"
-#if defined (RTCONFIG_USB_XHCI) || defined (RTCONFIG_USB_2XHCI2)
+#if defined (RTCONFIG_USB_XHCI)
 #define USB30_MOD	"xhci-hcd"
 #endif
 #define USB20_MOD	"ehci-hcd"
@@ -73,7 +74,16 @@ extern char wan6face[];
 extern int g_reboot;
 
 #ifdef RTCONFIG_BCMARM
+#ifndef LINUX_KERNEL_VERSION
 #define LINUX_KERNEL_VERSION LINUX_VERSION_CODE
+#endif
+
+static inline int before(int ver1, int ver2)
+{
+	return (ver1-ver2) < 0;
+}
+
+#define After(ver2, ver1)	before(ver1, ver2)
 #endif
 
 #if defined(LINUX30) || LINUX_VERSION_CODE > KERNEL_VERSION(2,6,34)
@@ -92,7 +102,10 @@ extern int g_reboot;
 
 #define NAT_RULES	"/tmp/nat_rules"
 
+#ifndef ARRAY_SIZE
 #define ARRAY_SIZE(ary) (sizeof(ary) / sizeof((ary)[0]))
+#endif
+
 #define XSTR(s) STR(s)
 #define STR(s) #s
 
@@ -256,13 +269,12 @@ extern int asuscfe(const char *PwqV, const char *IF);
 extern int stainfo(int band);
 extern int Set_SwitchPort_LEDs(const char *group, const char *action);
 extern int ralink_mssid_mac_validate(const char *macaddr);
-extern char * get_wpsifname(void);
 extern int getWscStatus(int unit);
 extern int wl_WscConfigured(int unit);
 extern int Get_Device_Flags(void);
 extern int Set_Device_Flags(const char *flags_str);
-extern char *get_wifname(int band);
-extern char *get_wpsifname(void);
+extern const char *get_wifname(int band);
+extern const char *get_wpsifname(void);
 #endif
 
 /* sysdeps/dsl-*.c */
@@ -310,8 +322,10 @@ extern void start_wan_if(int unit);
 extern void stop_wan_if(int unit);
 #ifdef RTCONFIG_IPV6
 extern void stop_wan6(void);
+#if 0
 extern void start_ecmh(const char *wan_ifname);
 extern void stop_ecmh(void);
+#endif
 extern void wan6_up(const char *wan_ifname);
 extern void wan6_down(const char *wan_ifname);
 extern void start_wan6(void);
@@ -400,6 +414,15 @@ extern int start_demand_ppp(int unit, int wait);
 extern int start_pppoe_relay(char *wan_if);
 extern void stop_pppoe_relay(void);
 
+// vpnc.c
+#ifdef RTCONFIG_VPNC
+extern int vpnc_ipup_main(int argc, char **argv);
+extern int vpnc_ipdown_main(int argc, char **argv);
+extern int vpnc_ippreup_main(int argc, char **argv);
+extern int vpnc_authfail_main(int argc, char **argv);
+extern void update_vpnc_state(char *prefix, int state, int reason);
+#endif
+
 // network.c
 extern void set_host_domain_name(void);
 extern void start_lan(void);
@@ -434,11 +457,12 @@ extern int start_zcip(char *wan_ifname);
 extern int dhcp6c_state_main(int argc, char **argv);
 extern int start_dhcp6c(void);
 extern void stop_dhcp6c(void);
-extern int ipv6aide_main(int argc, char *argv[]);
 #endif
 
 #ifdef RTCONFIG_WPS
 extern int wpsaide_main(int argc, char *argv[]);
+extern int stop_wpsaide();
+extern int start_wpsaide();
 #endif
 
 // auth.c
@@ -468,7 +492,7 @@ extern void start_ubifs(void);
 extern void stop_ubifs(int stop);
 static inline void start_jffs2(void) { start_ubifs(); }
 static inline void stop_jffs2(int stop) { stop_ubifs(stop); }
-#elif defined(RTCONFIG_JFFS2) || defined(RTCONFIG_JFFSV1)
+#elif defined(RTCONFIG_JFFS2) || defined(RTCONFIG_JFFSV1) || defined(RTCONFIG_BRCM_NAND_JFFS2)
 extern void start_jffs2(void);
 extern void stop_jffs2(int stop);
 #else
@@ -506,7 +530,7 @@ extern int stop_ots(void);
 extern int start_ots(void);
 
 // common.c
-extern in_addr_t inet_addr_(const char *cp);    // oleg patch
+extern in_addr_t inet_addr_(const char *cp);	// oleg patch
 extern void usage_exit(const char *cmd, const char *help) __attribute__ ((noreturn));
 #define modprobe(mod, args...) ({ char *argv[] = { "modprobe", "-s", mod, ## args, NULL }; _eval(argv, NULL, 0, NULL); })
 extern int modprobe_r(const char *mod);
@@ -614,17 +638,27 @@ extern int linkmonitor_main(int argc, char *argv[]);
 // vpn.c
 extern void start_pptpd(void);
 extern void stop_pptpd(void);
+
+// vpnc.c
+#ifdef RTCONFIG_VPNC
+extern int start_vpnc(void);
+extern void stop_vpnc(void);
+#endif
+
+// openvpn.c
 #ifdef RTCONFIG_OPENVPN
 extern void start_vpnclient(int clientNum);
 extern void stop_vpnclient(int clientNum);
 extern void start_vpnserver(int serverNum);
 extern void stop_vpnserver(int serverNum);
 extern void start_vpn_eas();
+extern void stop_vpn_eas();
 extern void run_vpn_firewall_scripts();
 extern void write_vpn_dnsmasq_config(FILE*);
 extern int write_vpn_resolv(FILE*);
-static inline void start_vpn_eas() { }
-#define write_vpn_resolv(f) (0)
+//static inline void start_vpn_eas() { }
+//#define write_vpn_resolv(f) (0)
+extern void create_openvpn_passwd();
 #endif
 
 // wanduck.c
@@ -650,19 +684,22 @@ extern int asus_usb_interface(const char *device_name, const char *action);
 extern int asus_sg(const char *device_name, const char *action);
 extern int asus_usbbcm(const char *device_name, const char *action);
 #endif
+#ifdef RTCONFIG_USB_MODEM
+extern int is_create_file_dongle(const unsigned int vid, const unsigned int pid);
 #ifdef RTCONFIG_USB_BECEEM
+extern int is_beceem_dongle(const int mode, const unsigned int vid, const unsigned int pid);
+extern int is_samsung_dongle(const int mode, const unsigned int vid, const unsigned int pid);
+extern int is_gct_dongle(const int mode, const unsigned int vid, const unsigned int pid);
 extern int write_beceem_conf(const char *eth_node);
-extern int is_beceem_dongle(const int mode, const char *vid, const char *pid);
-extern int is_samsung_dongle(const int mode, const char *vid, const char *pid);
-extern int is_gct_dongle(const int mode, const char *vid, const char *pid);
 extern int write_gct_conf(void);
 #endif
-#ifdef RTCONFIG_USB_MODEM
-extern int is_create_file_dongle(const char *vid, const char *pid);
+extern int is_android_phone(const int mode, const unsigned int vid, const unsigned int pid);
+extern int is_storage_cd(const int mode, const unsigned int vid, const unsigned int pid);
+extern void get_wdm_by_usbnet(const char *usbnet, char *wdm_name, size_t size);
+extern int write_3g_conf(FILE *fp, int dno, int aut, const unsigned int vid, const unsigned int pid);
+extern int init_3g_param(const char *port_path, const unsigned int vid, const unsigned int pid);
+extern int write_3g_ppp_conf(void);
 #endif
-extern int is_android_phone(const int mode, const char *vid, const char *pid);
-extern int write_3g_conf(FILE *fp, int dno, int aut, char *vid, char *pid);
-extern int init_3g_param(char *vid, char *pid, int port_num);
 
 //services.c
 extern void write_static_leases(char *file);
@@ -681,10 +718,13 @@ extern void start_ipv6_tunnel(void);
 extern void stop_ipv6_tunnel(void);
 extern void start_radvd(void);
 extern void stop_radvd(void);
+extern void start_rdnssd(void);
+extern void stop_rdnssd(void);
 extern void start_dhcp6s(void);
 extern void stop_dhcp6s(void);
 extern void start_ipv6(void);
 extern void stop_ipv6(void);
+extern void ipv6_sysconf(const char *ifname, const char *name, int value);
 #endif
 extern int wps_band_radio_off(int wps_band);
 #ifdef CONFIG_BCMWL5
@@ -718,7 +758,7 @@ extern void stop_wanduck(void);
 extern void stop_ntpc(void);
 extern int start_ntpc(void);
 extern void stop_networkmap(void);
-extern int start_networkmap(void);
+extern int start_networkmap(int bootwait);
 extern int stop_wps(void);
 extern int start_wps(void);
 extern void stop_upnp(void);
@@ -744,10 +784,62 @@ extern int stop_8021x(void);
 #ifdef RTCONFIG_DNSMASQ
 extern void stop_dnsmasq(void);
 #endif
+#ifdef RTCONFIG_LLDP
+extern void stop_lldpd(void);
+extern int start_lldpd(void);
+#endif
 extern int firmware_check_main(int argc, char *argv[]);
 #ifdef RTCONFIG_DSL
 extern int check_tc_upgrade(void);
 extern int start_tc_upgrade(void);
+#ifdef RTCONFIG_DSL_TCLINUX
+extern void start_dsl_autodet(void);
+extern void stop_dsl_autodet(void);
+#endif
+#endif
+#ifdef RTCONFIG_PUSH_EMAIL
+extern void start_DSLsendmail(void);
+#endif
+#ifdef RTCONFIG_TIMEMACHINE
+extern int start_timemachine(void);
+extern void stop_timemachine(void);
+extern int start_afpd(void);
+extern void stop_afpd(void);
+extern int start_cnid_metad(void);
+extern void stop_cnid_metad(void);
+extern int start_avahi_daemon(void);
+extern void stop_avahi_daemon(void);
+#endif
+
+#if defined(RTCONFIG_MDNS)
+extern int start_mdns(void);
+extern void stop_mdns(void);
+#endif
+
+#ifdef RTCONFIG_MEDIA_SERVER
+void force_stop_dms(void);
+void stop_mt_daapd(void);
+void start_dms(void);
+void start_mt_daapd(void);
+void set_invoke_later(int flag);
+int get_invoke_later(void);
+#endif	/* RTCONFIG_MEDIA_SERVER */
+
+#ifdef RTCONFIG_WIRELESSREPEATER
+void start_wlcscan(void);
+void stop_wlcscan(void);
+void start_wlcconnect(void);
+void stop_wlcconnect(void);
+void repeater_pap_disable(void);
+void repeater_nat_setting(void);
+#if defined(RTCONFIG_RALINK)
+void apcli_start(void);
+int site_survey_for_channel(int n, const char *wif, int *HT_EXT);
+#endif
+#endif	/* RTCONFIG_WIRELESSREPEATER */
+
+#ifdef RTCONFIG_BWDPI
+extern int bwdpi_main(int argc, char **argv);
 #endif
 
 #ifdef BTN_SETUP

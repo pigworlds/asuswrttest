@@ -39,7 +39,7 @@ function initial(){
 		document.form.action_wait.value = "<% get_default_reboot_time(); %>";				
 	}
 	show_menu();
-	if(!dsl_support) {	
+	if(!dsl_support) {
 		ISP_Profile_Selection(original_switch_wantag);
 	}
 	document.form.switch_stb_x.value = original_switch_stb_x;	
@@ -53,6 +53,11 @@ function initial(){
 		if(!manualstb_support) 
 			document.form.switch_wantag.remove(8);
 	}
+	
+	if(dualWAN_support)
+		document.getElementById("IPTV_desc_DualWAN").style.display = "";
+	else	
+		document.getElementById("IPTV_desc").style.display = "";
 }
 
 function load_ISP_profile() {
@@ -248,41 +253,29 @@ function validForm(){
 }
 
 function applyRule(){
-	// dualwan LAN port should not equal to IPTV port
-	if (dualWAN_support) {
+	if(dualWAN_support){
+		// dualwan LAN port should not equal to IPTV port
 		var tmp_pri_if = wans_dualwan_orig.split(" ")[0].toUpperCase();
-		var tmp_sec_if = wans_dualwan_orig.split(" ")[1].toUpperCase();	
-		if (tmp_pri_if != 'LAN' || tmp_sec_if != 'LAN') {
+		var tmp_sec_if = wans_dualwan_orig.split(" ")[1].toUpperCase();
+
+		if (tmp_pri_if == 'LAN' || tmp_sec_if == 'LAN'){
 			var port_conflict = false;
 			var iptv_port = document.form.switch_stb_x.value;
-			if (wans_lanport == "1") {
-				if (iptv_port == "1" || iptv_port == "5") {
-					port_conflict = true;
-				}
-			}
-			else if (wans_lanport == "2") {		
-				if (iptv_port == "2" || iptv_port == "5") {
-					port_conflict = true;
-				}
-			}
-			else if (wans_lanport == "3") {				
-				if (iptv_port == "3" || iptv_port == "6") {
-					port_conflict = true;
-				}
-			}
-			else if (wans_lanport == "4") {				
-				if (iptv_port == "4" || iptv_port == "6") {
-					port_conflict = true;
-				}
-			}
+			if(wans_lanport == iptv_port)
+				port_conflict = true;
+			else if( (wans_lanport == 1 || wans_lanport == 2) && iptv_port == 5)	
+				port_conflict = true;
+			else if( (wans_lanport == 3 || wans_lanport == 4) && iptv_port == 6)	
+				port_conflict = true;	
+
 			if (port_conflict) {
-				alert("IPTV port number is same as dual wan LAN port number");
+				alert("<#RouterConfig_IPTV_conflict#>");
 				return;
 			}
 		}
 	}
 
-	if(!dsl_support) {	
+	if(!dsl_support){
 		if( (original_switch_stb_x != document.form.switch_stb_x.value) 
 		||  (original_switch_wantag != document.form.switch_wantag.value)
 		||  (original_switch_wan0tagid != document.form.switch_wan0tagid.value)
@@ -379,7 +372,6 @@ function validate_range_null(o, min, max, def) {		//Viz add 2013.03 allow to set
 <input type="hidden" name="productid" value="<% nvram_get("productid"); %>">
 <input type="hidden" name="current_page" value="/Advanced_IPTV_Content.asp">
 <input type="hidden" name="next_page" value="/Advanced_IPTV_Content.asp">
-<input type="hidden" name="next_host" value="">
 <input type="hidden" name="group_id" value="">
 <input type="hidden" name="modified" value="0">
 <input type="hidden" name="action_mode" value="apply_new">
@@ -411,7 +403,8 @@ function validate_range_null(o, min, max, def) {		//Viz add 2013.03 allow to set
 		  <div>&nbsp;</div>
 		  <div class="formfonttitle"><#menu5_2#> - IPTV</div>
       <div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
-      <div class="formfontdesc"><#LANHostConfig_displayIPTV_sectiondesc#></div>
+      <div id="IPTV_desc" class="formfontdesc" style="display:none;"><#LANHostConfig_displayIPTV_sectiondesc#></div>
+      <div id="IPTV_desc_DualWAN" class="formfontdesc" style="display:none;"><#LANHostConfig_displayIPTV_sectiondesc2#></div>
 	  
 	  
 	  <!-- IPTV & VoIP Setting -->
@@ -487,7 +480,7 @@ function validate_range_null(o, min, max, def) {		//Viz add 2013.03 allow to set
 		</table>
 <!--###HTML_PREP_ELSE###-->
 <!--
-[DSL-N55U][DSL-N55U-B]
+[DSL-N55U][DSL-N55U-B][DSL-AC68U]
 {DSL do not support unifw}
 	  <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">
 	  	<thead>
@@ -553,7 +546,7 @@ function validate_range_null(o, min, max, def) {		//Viz add 2013.03 allow to set
 			</tr>
 
 					<tr id="enable_eff_multicast_forward" style="display:none;">
-						<th>Enable efficient multicast forwarding (IGMP Snooping)</th>
+						<th><#WLANConfig11b_x_Emf_itemname#></th>
 						<td>
                   				<select name="emf_enable" class="input_option">
                     					<option value="0" <% nvram_match("emf_enable", "0","selected"); %> ><#WLANConfig11b_WirelessCtrl_buttonname#></option>

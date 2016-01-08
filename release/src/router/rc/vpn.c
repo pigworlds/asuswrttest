@@ -166,7 +166,7 @@ void start_pptpd(void)
 	} else
   		fprintf(fp, "nomppe nomppc\n");
 
-	fprintf(fp, "ms-ignore-domain\n"
+	fprintf(fp, "chapms-strip-domain\n"
 		"chap-secrets /tmp/pptpd/chap-secrets\n"
 		"ip-up-script /tmp/pptpd/ip-up\n"
 		"ip-down-script /tmp/pptpd/ip-down\n"
@@ -264,7 +264,7 @@ void start_pptpd(void)
 	 * overhead) 
 	 */
 	if (nvram_match("mtu_enable", "1"))
-		mss = atoi(nvram_safe_get("wan_mtu")) - 40 - 108;
+		mss = nvram_get_int("wan_mtu") - 40 - 108;
 	else
 		mss = 1500 - 40 - 108;
 	char bcast[32];
@@ -275,8 +275,8 @@ void start_pptpd(void)
 	fp = fopen("/tmp/pptpd/ip-up", "w");
 	fprintf(fp, "#!/bin/sh\n" "startservice set_routes\n"	// reinitialize 
 		"echo $PPPD_PID $1 $5 $6 $PEERNAME >> /tmp/pptp_connected\n" 
-		"iptables -I FORWARD -i $1 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu\n" 
 		"iptables -I INPUT -i $1 -j ACCEPT\n" "iptables -I FORWARD -i $1 -j ACCEPT\n" 
+		"iptables -I FORWARD -i $1 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu\n" 
 		"iptables -t nat -I PREROUTING -i $1 -p udp -m udp --sport 9 -j DNAT --to-destination %s "	// rule for wake on lan over pptp tunnel
 		"%s\n", bcast,
 		nvram_get("pptpd_ipup_script") ? nvram_get("pptpd_ipup_script") : "");

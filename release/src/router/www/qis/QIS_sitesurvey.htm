@@ -19,7 +19,6 @@ var wlc_state = '<% nvram_get("wlc_state"); %>';
 var wlc_sbstate = '<% nvram_get("wlc_sbstate"); %>';
 var wlc_scan_state = '<% nvram_get("wlc_scan_state"); %>';
 var wlc_state_auth = 0;
-
 var profile = function(_profile){
 	if(_profile == null)
 		_profile = ["", "", "", "", "", "", "", "", ""];
@@ -74,7 +73,7 @@ var wlcKey = function(obj){
 
 		this.wpa_psk = obj.thekey;
 
-		if(obj.auth == "WPA-PSK")
+		if(obj.auth == "WPA-Personal")
 			this.auth_mode = "psk";
 		else
 			this.auth_mode = "psk2";
@@ -244,6 +243,7 @@ var btnAction = {
 			viewHandler.changeAuthMode("open");
 			document.getElementById("wlc_auth_mode_x_manual").selectedIndex = 0;
 		}
+		document.getElementById("deviceDiscorvy").innerHTML = "<#use_DevDiscoveryUtil#>";
 		viewHandler.displayObj(["manualPAP", "btnPre", "btnNext"]);
 	},
 
@@ -334,7 +334,10 @@ var btnAction = {
 		parent.w_Setting_tmp = document.form.w_Setting.value;
 		document.getElementById("loadingIcon").style.display = "";
 		document.form.http_username.value = parent.document.QKform.http_username.value;
-		document.form.http_passwd.value = parent.document.QKform.http_passwd.value;
+		if(parent.document.QKform.http_passwd.value != ""){
+			document.form.http_passwd.value = parent.document.QKform.http_passwd.value;
+			document.form.http_passwd.disabled = false;
+		}
 		document.form.flag.value = "wlcconnect";
 		document.form.action_mode.value = "apply";
 		document.form.action_wait.value = "50";
@@ -408,11 +411,20 @@ var viewHandler = {
 		document.getElementById("wlc_key_index_manual").parentNode.parentNode.style.display = "none";
 		document.getElementById("thekey_manual").parentNode.parentNode.style.display = "none";
 
-		if(_val.search("psk") != -1){
+		if(_val == "psk"){			// WPA + TKIP
+			document.getElementById("wlc_crypto_manual").options[0] = new Option('TKIP','tkip');
 			document.getElementById("wlc_crypto_manual").parentNode.parentNode.style.display = "";
 			document.getElementById("thekey_manual").parentNode.parentNode.style.display = "";
 			document.getElementById("show_pass_manual").parentNode.parentNode.style.display = "";
 			this.showSpeedHint(_val=="psk");
+		
+		}
+		else if(_val == "psk2"){		// WPA2 + AES
+			document.getElementById("wlc_crypto_manual").options[0] = new Option('AES','aes');
+			document.getElementById("wlc_crypto_manual").parentNode.parentNode.style.display = "";
+			document.getElementById("thekey_manual").parentNode.parentNode.style.display = "";
+			document.getElementById("show_pass_manual").parentNode.parentNode.style.display = "";
+				this.showSpeedHint(_val=="psk");
 		}
 		else{
 			document.getElementById("wlc_wep_manual").parentNode.parentNode.style.display = "";
@@ -571,6 +583,7 @@ var bindEvent = {
 			var initRow = '<tr class="inputRow" style="display:none;background-color:#708789;"><td style="height:50px;" colspan="5"><table width="100%"><tr>';
 			var connectedHint = '<td style="border:0px;"><span style="color:#FFCC00;"><#APSurvey_msg_connected#></span></td>';
 			var unEncrypt = '<td style="border:0px;"><span style="color:#FFCC00;"><#APSurvey_msg_connect_open_wlan#></span></td>';
+			var unSupport = '<td style="border:0px;"><span style="color:#FFCC00;">Non supported Authentication Method.</span></td>';
 			var networkKey = '<td style="border:0px;"><span style="color:#FFFFFF;"><#Network_key#>:</span><input type="password" autocapitalization="off" id="thekey_tmp" class="input_25_table" style="padding-left:3px;margin-left:5px;width:200px;"><input type="checkbox" onclick="pass_checked(this, document.getElementById(\'thekey_tmp\'));"><span style="color:#FFF"><#QIS_show_pass#></span></td>';
 			var connectBtn = '<td style="border:0px;text-align:right"><input style="margin-left:10px;" id="connect_btn" type="button" value="<#CTL_Add_enrollee#>" onclick="btnAction.saveWlcVar('+ bindEvent.idx +', false)" class="button_gen"></td></tr>';
 			var wep_auth = '<tr><td style="border:0px;"><span style="margin-left:5px;color:#FFFFFF;"><#WLANConfig11b_AuthenticationMethod_itemname#></span><select id="thekey_wep_method_tmp" class="input_option" style="margin-left:5px;"><option value="open" selected>open</option><option value="shared">shared</option></select>';
@@ -604,6 +617,9 @@ var bindEvent = {
 				if(Profiles[bindEvent.idx].alg == "NONE"){
 					initRow += unEncrypt;
 					initRow += connectBtn;
+				}
+				else if(Profiles[bindEvent.idx].auth == "WPA-Enterprise" || Profiles[bindEvent.idx].auth == "WPA2-Enterprise" ){
+					initRow += unSupport;
 				}
 				else{
 					initRow += networkKey;
@@ -768,6 +784,10 @@ function showSiteTable(){
 		}
 		else{
 			for(var i = 0; i < Profiles.length; i++){
+				if(parent.based_modelid == "RT-AC87U" && Profiles[i].band.search("5G") != -1 && parent.isRepeater){ // SYSDEP, RT-AC87U does not support 5G repeater for now. 
+					continue;
+				}
+
 				if(Profiles[i].ssid == null || Profiles[i].ssid == "" || Profiles[i].ssid.search("%FFFF") != -1){
 					htmlCode += '<tr style="display:none"><td></td></tr>';
 					continue;
@@ -775,9 +795,10 @@ function showSiteTable(){
 
 				// initial
 				htmlCode += '<tr style="height: 45px;">';
-
+				
+				ssid_str=handle_show_str(Profiles[i].ssid);
 				//ssid
-				htmlCode += '<td><span title="' + Profiles[i].macaddr + '">' + Profiles[i].ssid + '</span>';
+				htmlCode += '<td><span title="' + Profiles[i].macaddr + '">' + ssid_str + '</span>';
 
 				if(retValHandler.isConnected(Profiles[i].state))
 					htmlCode += "<span style='color:#FC0;margin-left:10px;'><#Connected#></span>";
@@ -840,6 +861,7 @@ function QKInternet_load_body(){
 	if(!parent.band5g_support)
 		document.getElementById('wl_unit_field').style.display = "none";
 }
+
 </script>
 </head>
 <body onLoad="QKInternet_load_body();" onunload="">
@@ -879,7 +901,7 @@ function QKInternet_load_body(){
 <!-- system end -->
 <input type="hidden" name="sw_mode" value="3">
 <input type="hidden" name="http_username" value="<% nvram_get("http_username"); %>">
-<input type="hidden" name="http_passwd" value="<% nvram_get("http_passwd"); %>">
+<input type="hidden" name="http_passwd" value="" disabled>
 <input type="hidden" name="x_Setting" value="1">
 <input type="hidden" name="w_Setting" value="1">
 <input type="hidden" name="lan_proto" value="dhcp">
@@ -934,7 +956,7 @@ function QKInternet_load_body(){
 			<#APSurvey_action_search_again_hint2#>
 			<br/>
 			<span style="color:#FC0" id="deviceDiscorvy">
-				Install and use the <a href="http://dlcdnet.asus.com/pub/ASUS/LiveUpdate/Release/Wireless/Discovery.zip" style="font-family:Lucida Console;text-decoration:underline;color:#FC0;">Device Discovery Utility</a> in order to detect the <#Web_Title2#>'s IP address.
+				<#use_DevDiscoveryUtil#>
 			</span>
 		</div>
 		<br><br>
@@ -966,7 +988,7 @@ function QKInternet_load_body(){
 						<option value="psk2">WPA2-Personal</option>
 		  		</select>
 					<div id="wl_nmode_hint_manual" style="margin-top:5px;color:#FC0;">
-						Under WEP or WPA-Personal encryption, the maximum transmission rate of <#Web_Title2#> is 54Mbps. Please change to WPA2-Personal.
+						Under WEP or WPA-Personal+TKIP encryption, the maximum transmission rate of <#Web_Title2#> is 54Mbps. Please change to WPA2-Personal.
 					</div>
 				</td>
 	  	</tr>
@@ -974,12 +996,9 @@ function QKInternet_load_body(){
 			<tr>
 				<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 6);"><#WLANConfig11b_WPAType_itemname#></a></th>
 				<td>
-		  		<select id="wlc_crypto_manual" class="input_option">
-						<option value="tkip">TKIP</option>
-						<option value="aes">AES</option>
-				  </select>					
+					<select id="wlc_crypto_manual" class="input_option"></select>					
 				</td>
-	  	</tr>	  	
+			</tr>	  	
 
 	  	<tr>
 				<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 9);"><#WLANConfig11b_WEPType_itemname#></a></th>

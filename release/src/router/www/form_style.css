@@ -1,4 +1,4 @@
-﻿/* CSS Document */
+/* CSS Document */
 .buttonok {width:52px; font-family:Verdana; font-size:11px; line-height:25px; text-align:center;}
 .buttonok a {height:28px; text-decoration: none;}
 .buttonok a:link, .buttonok a:visited {
@@ -351,6 +351,18 @@
 	border-width:0;
 	color:#FFFFFF;
 }
+.input_30_table{
+	margin-left:2px;
+	padding-left:0.4em;
+	height:23px;
+	width:315px;
+	line-height:23px \9;	/*IE*/
+	font-size:12px;
+	font-family: Lucida Console;
+	background-image:url(/images/New_ui/inputbg.png);
+	border-width:0;
+	color:#FFFFFF;
+}
 .input_25_table{
 	margin-left:2px;	
 	padding-left:0.4em;
@@ -570,6 +582,34 @@
 	outline: none; /* for Firefox */
  	hlbr:expression(this.onFocus=this.blur()); /* for IE */
 }
+.button_gen_long_dis{
+	font-weight: bolder;
+	text-shadow: 1px 1px 0px black;
+  background: transparent url(/images/New_ui/logout_bt.png) no-repeat scroll center top;
+  border:0;
+  color: #333333;
+	height:34px;
+	font-family:Verdana;
+	font-size:12px;
+ 	width:150px; 	
+  overflow:visible;
+	/*cursor:pointer;*/
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
+}
+.button_gen_long_dis:hover	/*, .button:active*/{
+  background: transparent url(/images/New_ui/logout_btover.png) no-repeat scroll center top;
+  border:0;
+  color: #333333;
+	height:34px;
+	font-family:Verdana;
+	font-size:12px;
+ 	width:150px;
+  overflow:visible;
+	/*cursor:pointer;*/
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
+}
 .button_gen_long_touch{
   color: #FFFFFF;
 	background:url(/images/New_ui/contentbt_over.png) no-repeat;
@@ -628,10 +668,6 @@
 
 form{ 
 	margin:0px;
-}
-
-textarea{
-	width:99%;	
 }
 
 .hint_word{
@@ -1445,6 +1481,41 @@ padding-top:1px;
 	cursor: pointer;
 }
 
+.notification_on{
+	background-image:url(/images/New_ui/notification.png);
+	background-repeat:no-repeat;	
+	background-position:2px 2px;
+	height:29px;
+	width:30px;
+	cursor: pointer;
+}
+.notification_off{
+	display: none;
+}
+
+.notification_on1{
+	cursor: pointer;
+}
+
+.vpnstatuson{
+	background-image:url(/images/New_ui/vpnstatus.png);
+	background-repeat:no-repeat;	
+	background-position:2px 2px;
+	height:29px;
+	width:30px;
+	cursor: pointer;
+	display: none;
+}
+.vpnstatusoff{
+	background-image:url(/images/New_ui/vpnstatus.png);
+	background-repeat:no-repeat;	
+	background-position:2px -48px;
+	height:29px;
+	width:30px;
+	cursor: pointer;
+	display: none;
+}
+
 .wifihwswstatuson{
 	background-image:url(/images/wifi_hw_sw.png);
 	background-repeat:no-repeat;	
@@ -1631,6 +1702,45 @@ padding-top:1px;
 	-moz-border-radius-bottomleft: 5px;
 	border-bottom-right-radius: 5px;
 	border-bottom-left-radius: 5px;
+}
+
+#notiDiv{
+	position: absolute;
+	filter:alpha(opacity=95);
+	opacity:.95;
+	z-index: 98;
+	width:250px;
+	margin-top:15px;
+	margin-left:-70px;
+}
+
+#notiDiv_table3{
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
+	-moz-box-shadow: 3px 3px 4px #333;
+	-webkit-box-shadow: 3px 3px 4px #333;
+	box-shadow: 3px 3px 4px #000;
+	behavior: url(/PIE.htc);
+	*behavior: !important;
+}
+
+#notiDiv_table4{
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
+	behavior: url(/PIE.htc);
+}
+
+#notiDiv_table5{
+	behavior: url(/PIE.htc);
+	-webkit-border-bottom-right-radius: 5px;
+	-webkit-border-bottom-left-radius: 5px;
+	-moz-border-radius-bottomright: 5px;
+	-moz-border-radius-bottomleft: 5px;
+	border-radius: 5px 5px 5px 5px ;
+	margin:3px 0px 0px 3px ;
+	behavior: url(/PIE.htc);
 }
 
 .aidisk1_table{
@@ -2018,3 +2128,23 @@ padding-top:1px;
 	height:40px;
 	width:20px;
 }
+
+.textarea_ssh_table{
+	color: #FFFFFF;
+	background-color: #475A5F;
+}
+
+.vpnClientTitle_td_unclick{
+	background-color: #000;
+	height: 30px;
+	cursor: pointer;
+	border: 1px solid #222;
+}
+
+.vpnClientTitle_td_click{
+	background-color: #4D595D;
+	height: 30px;
+	cursor: pointer;
+	border: 1px solid #222;
+}
+

@@ -18,7 +18,7 @@ static int rctest_main(int argc, char *argv[])
 {
 	int on;
 
-	if (argc < 3) {
+	if (argc < 2) {
 		_dprintf("test what?\n");
 	}
 	else if (strcmp(argv[1], "rc_service")==0) {
@@ -136,8 +136,14 @@ static int rctest_main(int argc, char *argv[])
 					system("echo 2 > /proc/sys/net/ipv4/conf/default/force_igmp_version");
 					system("echo 2 > /proc/sys/net/ipv4/conf/all/force_igmp_version");
 #endif
-					modprobe("hw_nat");
-					sleep(1);
+
+#if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P)
+					if (!(!nvram_match("switch_wantag", "none")&&!nvram_match("switch_wantag", "")))
+#endif
+					{
+						modprobe("hw_nat");
+						sleep(1);
+					}	
 				}
 #endif
 				stop_iQos();
@@ -169,6 +175,14 @@ static int rctest_main(int argc, char *argv[])
 			set_pwr_usb(atoi(argv[2]));
 			_dprintf("done.\n");
 		}
+#ifdef RTCONFIG_BCMFA
+		else if (strcmp(argv[1], "fa_rev") == 0) {
+			_dprintf("(%d) done.\n", get_fa_rev());
+		}
+		else if (strcmp(argv[1], "fa_dump") == 0) {
+			_dprintf("(%d) done.\n", get_fa_dump());
+		}
+#endif
 		else {
 			printf("what?\n");
 		}
@@ -219,6 +233,12 @@ static const applets_t applets[] = {
 	{ "ipv6-down",			ip6down_main				},
 #endif
 	{ "auth-fail",			authfail_main				},
+#ifdef RTCONFIG_VPNC
+	{ "vpnc-ip-up",			vpnc_ipup_main				},
+	{ "vpnc-ip-down",		vpnc_ipdown_main				},
+	{ "vpnc-ip-pre-up",		vpnc_ippreup_main				},
+	{ "vpnc-auth-fail",		vpnc_authfail_main				},
+#endif
 #ifdef RTCONFIG_EAPOL
 	{ "wpa_cli",			wpacli_main			},
 #endif
@@ -252,7 +272,6 @@ static const applets_t applets[] = {
 	{ "zcip",			zcip_wan			},
 #ifdef RTCONFIG_IPV6
 	{ "dhcp6c-state",		dhcp6c_state_main		},
-	{ "ipv6aide",			ipv6aide_main			},
 #endif
 #ifdef RTCONFIG_WPS
 	{ "wpsaide",			wpsaide_main			},
@@ -277,6 +296,9 @@ static const applets_t applets[] = {
 	{ "disk_remove",		diskremove_main			},
 #endif
 	{ "firmware_check",		firmware_check_main		},
+#ifdef RTCONFIG_BWDPI
+	{ "bwdpi",			bwdpi_main			},
+#endif
 	{NULL, NULL}
 };
 
@@ -605,7 +627,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 #endif
-#ifdef CONFIG_BCMWL5
+#if defined(CONFIG_BCMWL5) || (defined(RTCONFIG_RALINK) && defined(RTCONFIG_WIRELESSREPEATER))
 	else if (!strcmp(base, "wlcscan")) {
 		return wlcscan_main();
 	}
@@ -628,31 +650,45 @@ int main(int argc, char **argv)
 		return(led_control(atoi(argv[1]), atoi(argv[2])));
 	}
 #ifdef RTCONFIG_BCMARM
-        /* mtd-erase2 [device] */
-        else if (!strcmp(base, "mtd-erase2")) {
-                if (argv[1] && ((!strcmp(argv[1], "boot")) ||
-                        (!strcmp(argv[1], "linux")) ||
-                        (!strcmp(argv[1], "linux2")) ||
-                        (!strcmp(argv[1], "rootfs")) ||
-                        (!strcmp(argv[1], "rootfs2")) ||
-                        (!strcmp(argv[1], "nvram")))) {
-
-                        return mtd_erase(argv[1]);
-                } else {
-                        fprintf(stderr, "usage: mtd-erase2 [device]\n");
-                        return EINVAL;
-                }
-        }
-        /* mtd-write2 [path] [device] */
-        else if (!strcmp(base, "mtd-write2")) {
-                if (argc >= 3)
-                        return mtd_write(argv[1], argv[2]);
-                else {
-                        fprintf(stderr, "usage: mtd-write2 [path] [device]\n");
-                        return EINVAL;
-                }
-        }
+	/* mtd-erase2 [device] */
+	else if (!strcmp(base, "mtd-erase2")) {
+		if (argv[1] && ((!strcmp(argv[1], "boot")) ||
+				(!strcmp(argv[1], "linux")) ||
+				(!strcmp(argv[1], "linux2")) ||
+				(!strcmp(argv[1], "rootfs")) ||
+				(!strcmp(argv[1], "rootfs2")) ||
+				(!strcmp(argv[1], "nvram")))) {
+			return mtd_erase(argv[1]);
+		} else {
+			fprintf(stderr, "usage: mtd-erase2 [device]\n");
+			return EINVAL;
+		}
+	}
+	/* mtd-write2 [path] [device] */
+	else if (!strcmp(base, "mtd-write2")) {
+		if (argc >= 3)
+			return mtd_write(argv[1], argv[2]);
+		else {
+			fprintf(stderr, "usage: mtd-write2 [path] [device]\n");
+			return EINVAL;
+		}
+	}
 #endif
+	else if(!strcmp(base, "test_endian")){
+		int num = 0x04030201;
+		char c = *(char *)(&num);
+
+		if(c == 0x04 || c == 0x01){
+			if(c == 0x04)
+				printf("Big.\n");
+			else
+				printf("Little.\n");
+		}
+		else
+			printf("test error!\n");
+
+		return 0;
+	}
 	else if (!strcmp(base, "free_caches")) {
 		int c;
 		unsigned int test_num;
@@ -712,6 +748,13 @@ int main(int argc, char **argv)
 
 		return 0;
 	}
+#ifdef RTCONFIG_USB_MODEM
+	else if(!strcmp(base, "write_3g_ppp_conf")){
+		write_3g_ppp_conf();
+
+		return 0;
+	}
+#endif
 	printf("Unknown applet: %s\n", base);
 	return 0;
 }

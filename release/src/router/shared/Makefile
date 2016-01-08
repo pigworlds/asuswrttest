@@ -1,22 +1,28 @@
 include ../common.mak
 
-CFLAGS = -Os -Wall $(EXTRACFLAGS) -fPIC
+CFLAGS += -Os -Wall $(EXTRACFLAGS) -fPIC
 CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE)/include
 CFLAGS += -I$(LINUXDIR)/include
+CFLAGS += -D__EXPORTED_HEADERS__
 
 ifeq ($(RTCONFIG_SHP),y)
-CFLAGS += -DMEDIA_REVIEW
+CFLAGS += -DSHP
 endif
 
 ifeq ($(RTCONFIG_RALINK),y)
 CFLAGS += -I./sysdeps/ralink -I$(TOP)/wireless_tools/ -DWE_NOLIBM 
 endif
 
-ifeq ($(RTCONFIG_BCMARM),y)
+ifeq ($(RTCONFIG_BCMWL6),y)
 CFLAGS += -I$(SRCBASE)/shared/bcmwifi/include
 CFLAGS += -I$(SRCBASE)/common/include
 else
 CFLAGS += -I$(SRCBASE)/shared
+endif
+
+ifeq ($(RTCONFIG_QTN),y)
+CFLAGS += -I$(TOP)/libqcsapi_client
+LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
 endif
 
 ifeq ($(RTCONFIG_BCMSMP),y)
@@ -27,9 +33,15 @@ ifeq ($(RTCONFIG_5301X),y)
 CFLAGS += -DBCM5301X
 endif
 
-ifeq ($(RTAC66U), y)
-CFLAGS += -DRTAC66U
+include $(SRCBASE)/.config
+
+ifneq ($(findstring DSL,$(BUILD_NAME)),)
+MODEL = $(subst -,_,$(BUILD_NAME))
+else
+MODEL = $(subst -,,$(BUILD_NAME))
 endif
+
+export CFLAGS += -D$(MODEL)
 
 ifeq ($(RTCONFIG_4352_5G),y)
 CFLAGS += -DBCM4352
@@ -40,14 +52,6 @@ CFLAGS += -DAUTOFW_PORT_DEPRECATED
 endif
 
 CFLAGS += -DTRAFFIC_MGMT
-
-ifeq ($(RTN14U),y)
-export CFLAGS += -DRTN14U
-endif
-
-ifeq ($(RTAC52U),y)
-export CFLAGS += -DRTAC52U
-endif
 
 OBJS = shutils.o linux_timer.o defaults.o model.o rtstate.o boardapi.o
 OBJS += misc.o version.o files.o strings.o process.o 
@@ -61,7 +65,8 @@ OBJS += flash_mtd.o api-ralink.o
 ifeq ($(RTCONFIG_RALINK_RT3052),y)
 OBJS += ra3052.o
 endif
-ifeq ($(or $(RTN14U),$(RTAC52U)),y)
+ifeq ($(RTN14U)$(RTAC52U)$(RTAC51U)$(RTN11P),y)
+CFLAGS += -DRA_ESW
 OBJS += mt7620.o
 else
 OBJS += rtkswitch.o
@@ -69,6 +74,9 @@ endif
 else
 OBJS += wl.o wl_linux.o
 OBJS += broadcom.o api-broadcom.o
+ifeq ($(RTCONFIG_DSL_TCLINUX),y)
+OBJS += api-tclinux.o
+endif
 endif
 
 ifeq ($(RTCONFIG_USB),y)

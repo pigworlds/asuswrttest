@@ -3254,7 +3254,11 @@ my_dprintf(int level, const char *fname, const char *fmt, ...)
 		    fname, printfname ? ": " : "",
 		    logbuf);
 	} else
+#if 0
 		syslog(level, "%s%s%s", fname, printfname ? ": " : "", logbuf);
+#else
+		syslog(level > LOG_NOTICE ? LOG_NOTICE : level, "%s%s%s", fname, printfname ? ": " : "", logbuf);
+#endif
 }
 
 int
@@ -3403,4 +3407,29 @@ safefile(path)
 	}
 
 	return (0);
+}
+
+int
+dumpfile(path)
+	const char *path;
+{
+	FILE *f = NULL;
+	char buf[256];
+
+	if (path == NULL)
+		return -1;
+
+	if ((f = fopen(path, "r")) == NULL) {
+		dprintf(LOG_ERR, FNAME, "%s: %s: %s", strerror(errno), path, __FUNCTION__);
+		return -1;
+	}
+
+	while (fgets(buf, sizeof(buf), f))
+	{
+		dprintf(LOG_ERR, FNAME, "%s", buf);
+	}
+
+	fclose(f);
+
+	return 0;
 }

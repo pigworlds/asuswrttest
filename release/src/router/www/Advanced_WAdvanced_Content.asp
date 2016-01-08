@@ -53,17 +53,20 @@ var flag_initial =0;
 var wl_version = "<% nvram_get("wl_version"); %>";
 var sdk_version_array = new Array();
 sdk_version_array = wl_version.split(".");
-var new_sdk = sdk_version_array[0] == "6" ? true:false
+var sdk_6 = sdk_version_array[0] == "6" ? true:false
 var wl_user_rssi_onload = '<% nvram_get("wl_user_rssi"); %>';
 
 function initial(){
 	show_menu();
-	load_body();
 	
 	if(userRSSI_support)
 		changeRSSI(wl_user_rssi_onload);
 	else
 		$("rssiTr").style.display = "none";
+
+	if(!band5g_support){	
+		$("wl_unit_field").style.display = "none";
+	}
 
 	if(sw_mode == "2"){
 		var _rows = $("WAdvTable").rows;
@@ -80,15 +83,11 @@ function initial(){
 
 	$("wl_rate").style.display = "none";
 
-	if(!band5g_support){	
-		$("wl_unit_field").style.display = "none";
-	}	
-
 	if(!Rawifi_support){ // BRCM == without rawifi
 		$("DLSCapable").style.display = "none";	
 		$("PktAggregate").style.display = "none";
 		
-		if('<% nvram_get("wl_unit"); %>' == '1' || based_modelid == "RT-AC66U" || based_modelid == "RT-AC68U" || based_modelid == "RT-AC56U" || based_modelid == "RT-N66U"){	// MODELDEP: RT-AC*U and RT-N66U
+		if('<% nvram_get("wl_unit"); %>' == '1' || sdk_6){	// MODELDEP: for Broadcom SDK 6.x model
 			inputCtrl(document.form.wl_noisemitigation, 0);
 		}
 	}
@@ -102,8 +101,7 @@ function initial(){
 		}
 	}
 	
-	// MODELDEP: for AC ser
-	if(new_sdk && !Rawifi_support){		// for BRCM new SDK 6.x
+	if(sdk_6 && !Rawifi_support){		// for BRCM new SDK 6.x
 		inputCtrl(document.form.wl_ampdu_mpdu, 1);
 		inputCtrl(document.form.wl_ack_ratio, 1);
 	}else{
@@ -116,24 +114,46 @@ function initial(){
 	inputCtrl(document.form.wl_itxbf, 0);
 	inputCtrl(document.form.usb_usb3, 0);
 
-	if((based_modelid == "RT-AC56U" || based_modelid == "RT-AC68U" || based_modelid == "RT-AC66U")){
-		inputCtrl(document.form.wl_ampdu_mpdu, 1);
-		inputCtrl(document.form.wl_ack_ratio, 1);
-
-		if('<% nvram_get("wl_unit"); %>' == '1'){ // 5GHz
+	if('<% nvram_get("wl_unit"); %>' == '1'){ // 5GHz
+		if( based_modelid == "RT-AC69U" || 
+			based_modelid == "RT-AC66U" || 
+			based_modelid == "RT-AC56S" || based_modelid == "RT-AC56U" || 
+			based_modelid == "RT-AC68U" || based_modelid == "RT-AC68U_V2" || based_modelid == "DSL-AC68U" ||
+			based_modelid == "RT-AC87U" || based_modelid == "EA-AC87")
+		{
+			$('wl_txbf_desc').innerHTML = "802.11ac Beamforming";
 			inputCtrl(document.form.wl_txbf, 1);
-			
-			if(based_modelid == "RT-AC56U" || based_modelid == "RT-AC68U")
-				inputCtrl(document.form.wl_itxbf, 1);
-		}
+		}	
+
+		if( based_modelid == "RT-AC69U" ||
+			based_modelid == "RT-AC56S" || based_modelid == "RT-AC56U" || 
+			based_modelid == "RT-AC68U" || based_modelid == "RT-AC68U_V2" || based_modelid == "DSL-AC68U" ||
+			based_modelid == "RT-AC87U" || based_modelid == "EA-AC87")
+		{
+			inputCtrl(document.form.wl_itxbf, 1);
+		}		
 	}
-	if('<% nvram_get("wl_unit"); %>' != '1'){ // 2GHz
-		if(based_modelid == "RT-AC68U"){
-			inputCtrl(document.form.wl_turbo_qam, 1);
-		}
-		if(based_modelid == "RT-AC68U" || based_modelid == "RT-AC56U" || based_modelid == "RT-N65U"){
+	else{ // 2.4GHz
+		if( based_modelid == "RT-N18U" || 
+			based_modelid == "RT-N65U" || 
+			based_modelid == "RT-AC69U" || 
+			based_modelid == "RT-AC87U" ||
+			based_modelid == "RT-AC56S" || based_modelid == "RT-AC56U" || 
+			based_modelid == "RT-AC68U" || based_modelid == "RT-AC68U_V2" || based_modelid == "DSL-AC68U")
+		{
 			inputCtrl(document.form.usb_usb3, 1);
-		}
+		}	
+
+		if( based_modelid == "RT-N18U" || 
+			based_modelid == "RT-AC69U" || 
+			based_modelid == "RT-AC87U" || 
+			based_modelid == "RT-AC68U" || based_modelid == "RT-AC68U_V2" || based_modelid == "DSL-AC68U")
+		{
+			inputCtrl(document.form.wl_turbo_qam, 1);
+			$('wl_txbf_desc').innerHTML = "Explicit Beamforming";
+			inputCtrl(document.form.wl_txbf, 1);
+			inputCtrl(document.form.wl_itxbf, 1);
+		}	
 	}
 
 	var mcast_rate = '<% nvram_get("wl_mrate_x"); %>';
@@ -290,8 +310,9 @@ function validForm(){
 			}
 		}
 	}
-	
-	updateDateTime();	
+	if(sw_mode != 2)
+		updateDateTime();	
+
 	return true;
 }
 
@@ -461,9 +482,7 @@ function enable_wme_check(obj){
 
 /* AMPDU RTS for AC model, Jieming added at 2013.08.26 */
 function check_ampdu_rts(){
-	var ac_flag = based_modelid.search('AC');    //to check AC model or not
-
-	if(document.form.wl_nmode_x.value != 2 && ac_flag != -1 ){
+	if(document.form.wl_nmode_x.value != 2 && band5g_11ac_support){
 		$('ampdu_rts_tr').style.display = "";
 		if(document.form.wl_ampdu_rts.value == 1){
 			document.form.wl_rts.disabled = false;
@@ -477,7 +496,6 @@ function check_ampdu_rts(){
 	else{
 		document.form.wl_ampdu_rts.disabled = true;
 		$('ampdu_rts_tr').style.display = "none";
-	
 	}
 }
 </script>
@@ -499,7 +517,6 @@ function check_ampdu_rts(){
 
 <input type="hidden" name="current_page" value="Advanced_WAdvanced_Content.asp">
 <input type="hidden" name="next_page" value="Advanced_WAdvanced_Content.asp">
-<input type="hidden" name="next_host" value="">
 <input type="hidden" name="group_id" value="">
 <input type="hidden" name="modified" value="0">
 <input type="hidden" name="first_time" value="">
@@ -541,7 +558,7 @@ function check_ampdu_rts(){
 		  			<div class="formfonttitle"><#menu5_1#> - <#menu5_1_6#></div>
 		  			<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 		 				<div class="formfontdesc"><#WLANConfig11b_display5_sectiondesc#></div>
-		 				<div id="svc_hint_div" style="display:none;margin-left:5px;"><span onClick="location.href='Advanced_System_Content.asp?af=ntp_server0'" style="color:#FFCC00;text-decoration:underline;cursor:pointer;">* Remind: Did not synchronize your system time with NTP server yet.</span></div>
+		 				<div id="svc_hint_div" style="display:none;margin-left:5px;"><span onClick="location.href='Advanced_System_Content.asp?af=ntp_server0'" style="color:#FFCC00;text-decoration:underline;cursor:pointer;"><#General_x_SystemTime_syncNTP#></span></div>
 		  			<div id="timezone_hint_div" style="margin-left:5px;display:none;"><span id="timezone_hint" onclick="location.href='Advanced_System_Content.asp?af=time_zone_select'" style="color:#FFCC00;text-decoration:underline;cursor:pointer;"></span></div>	
 
 					<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable" id="WAdvTable">	
@@ -640,7 +657,7 @@ function check_ampdu_rts(){
 					</tr>
 
 					<tr id="rssiTr" class="rept">
-						<th>Minimum RSSI</th>
+		  			<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3, 31);"><#Roaming_assistant#></a></th>
 						<td>
 							<select id="wl_user_rssi_option" class="input_option" onchange="changeRSSI(this.value);">
 								<option value="1"><#WLANConfig11b_WirelessCtrl_button1name#></option>
@@ -784,7 +801,7 @@ function check_ampdu_rts(){
 						</td>
 					</tr>
 
-					<tr> <!-- BRCM Only  -->
+					<tr> <!-- BRCM SDK 5.x Only  -->
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3,21);"><#WLANConfig11b_x_EnhanInter_itemname#></a></th>
 						<td>
 							<select name="wl_noisemitigation" class="input_option" onChange="">
@@ -794,7 +811,7 @@ function check_ampdu_rts(){
 						</td>
 					</tr>
 
-					<tr> <!-- MODELDEP: RT-AC68U Only  -->
+					<tr> <!-- MODELDEP: RT-AC68U / RT-AC68U_V2 / RT-AC69U /DSL-AC68U Only  -->
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3,29);"><#WLANConfig11b_x_ReduceUSB3#></a></th>
 						<td>
 							<select name="usb_usb3" class="input_option">
@@ -804,7 +821,7 @@ function check_ampdu_rts(){
 						</td>
 					</tr>
 					
-					<!-- [MODELDEP] for RT-AC68U and RT-AC56U -->
+					<!-- [MODELDEP] for Broadcom SDK 6.x -->
 					<tr>
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3,26);"><#WLANConfig11b_x_AMPDU#></a></th>
 						<td>
@@ -835,7 +852,7 @@ function check_ampdu_rts(){
 					<!-- [MODELDEP] end -->
 
 					<tr>
-						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3,24);"><#WLANConfig11b_x_ExpBeam#></a></th>
+						<th><a id="wl_txbf_desc" class="hintstyle" href="javascript:void(0);" onClick="openHint(3,24);">Explicit Beamforming</a></th>
 						<td>
 							<select name="wl_txbf" class="input_option">
 									<option value="0" <% nvram_match("wl_txbf", "0","selected"); %> ><#WLANConfig11b_WirelessCtrl_buttonname#></option>
@@ -844,7 +861,7 @@ function check_ampdu_rts(){
 						</td>
 					</tr>					
 					<tr>
-						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3,25);"><#WLANConfig11b_x_ImpBeam#></a></th>
+						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(3,25);">Universal Beamforming</a></th>
 						<td>
 							<select name="wl_itxbf" class="input_option" disabled>
 									<option value="0" <% nvram_match("wl_itxbf", "0","selected"); %> ><#WLANConfig11b_WirelessCtrl_buttonname#></option>

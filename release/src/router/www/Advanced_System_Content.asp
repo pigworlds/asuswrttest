@@ -64,6 +64,12 @@ time_day = uptimeStr.substring(5,7);//Mon, 01 Aug 2011 16:25:44 +0800(1467 secs 
 time_mon = uptimeStr.substring(9,12);
 time_time = uptimeStr.substring(18,20);
 dstoffset = '<% nvram_get("time_zone_dstoff"); %>';
+
+var isFromHTTPS = false;
+if((location.href.search('https://') >= 0) || (location.href.search('HTTPS://') >= 0)){
+        isFromHTTPS = true;
+}
+
 <% login_state_hook(); %>
 var wireless = [<% wl_auth_list(); %>];	// [[MAC, associated, authorized], ...]
 var http_clientlist_array = '<% nvram_get("http_clientlist"); %>';
@@ -79,7 +85,6 @@ if(sw_mode == 3 || (sw_mode == 4))
 	theUrl = location.hostName;
 
 function initial(){
-	$('pull_arrow').title = Untranslated.select_client;
 	show_menu();
 	show_http_clientlist();
 	corrected_timezone();
@@ -90,7 +95,7 @@ function initial(){
 	load_dst_d_Options();
 	load_dst_h_Options();
 	document.form.http_passwd2.value = "";
-	chkPass("<% nvram_get("http_passwd"); %>", 'http_passwd');
+	//Viz banned 2014.04.17 chkPass(" ", 'http_passwd');
 	
 	if(svc_ready == "0")
 		$('svc_hint_div').style.display = "";	
@@ -107,15 +112,6 @@ function initial(){
 		hide_https_lanport(document.form.http_enable.value);
 		hide_https_wanport(document.form.http_enable.value);
 	}	
-
-	if(WebDav_support){
-		document.getElementById('http_username_span').style.display = "none";
-		document.form.http_username.disabled = false;
-	}else{
-		document.getElementById('http_username_span').style.display = "";
-		document.form.http_username.disabled = true;
-		document.getElementById('http_username').parentNode.style.display = "none";
-	}
 	
 	if(wifi_tog_btn_support || wifi_hw_sw_support || sw_mode == 2 || sw_mode == 4){		// wifi_tog_btn && wifi_hw_sw && hide WPS button behavior under repeater mode
 			document.form.btn_ez_radiotoggle[0].disabled = true;
@@ -172,8 +168,10 @@ function applyRule(){
 			return false;
 		}
 
-		if(document.form.http_passwd2.value.length > 0)
+		if(document.form.http_passwd2.value.length > 0){
 			document.form.http_passwd.value = document.form.http_passwd2.value;
+			document.form.http_passwd.disabled = false;
+		}
 
 		if(document.form.time_zone_dst_chk.checked){	// Exist dstoffset
 				time_zone_tmp = document.form.time_zone_select.value.split("_");	//0:time_zone 1:serial number
@@ -204,18 +202,31 @@ function applyRule(){
 				|| document.form.misc_httpport_x.value != '<% nvram_get("misc_httpport_x"); %>'
 				|| document.form.misc_httpsport_x.value != '<% nvram_get("misc_httpsport_x"); %>'
 			){
-			if(document.form.http_enable.value == "0"){
+			if(document.form.http_enable.value == "0"){	//HTTP
 				if(isFromWAN)
 					document.form.flag.value = "http://" + location.hostname + ":" + document.form.misc_httpport_x.value;
 				else
 					document.form.flag.value = "http://" + location.hostname;
 			}
-			else{
+			else if(document.form.http_enable.value == "1"){	//HTTPS
 				if(isFromWAN)
 					document.form.flag.value = "https://" + location.hostname + ":" + document.form.misc_httpsport_x.value;
 				else
 					document.form.flag.value = "https://" + location.hostname + ":" + document.form.https_lanport.value;
 			}
+			else{	//BOTH
+				if(isFromHTTPS){
+					if(isFromWAN)
+						document.form.flag.value = "https://" + location.hostname + ":" + document.form.misc_httpsport_x.value;
+					else
+						document.form.flag.value = "https://" + location.hostname + ":" + document.form.https_lanport.value;
+				}else{
+					if(isFromWAN)
+						document.form.flag.value = "http://" + location.hostname + ":" + document.form.misc_httpport_x.value;
+					else
+						document.form.flag.value = "http://" + location.hostname;
+				}
+			}   
 		}
 		showLoading();
 		document.form.submit();
@@ -226,54 +237,47 @@ function validForm(){
 	showtext($("alert_msg1"), "");
 	showtext($("alert_msg2"), "");
 
-	var alert_str = validate_account(document.form.http_username, "noalert");
-
-	if(alert_str != ""){
-		showtext($("alert_msg1"), alert_str);
-		document.form.http_username.focus();
-		document.form.http_username.select();
-		return false;
-	}
-
-	document.form.http_username.value = trim(document.form.http_username.value);
-
 	if(document.form.http_username.value.length == 0){
 		showtext($("alert_msg1"), "<#File_Pop_content_alert_desc1#>");
 		document.form.http_username.focus();
 		document.form.http_username.select();
 		return false;
 	}
+	else{
+		var alert_str = validate_hostname(document.form.http_username);
 
-	if(document.form.http_username.value == "root"
-			|| document.form.http_username.value == "guest"
-			|| document.form.http_username.value == "anonymous"
-			){
-		showtext($("alert_msg1"), "<#USB_Application_account_alert#>");
-		document.form.http_username.focus();
-		document.form.http_username.select();
-		return false;
-	}
+		if(alert_str != ""){
+			showtext($("alert_msg1"), alert_str);
+			$("alert_msg1").style.display = "";
+			document.form.http_username.focus();
+			document.form.http_username.select();
+			return false;
+		}else{
+			$("alert_msg1").style.display = "none";
+  	}
 
-	if(document.form.http_username.value.length <= 1){
-		showtext($("alert_msg1"), "<#File_Pop_content_alert_desc2#>");
-		document.form.http_username.focus();
-		document.form.http_username.select();
-		return false;
-	}
+		document.form.http_username.value = trim(document.form.http_username.value);
 
-	if(document.form.http_username.value.length > 20){
-		showtext($("alert_msg1"), "<#File_Pop_content_alert_desc3#>");
-		document.form.http_username.focus();
-		document.form.http_username.select();
-		return false;
-	}
-
-	if(accounts.getIndexByValue(document.form.http_username.value) > 0
-			&& document.form.http_username.value != accounts[0]){		
-		showtext($("alert_msg1"), "<#File_Pop_content_alert_desc5#>");
-		document.form.http_username.focus();
-		document.form.http_username.select();
-		return false;
+		if(document.form.http_username.value == "root"
+				|| document.form.http_username.value == "guest"
+				|| document.form.http_username.value == "anonymous"
+		){
+				showtext($("alert_msg1"), "<#USB_Application_account_alert#>");
+				$("alert_msg1").style.display = "";
+				document.form.http_username.focus();
+				document.form.http_username.select();
+				return false;
+		}
+		else if(accounts.getIndexByValue(document.form.http_username.value) > 0
+				&& document.form.http_username.value != accounts[0]){		
+				showtext($("alert_msg1"), "<#File_Pop_content_alert_desc5#>");
+				$("alert_msg1").style.display = "";
+				document.form.http_username.focus();
+				document.form.http_username.select();
+				return false;
+		}else{
+				$("alert_msg1").style.display = "none";
+		}
 	}
 
 	if(document.form.http_passwd2.value != document.form.v_password2.value){
@@ -315,6 +319,9 @@ function validForm(){
 		if (!validate_range(document.form.misc_httpport_x, 1024, 65535))
 			return false;
 	
+	if (HTTPS_support && !validate_range(document.form.https_lanport, 1024, 65535))
+			return false;
+
 		if (HTTPS_support && !validate_range(document.form.misc_httpsport_x, 1024, 65535))
 			return false;
 	}
@@ -338,6 +345,13 @@ function validForm(){
 		document.form.https_lanport.focus();
 		return false;
 	}
+	else if(document.form.misc_httpsport_x.value == document.form.misc_httpport_x.value && HTTPS_support){
+		alert("Duplicate port number with HTTP and HTTPS WAN port setting.");
+		document.form.misc_httpsport_x.focus();
+		return false;
+	}
+	else if(!validate_range_sp(document.form.http_autologout, 10, 999, '<% nvram_get("http_autologout"); %>'))
+		return false;
 
 	return true;
 }
@@ -665,10 +679,10 @@ function show_http_clientlist(){
 }
 
 function deleteRow(r){
-  var i=r.parentNode.parentNode.rowIndex;
-  $('http_clientlist_table').deleteRow(i);
+	var i=r.parentNode.parentNode.rowIndex;
+	$('http_clientlist_table').deleteRow(i);
   
-  var http_clientlist_value = "";
+	var http_clientlist_value = "";
 	for(i=0; i<$('http_clientlist_table').rows.length; i++){
 		http_clientlist_value += "&#60";
 		http_clientlist_value += $('http_clientlist_table').rows[i].cells[0].innerHTML;
@@ -756,7 +770,6 @@ function setClientIP(ipaddr){
 	over_var = 0;
 }
 
-
 var over_var = 0;
 var isMenuopen = 0;
 
@@ -767,7 +780,6 @@ function hideClients_Block(){
 }
 
 function pullLANIPList(obj){
-	
 	if(isMenuopen == 0){		
 		obj.src = "/images/arrow-top.gif"
 		$("ClientList_Block_PC").style.display = 'block';		
@@ -783,7 +795,6 @@ function hideport(flag){
 	$("accessfromwan_port").style.display = (flag == 1) ? "" : "none";
 }
 
-
 //Viz add 2012.12 show url for https [start]
 function change_url(num, flag){
 	if(flag == 'https_lan'){
@@ -795,7 +806,6 @@ function change_url(num, flag){
 	}		
 }
 //Viz add 2012.12 show url for https [end]
-
 
 /* password item show or not */
 function pass_checked(obj){
@@ -837,6 +847,11 @@ function select_time_zone(){
 		document.getElementById("dst_end").style.display="none";
 	}
 }
+
+function clean_scorebar(obj){
+	if(obj.value == "")
+		document.getElementById("scorebarBorder").style.display = "none";
+}
 </script>
 </head>
 
@@ -850,7 +865,6 @@ function select_time_zone(){
 <input type="hidden" name="productid" value="<% nvram_get("productid"); %>">
 <input type="hidden" name="current_page" value="Advanced_System_Content.asp">
 <input type="hidden" name="next_page" value="Advanced_System_Content.asp">
-<input type="hidden" name="next_host" value="">
 <input type="hidden" name="modified" value="0">
 <input type="hidden" name="flag" value="">
 <input type="hidden" name="action_mode" value="apply">
@@ -862,7 +876,7 @@ function select_time_zone(){
 <input type="hidden" name="time_zone_dst" value="<% nvram_get("time_zone_dst"); %>">
 <input type="hidden" name="time_zone" value="<% nvram_get("time_zone"); %>">
 <input type="hidden" name="time_zone_dstoff" value="<% nvram_get("time_zone_dstoff"); %>">
-<input type="hidden" name="http_passwd" value="<% nvram_get("http_passwd"); %>">
+<input type="hidden" name="http_passwd" value="" disabled>
 <input type="hidden" name="http_clientlist" value="<% nvram_get("http_clientlist"); %>">
 
 <table class="content" align="center" cellpadding="0" cellspacing="0">
@@ -900,28 +914,29 @@ function select_time_zone(){
         <tr>
           <th width="40%"><#Router_Login_Name#></th>
           <td>
-				  	<div id="http_username_span" name="http_username_span" style="color:#FFFFFF;margin-left:8px;"><% nvram_get("http_username"); %></div>
-						<div><input type="text" id="http_username" name="http_username" tabindex="1" style="height:25px;" class="input_15_table" maxlength="20"><br/><span id="alert_msg1"></span></div>
+				<div><input type="text" id="http_username" name="http_username" tabindex="1" style="height:25px;" class="input_15_table" maxlength="20"><br/><span id="alert_msg1" style="color:#FC0;margin-left:8px;"></span></div>
           </td>
         </tr>
 
         <tr>
           <th width="40%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(11,4)"><#PASS_new#></a></th>
           <td>
-            <input type="password" autocapitalization="off" name="http_passwd2" tabindex="2" onKeyPress="return is_string(this, event);" onkeyup="chkPass(this.value, 'http_passwd');" onpaste="return false;" class="input_15_table" maxlength="16" />
+            <input type="password" autocapitalization="off" name="http_passwd2" tabindex="2" onKeyPress="return is_string(this, event);" onkeyup="chkPass(this.value, 'http_passwd');" onpaste="return false;" class="input_15_table" maxlength="16" onBlur="clean_scorebar(this);" />
             &nbsp;&nbsp;
             <div id="scorebarBorder" style="margin-left:140px; margin-top:-25px; display:none;" title="<#LANHostConfig_x_Password_itemSecur#>">
             		<div id="score"></div>
             		<div id="scorebar">&nbsp;</div>
-            </div>
-            <div style="margin:-25px 0px 0px 270px;"><input type="checkbox" name="show_pass_1" onclick="pass_checked(document.form.http_passwd2);pass_checked(document.form.v_password2);"><#QIS_show_pass#></div>
+            </div>            
           </td>
         </tr>
 
         <tr>
           <th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(11,4)"><#PASS_retype#></a></th>
           <td>
-            <input type="password" autocapitalization="off" name="v_password2" tabindex="3" onKeyPress="return is_string(this, event);" onpaste="return false;" class="input_15_table" maxlength="16" /><br/><span id="alert_msg2"></span>
+            <input type="password" autocapitalization="off" name="v_password2" tabindex="3" onKeyPress="return is_string(this, event);" onpaste="return false;" class="input_15_table" maxlength="16" />
+            <div style="margin:-25px 0px 5px 135px;"><input type="checkbox" name="show_pass_1" onclick="pass_checked(document.form.http_passwd2);pass_checked(document.form.v_password2);"><#QIS_show_pass#></div>
+            <span id="alert_msg2" style="color:#FC0;margin-left:8px;"></span>
+            
           </td>
         </tr>
       </table>
@@ -932,10 +947,10 @@ function select_time_zone(){
         </tr>
     	</thead>
 	<tr id="btn_ez_radiotoggle_tr">
-		<th>WPS Button behavior</th>
+		<th><#WPS_btn_behavior#></th>
 		<td>
-			<input type="radio" name="btn_ez_radiotoggle" class="input" value="1" <% nvram_match_x("", "btn_ez_radiotoggle", "1", "checked"); %>>Toggle Radio
-			<input type="radio" name="btn_ez_radiotoggle" class="input" value="0" <% nvram_match_x("", "btn_ez_radiotoggle", "0", "checked"); %>>Activate WPS
+			<input type="radio" name="btn_ez_radiotoggle" class="input" value="1" <% nvram_match_x("", "btn_ez_radiotoggle", "1", "checked"); %>><#WPS_btn_toggle#>
+			<input type="radio" name="btn_ez_radiotoggle" class="input" value="0" <% nvram_match_x("", "btn_ez_radiotoggle", "0", "checked"); %>><#WPS_btn_actWPS#>
 		</td>
 	</tr>
         <tr>
@@ -978,7 +993,7 @@ function select_time_zone(){
         	<td>
 				<input type="text" maxlength="256" class="input_32_table" name="ntp_server0" value="<% nvram_get("ntp_server0"); %>" onKeyPress="return is_string(this, event);">
     	      	<a href="javascript:openLink('x_NTPServer1')"  name="x_NTPServer1_link" style=" margin-left:5px; text-decoration: underline;"><#LANHostConfig_x_NTPServer1_linkname#></a>
-				<div id="svc_hint_div" style="display:none;"><span style="color:#FFCC00;">* Remind: Did not synchronize your system time with NTP server yet.</span></div>
+				<div id="svc_hint_div" style="display:none;"><span style="color:#FFCC00;"><#General_x_SystemTime_syncNTP#></span></div>
 			</td>
         </tr>
 
@@ -1017,6 +1032,14 @@ function select_time_zone(){
            	</td>
         </tr>   					
         
+		<tr>
+			<th>Auto Logout</th>
+			<td>
+				<input type="text" class="input_3_table" maxlength="3" name="http_autologout" value='<% nvram_get("http_autologout"); %>'> min
+				<span>(0: Disable)</span>
+			</td>
+		</tr>
+
         <tr id="accessfromwan_port">
            	<th align="right"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(8,3);"><#FirewallConfig_x_WanWebPort_itemname#></a></th>
            	<td>
@@ -1026,7 +1049,7 @@ function select_time_zone(){
         </tr>		  	
 
 				<tr id="http_client_tr">
-				  <th>Only allow specific IP</th>
+				  <th><#System_login_specified_IP#></th>
 				  <td>
 				    <input type="radio" name="http_client" class="input" value="1" <% nvram_match_x("", "http_client", "1", "checked"); %>><#checkbox_Yes#>
 				    <input type="radio" name="http_client" class="input" value="0" <% nvram_match_x("", "http_client", "0", "checked"); %>><#checkbox_No#>
@@ -1037,20 +1060,20 @@ function select_time_zone(){
 			<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table" id="http_client_table">
 				<thead>
 					<tr>
-						<td colspan="4">Specified IP&nbsp;(<#List_limit#>&nbsp;4)</td>
+						<td colspan="4"><#System_login_specified_Iplist#>&nbsp;(<#List_limit#>&nbsp;4)</td>
 					</tr>
 				</thead>
 			
 			  <tr>
 					<th width="80%"><#ConnectedClient#></th>
-					<th width="20%">Add / Delete</th>
+					<th width="20%"><#list_add_delete#></th>
 				</tr>
 
 				<tr>
 					<!-- client info -->
 					<td width="80%">
 				 		<input type="text" class="input_32_table" maxlength="15" name="http_client_ip_x_0"  onKeyPress="" onClick="hideClients_Block();" onblur="if(!over_var){hideClients_Block();}">
-						<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullLANIPList(this);" title="" onmouseover="over_var=1;" onmouseout="over_var=0;">				 		
+						<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullLANIPList(this);" title="<#select_client#>" onmouseover="over_var=1;" onmouseout="over_var=0;">	
 						<div id="ClientList_Block_PC" class="ClientList_Block_PC"></div>	
 				 	</td>
 				 	<td width="20%">	

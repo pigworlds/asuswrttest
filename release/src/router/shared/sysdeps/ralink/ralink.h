@@ -19,18 +19,11 @@
 
 #include <iwlib.h>
 
+
 #define WIF	"ra0"
-
-#if defined(RTN14U) || defined(RTAC52U)
-#define WIF_5G	"rai0"
-#define WIF_2G	"ra0"
-#define WDSIF_5G	"wdsi"
-#else
-#define WIF_5G	"ra0"
-#define WIF_2G	"rai0"
-#define WDSIF_5G	"wds"
-#endif
-
+extern const char WIF_2G[];
+extern const char WIF_5G[];
+extern const char WDSIF_5G[];
 #define URE	"apcli0"
 
 #ifndef ETHER_ADDR_LEN
@@ -210,7 +203,7 @@ typedef struct _SITE_SURVEY
 	char authmode[16];
 	char signal[9];
 	char wmode[8];
-#if defined(RTN14U)
+#if 0//defined(RTN14U)
 	char wps[4];
 	char dpid[5];
 #endif
@@ -270,6 +263,8 @@ enum ASUS_IOCTL_SUBCMD {
 	ASUS_SUBCMD_GRSSI,
 	ASUS_SUBCMD_RADIO_STATUS,
 	ASUS_SUBCMD_CHLIST,
+	ASUS_SUBCMD_GROAM,
+	ASUS_SUBCMD_CONN_STATUS,
 	ASUS_SUBCMD_MAX
 };
 
@@ -298,12 +293,12 @@ typedef enum _RT_802_11_PHY_MODE {
 #define OFFSET_MTD_FACTORY	0x40000
 #define OFFSET_BOOT_VER		0x4018A
 #define OFFSET_COUNTRY_CODE	0x40188
-#if defined(RTN14U)
+#if defined(RTN14U) || defined(RTN11P)
 #define OFFSET_MAC_ADDR		0x40004
 #define OFFSET_MAC_ADDR_2G	0x40004 //only one MAC
 #define OFFSET_MAC_GMAC2	0x4018E
 #define OFFSET_MAC_GMAC0	0x40194
-#elif defined(RTAC52U)
+#elif defined(RTAC52U) || defined(RTAC51U)
 #define OFFSET_MAC_ADDR_2G	0x40004
 #define OFFSET_MAC_ADDR		0x48004
 #define OFFSET_MAC_GMAC0	0x40022
