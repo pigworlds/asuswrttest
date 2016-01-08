@@ -174,3 +174,5 @@ RTCONFIG_HAS_5G=y
 # RTCONFIG_GEOIP is not set
 # RTCONFIG_NOWL is not set
 
+# RTCONFIG_TR069 is not set
+# RTCONFIG_TR181 is not set

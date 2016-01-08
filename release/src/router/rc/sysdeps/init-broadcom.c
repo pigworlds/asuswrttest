@@ -286,8 +286,7 @@ void generate_switch_para(void)
 			if (get_wans_dualwan()&WANSCAP_WAN) {
 				switch_gen_config(wan, ports, wancfg, 1, (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)?"":"u");
 				nvram_set("vlan1ports", wan);
-				if (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)
-					nvram_set("vlan1hwname", "et0");
+				nvram_set("vlan1hwname", "et0");
 			}
 
 			// The second WAN port.
@@ -307,9 +306,14 @@ void generate_switch_para(void)
 				}
 
 				switch_gen_config(wan, ports, wan1cfg, 1, (get_wans_dualwan()&WANSCAP_WAN)?"":"u");
-				nvram_set("vlan2ports", wan);
-				if (get_wans_dualwan()&WANSCAP_WAN)
+				if(get_wans_dualwan()&WANSCAP_WAN){
+					nvram_set("vlan2ports", wan);
 					nvram_set("vlan2hwname", "et0");
+				}
+				else{
+					nvram_set("vlan1ports", wan);
+					nvram_set("vlan1hwname", "et0");
+				}
 			}
 			else{
 				switch_gen_config(lan, ports, cfg, 0, "*");
@@ -386,8 +390,7 @@ void generate_switch_para(void)
 				if (get_wans_dualwan()&WANSCAP_WAN) {
 					switch_gen_config(wan, ports, wancfg, 1, (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)?"":"u");
 					nvram_set("vlan1ports", wan);
-					if (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)
-						nvram_set("vlan1hwname", "et0");
+					nvram_set("vlan1hwname", "et0");
 				}
 
 				// The second WAN port.
@@ -407,9 +410,14 @@ void generate_switch_para(void)
 					}
 
 					switch_gen_config(wan, ports, wan1cfg, 1, (get_wans_dualwan()&WANSCAP_WAN)?"":"u");
-					nvram_set("vlan2ports", wan);
-					if (get_wans_dualwan()&WANSCAP_WAN)
+					if(get_wans_dualwan()&WANSCAP_WAN){
+						nvram_set("vlan2ports", wan);
 						nvram_set("vlan2hwname", "et0");
+					}
+					else{
+						nvram_set("vlan1ports", wan);
+						nvram_set("vlan1hwname", "et0");
+					}
 				}
 				else{
 					switch_gen_config(lan, ports, cfg, 0, "*");
@@ -487,8 +495,7 @@ void generate_switch_para(void)
 				if (get_wans_dualwan()&WANSCAP_WAN) {
 					switch_gen_config(wan, ports, wancfg, 1, (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)?"":"u");
 					nvram_set("vlan1ports", wan);
-					if (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)
-						nvram_set("vlan1hwname", "et0");
+					nvram_set("vlan1hwname", "et0");
 				}
 
 				// The second WAN port.
@@ -508,9 +515,14 @@ void generate_switch_para(void)
 					}
 
 					switch_gen_config(wan, ports, wan1cfg, 1, (get_wans_dualwan()&WANSCAP_WAN)?"":"u");
-					nvram_set("vlan2ports", wan);
-					if (get_wans_dualwan()&WANSCAP_WAN)
+					if(get_wans_dualwan()&WANSCAP_WAN){
+						nvram_set("vlan2ports", wan);
 						nvram_set("vlan2hwname", "et0");
+					}
+					else{
+						nvram_set("vlan1ports", wan);
+						nvram_set("vlan1hwname", "et0");
+					}
 				}
 				else{
 					switch_gen_config(lan, ports, cfg, 0, "*");
@@ -584,8 +596,7 @@ void generate_switch_para(void)
 			if (get_wans_dualwan()&WANSCAP_WAN) {
 				switch_gen_config(wan, ports, wancfg, 1, (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)?"":"u");
 				nvram_set("vlan2ports", wan);
-				if (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)
-					nvram_set("vlan2hwname", "et0");
+				nvram_set("vlan2hwname", "et0");
 			}
 
 			// The second WAN port.
@@ -605,9 +616,14 @@ void generate_switch_para(void)
 				}
 
 				switch_gen_config(wan, ports, wan1cfg, 1, (get_wans_dualwan()&WANSCAP_WAN)?"":"u");
-				nvram_set("vlan3ports", wan);
-				if (get_wans_dualwan()&WANSCAP_WAN)
+				if(get_wans_dualwan()&WANSCAP_WAN){
+					nvram_set("vlan3ports", wan);
 					nvram_set("vlan3hwname", "et0");
+				}
+				else{
+					nvram_set("vlan2ports", wan);
+					nvram_set("vlan2hwname", "et0");
+				}
 			}
 			else{
 				switch_gen_config(lan, ports, cfg, 0, "*");
@@ -669,8 +685,7 @@ void generate_switch_para(void)
 				if (get_wans_dualwan()&WANSCAP_WAN) {
 					switch_gen_config(wan, ports, wancfg, 1, (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)?"":"u");
 					nvram_set("vlan2ports", wan);
-					if (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)
-						nvram_set("vlan2hwname", "et0");
+					nvram_set("vlan2hwname", "et0");
 				}
 
 				// The second WAN port.
@@ -690,9 +705,14 @@ void generate_switch_para(void)
 					}
 
 					switch_gen_config(wan, ports, wan1cfg, 1, (get_wans_dualwan()&WANSCAP_WAN)?"":"u");
-					nvram_set("vlan3ports", wan);
-					if (get_wans_dualwan()&WANSCAP_WAN)
+					if(get_wans_dualwan()&WANSCAP_WAN){
+						nvram_set("vlan3ports", wan);
 						nvram_set("vlan3hwname", "et0");
+					}
+					else{
+						nvram_set("vlan2ports", wan);
+						nvram_set("vlan2hwname", "et0");
+					}
 				}
 				else{
 					switch_gen_config(lan, ports, cfg, 0, "*");
@@ -760,6 +780,8 @@ void generate_switch_para(void)
 			if(cfg != SWCFG_BRIDGE){
 				int wan1cfg = nvram_get_int("wans_lanport");
 
+				nvram_unset("vlan2ports");
+				nvram_unset("vlan2hwname");
 				nvram_unset("vlan3ports");
 				nvram_unset("vlan3hwname");
 
@@ -767,8 +789,7 @@ void generate_switch_para(void)
 				if (get_wans_dualwan()&WANSCAP_WAN) {
 					switch_gen_config(wan, ports, wancfg, 1, (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)?"":"u");
 					nvram_set("vlan2ports", wan);
-					if (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)
-						nvram_set("vlan2hwname", "et0");
+					nvram_set("vlan2hwname", "et0");
 				}
 
 				// The second WAN port.
@@ -788,9 +809,14 @@ void generate_switch_para(void)
 					}
 
 					switch_gen_config(wan, ports, wan1cfg, 1, (get_wans_dualwan()&WANSCAP_WAN)?"":"u");
-					nvram_set("vlan3ports", wan);
-					if (get_wans_dualwan()&WANSCAP_WAN)
+					if(get_wans_dualwan()&WANSCAP_WAN){
+						nvram_set("vlan3ports", wan);
 						nvram_set("vlan3hwname", "et0");
+					}
+					else{
+						nvram_set("vlan2ports", wan);
+						nvram_set("vlan2hwname", "et0");
+					}
 				}
 				else{
 					switch_gen_config(lan, ports, cfg, 0, "*");
@@ -862,8 +888,7 @@ void generate_switch_para(void)
 				if (get_wans_dualwan()&WANSCAP_WAN || get_wans_dualwan()&WANSCAP_DSL) {	//tmp
 					switch_gen_config(wan, ports, wancfg, 1, (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)?"":"t");
 					nvram_set("vlan2ports", wan);
-					if (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)
-						nvram_set("vlan2hwname", "et0");
+					nvram_set("vlan2hwname", "et0");
 				}
 
 				// The second WAN port.
@@ -940,20 +965,21 @@ void generate_switch_para(void)
 			const int ports[SWPORT_COUNT] = { 0, 5, 3, 2, 1, 7 };
 			int wancfg = (!nvram_match("switch_wantag", "none")&&!nvram_match("switch_wantag", "")) ? SWCFG_DEFAULT : cfg;
 
-			nvram_unset("vlan3ports");
-			nvram_unset("vlan3hwname");
-
 			wan_phyid = ports[0];	// record the phy num of the wan port on the case
 #ifdef RTCONFIG_DUALWAN
 			if(cfg != SWCFG_BRIDGE){
 				int wan1cfg = nvram_get_int("wans_lanport");
 
+				nvram_unset("vlan2ports");
+				nvram_unset("vlan2hwname");
+				nvram_unset("vlan3ports");
+				nvram_unset("vlan3hwname");
+
 				// The first WAN port.
 				if (get_wans_dualwan()&WANSCAP_WAN) {
 					switch_gen_config(wan, ports, wancfg, 1, (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)?"":"u");
 					nvram_set("vlan2ports", wan);
-					if (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)
-						nvram_set("vlan2hwname", "et1");
+					nvram_set("vlan2hwname", "et1");
 				}
 
 				// The second WAN port.
@@ -973,9 +999,14 @@ void generate_switch_para(void)
 					}
 
 					switch_gen_config(wan, ports, wan1cfg, 1, (get_wans_dualwan()&WANSCAP_WAN)?"":"u");
-					nvram_set("vlan3ports", wan);
-					if (get_wans_dualwan()&WANSCAP_WAN)
+					if(get_wans_dualwan()&WANSCAP_WAN){
+						nvram_set("vlan3ports", wan);
 						nvram_set("vlan3hwname", "et1");
+					}
+					else{
+						nvram_set("vlan2ports", wan);
+						nvram_set("vlan2hwname", "et1");
+					}
 				}
 				else{
 					switch_gen_config(lan, ports, cfg, 0, "*");
@@ -1041,6 +1072,8 @@ void generate_switch_para(void)
 			if(cfg != SWCFG_BRIDGE){
 				int wan1cfg = nvram_get_int("wans_lanport");
 
+				nvram_unset("vlan2ports");
+				nvram_unset("vlan2hwname");
 				nvram_unset("vlan3ports");
 				nvram_unset("vlan3hwname");
 
@@ -1048,8 +1081,7 @@ void generate_switch_para(void)
 				if (get_wans_dualwan()&WANSCAP_WAN) {
 					switch_gen_config(wan, ports, wancfg, 1, (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)?"":"u");
 					nvram_set("vlan2ports", wan);
-					if (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)
-						nvram_set("vlan2hwname", "et0");
+					nvram_set("vlan2hwname", "et0");
 				}
 
 				// The second WAN port.
@@ -1069,9 +1101,14 @@ void generate_switch_para(void)
 					}
 
 					switch_gen_config(wan, ports, wan1cfg, 1, (get_wans_dualwan()&WANSCAP_WAN)?"":"u");
-					nvram_set("vlan3ports", wan);
-					if (get_wans_dualwan()&WANSCAP_WAN)
+					if(get_wans_dualwan()&WANSCAP_WAN){
+						nvram_set("vlan3ports", wan);
 						nvram_set("vlan3hwname", "et0");
+					}
+					else{
+						nvram_set("vlan2ports", wan);
+						nvram_set("vlan2hwname", "et0");
+					}
 				}
 				else{
 					switch_gen_config(lan, ports, cfg, 0, "*");
@@ -1146,8 +1183,7 @@ void generate_switch_para(void)
 				if (get_wans_dualwan()&WANSCAP_WAN) {
 					switch_gen_config(wan, ports, wancfg, 1, (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)?"":"u");
 					nvram_set("vlan2ports", wan);
-					if (get_wans_dualwan()&WANSCAP_LAN && wan1cfg >= 1 && wan1cfg <= 4)
-						nvram_set("vlan2hwname", "et0");
+					nvram_set("vlan2hwname", "et0");
 				}
 
 				// The second WAN port.
@@ -1167,9 +1203,14 @@ void generate_switch_para(void)
 					}
 
 					switch_gen_config(wan, ports, wan1cfg, 1, (get_wans_dualwan()&WANSCAP_WAN)?"":"u");
-					nvram_set("vlan3ports", wan);
-					if (get_wans_dualwan()&WANSCAP_WAN)
+					if(get_wans_dualwan()&WANSCAP_WAN){
+						nvram_set("vlan3ports", wan);
 						nvram_set("vlan3hwname", "et0");
+					}
+					else{
+						nvram_set("vlan2ports", wan);
+						nvram_set("vlan2hwname", "et0");
+					}
 				}
 				else{
 					switch_gen_config(lan, ports, cfg, 0, "*");

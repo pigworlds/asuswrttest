@@ -455,6 +455,18 @@ ej_nvram_get(int eid, webs_t wp, int argc, char_t **argv)
 		return -1;
 	}
 
+	if(!strcmp(name, "modem_spn")){
+		char buf[128];
+
+		snprintf(buf, 128, "%s", nvram_safe_get(name));
+		if(strlen(buf) <= 0)
+			snprintf(buf, 128, "%s", nvram_safe_get("modem_isp"));
+
+		ret = websWrite(wp, "%s", nvram_safe_get(name));
+
+		return ret;
+	}
+
 	for (c = nvram_safe_get(name); *c; c++) {
 		if (isprint(*c) &&
 		    *c != '"' && *c != '&' && *c != '<' && *c != '>')
@@ -1844,6 +1856,12 @@ static int validate_apply(webs_t wp) {
 
 	if(nvram_modified)
 	{
+#ifdef RTCONFIG_TR069
+		if(pids("tr069")) {
+			_dprintf("value change from web!\n");
+			eval("sendtocli", "http://127.0.0.1:1234/web/value/change", "\"name=change\"");
+		}
+#endif
 		// TODO: is it necessary to separate the different?
 		if(nvram_match("x_Setting", "0")){
 			nvram_set("x_Setting", "1");
@@ -2463,9 +2481,15 @@ static int ej_update_variables(int eid, webs_t wp, int argc, char_t **argv) {
 			}
 #endif
 			if (strlen(action_script) > 0) {
-				memset(notify_cmd, 0, 32);
-				if(strstr(action_script, "_wan_if"))
-					sprintf(notify_cmd, "%s %s", action_script, wan_unit);
+				char *p1, *p2;
+				memset(notify_cmd, 0, sizeof(notify_cmd));
+				if((p1 = strstr(action_script, "_wan_if")))
+				{
+					p1 += 7;
+					strncpy(notify_cmd, action_script, p1 - action_script);
+					p2 = notify_cmd + strlen(notify_cmd);
+					sprintf(p2, " %s%s", wan_unit, p1);
+				}
 				else
 					strncpy(notify_cmd, action_script, 128);
 
@@ -5361,7 +5385,7 @@ apply_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg,
 		char *system_cmd;
 		system_cmd = websGetVar(wp, "SystemCmd","");
 
-		if(strchr(system_cmd, '&') || strchr(system_cmd, ';') || strchr(system_cmd, '%') || strchr(system_cmd, '|')){
+		if(strchr(system_cmd, '&') || strchr(system_cmd, ';') || strchr(system_cmd, '%') || strchr(system_cmd, '|') || strchr(system_cmd, '\n') || strchr(system_cmd, '\r')){
 			_dprintf("[httpd] Invalid SystemCmd!\n");
 			strcpy(SystemCmd, "");
 		}
@@ -5383,10 +5407,14 @@ apply_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg,
 			strncpy(SystemCmd, system_cmd, sizeof(SystemCmd));
 			sys_script("syscmd.sh");
 		}
-		else if(!strcmp(current_url, "Main_AdmStatus_Content.asp") && (
-			strncasecmp(system_cmd, "run_telnetd", 11) == 0
-		)){
-			strncpy(SystemCmd, system_cmd, sizeof(SystemCmd));
+		else if(!strcmp(current_url, "Main_AdmStatus_Content.asp"))
+		{
+			if(strncasecmp(system_cmd, "run_telnetd", 11) == 0){
+				strncpy(SystemCmd, system_cmd, sizeof(SystemCmd));
+				sys_script("syscmd.sh");				
+			}else if(strncasecmp(system_cmd, "run_infosvr", 11) == 0){
+				nvram_set("ateCommand_flag", "1");
+			}
 		}
 		else{
 			_dprintf("[httpd] Invalid SystemCmd!\n");
@@ -5434,7 +5462,6 @@ apply_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg,
 		websApply(wp, "Restarting.asp");
 		shutdown(fileno(wp), SHUT_RDWR);
 		nvram_set("restore_defaults", "1");
-		nvram_commit();
 		sys_default();
 		return (0);
 	}
@@ -6544,6 +6571,26 @@ static char cache_object[] =
 "Cache-Control: max-age=300"
 ;
 
+#ifdef RTCONFIG_USB_MODEM
+static char modemlog_txt[] =
+"Content-Disposition: attachment;\r\n"
+"filename=modemlog.txt"
+;
+
+static void
+do_modemlog_cgi(char *path, FILE *stream)
+{
+	char *cmd[] = {"/usr/sbin/3ginfo.sh", NULL};
+
+	unlink("/tmp/3ginfo.txt");
+	_eval(cmd, ">/tmp/3ginfo.txt", 0, NULL);
+
+	dump_file(stream, get_modemlog_fname());
+	fputs("\r\n", stream); /* terminator */
+	fputs("\r\n", stream); /* terminator */
+}
+#endif
+
 static void
 do_log_cgi(char *path, FILE *stream)
 {
@@ -6603,9 +6650,12 @@ struct mime_handler mime_handlers[] = {
 	{ "applyapp.cgi*", "text/html", no_cache_IE7, do_html_post_and_get, do_apply_cgi, do_auth },
 	{ "upgrade.cgi*", "text/html", no_cache_IE7, do_upgrade_post, do_upgrade_cgi, do_auth},
 	{ "upload.cgi*", "text/html", no_cache_IE7, do_upload_post, do_upload_cgi, do_auth },
- 	{ "syslog.txt*", "application/force-download", syslog_txt, do_html_post_and_get, do_log_cgi, do_auth },
+	{ "syslog.txt*", "application/force-download", syslog_txt, do_html_post_and_get, do_log_cgi, do_auth },
+#ifdef RTCONFIG_USB_MODEM
+	{ "modemlog.txt*", "application/force-download", modemlog_txt, do_html_post_and_get, do_modemlog_cgi, do_auth },
+#endif
 #ifdef RTCONFIG_DSL
- 	{ "dsllog.cgi*", "text/txt", no_cache_IE7, do_html_post_and_get, do_adsllog_cgi, do_auth },
+	{ "dsllog.cgi*", "text/txt", no_cache_IE7, do_html_post_and_get, do_adsllog_cgi, do_auth },
 #endif
 	// Viz 2010.08 vvvvv
 	{ "update.cgi*", "text/javascript", no_cache_IE7, do_html_post_and_get, do_update_cgi, do_auth }, // jerry5

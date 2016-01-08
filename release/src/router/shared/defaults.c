@@ -833,6 +833,7 @@ struct nvram_tuple router_defaults[] = {
 #else
 	{ "wans_dualwan", "wan none"},
 #endif
+	{ "wans_standby", "0"},
 	{ "wans_lanport", "1"},
 	{ "wans_lb_ratio", "3:1" }, 	// only support two wan simultaneously
 	{ "wans_routing_enable", "0" },
@@ -1480,6 +1481,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "modem_pdp", "0"},	// 0: PDP-IP(IPv4), 1: PDP-PPP, 2: PDP-IPv6, 3: PDP-IPv4v6.
 	{ "modem_isp", ""},
 	{ "modem_apn", "internet"},
+	{ "modem_spn", ""},
 	{ "modem_dialnum", "*99#"},
 	{ "modem_user", ""},
 	{ "modem_pass", ""},
@@ -1955,6 +1957,22 @@ struct nvram_tuple router_defaults[] = {
 	{"tm_usb_path_pid", 		""},
 	{"tm_usb_path_serial", 		""},
 	{"tm_debug", 			"0"},
+#endif
+#if defined(RTCONFIG_TR069)
+	{ "tr_enable", "0"},
+	{ "tr_inform_enable", "1"},
+	{ "tr_inform_interval", "86400"},
+	{ "tr_acs_url", ""},
+	{ "tr_username", ""},
+	{ "tr_passwd", ""},
+	{ "tr_conn_username", "admin"},
+	{ "tr_conn_passwd", "admin"},
+	{ "tr_conn_port", "7547"},
+	{ "tr_ca_cert", ""},
+	{ "tr_client_cert", ""},
+	{ "tr_client_key", ""},
+	{ "tr_client_key", ""},
+	{ "pvgcode", "ASUS"},
 #endif
 	{ "Ate_fw_fail",		"10"},
 	{ "Ate_reboot_delay",		"1"},

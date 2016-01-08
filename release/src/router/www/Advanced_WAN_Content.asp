@@ -181,11 +181,7 @@ function applyRule(){
 			inputCtrl(document.form.wan_dns1_x, 1);
 			inputCtrl(document.form.wan_dns2_x, 1);
 		}
-
-		if(document.form.ttl_inc_enable.value != '<% nvram_get("ttl_inc_enable"); %>'){
-			document.form.action_script.value += ";restart_firewall";
-		}
-
+		
 		// Turn CTF into level 1, and turn back to level 2 if there exists nvram ctf_fa_mode_close.
 		if(ctf.changeType() && ctf.getLevel() == 2 && ctf.level2_supprot){
 			FormActions("start_apply.htm", "apply", "reboot", "<% get_default_reboot_time(); %>");

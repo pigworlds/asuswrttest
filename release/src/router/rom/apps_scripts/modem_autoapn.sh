@@ -4,8 +4,8 @@
 
 
 modem_type=`nvram get usb_modem_act_type`
-act_node1=usb_modem_act_int
-act_node2=usb_modem_act_bulk
+act_node1="usb_modem_act_int"
+act_node2="usb_modem_act_bulk"
 modem_vid=`nvram get usb_modem_act_vid`
 modem_autoapn=`nvram get modem_autoapn`
 modem_imsi=
@@ -16,15 +16,15 @@ modem_prefix="test_modem_"
 
 
 act_node=
-if [ "$modem_type" == "tty" -o "$modem_type" == "mbim" ]; then
-	if [ "$modem_type" == "tty" -a "$modem_vid" == "6610" ]; then # e.q. ZTE MF637U
-		act_node=$act_node1
-	else
-		act_node=$act_node2
-	fi
-else
+#if [ "$modem_type" == "tty" -o "$modem_type" == "mbim" ]; then
+#	if [ "$modem_type" == "tty" -a "$modem_vid" == "6610" ]; then # e.q. ZTE MF637U
+#		act_node=$act_node1
+#	else
+#		act_node=$act_node2
+#	fi
+#else
 	act_node=$act_node1
-fi
+#fi
 
 modem_act_node=`nvram get $act_node`
 if [ "$modem_act_node" == "" ]; then
@@ -32,7 +32,7 @@ if [ "$modem_act_node" == "" ]; then
 
 	modem_act_node=`nvram get $act_node`
 	if [ "$modem_act_node" == "" ]; then
-		echo "Can't get usb_modem_act_int!"
+		echo "Can't get $act_node!"
 		exit 1
 	fi
 fi
@@ -85,6 +85,10 @@ fi
 
 modem_isp=`echo "$content" |awk '{FS=","; print $2}' 2>/dev/null`
 modem_apn=`echo "$content" |awk '{FS=","; print $6}' 2>/dev/null`
+modem_spn=`echo "$content" |awk '{FS=","; print $7}' 2>/dev/null`
+if [ "$modem_spn" == "" ]; then
+	modem_spn=$modem_isp
+fi
 modem_dial=`echo "$content" |awk '{FS=","; print $3}' 2>/dev/null`
 modem_user=`echo "$content" |awk '{FS=","; print $4}' 2>/dev/null`
 modem_pass=`echo "$content" |awk '{FS=","; print $5}' 2>/dev/null`
@@ -180,6 +184,7 @@ if [ "$1" == "console" ]; then
 	echo "country: $modem_country."
 	echo "    isp: $modem_isp."
 	echo "    apn: $modem_apn."
+	echo "    spn: $modem_spn."
 	echo "   dial: $modem_dial."
 	echo "   user: $modem_user."
 	echo "   pass: $modem_pass."
@@ -188,6 +193,7 @@ elif [ "$1" == "set" ]; then
 	modem_isp=`nvram get modem_roaming_isp`
 	nvram set modem_isp="$modem_isp"
 	nvram set modem_apn="$modem_apn"
+	nvram set modem_spn="$modem_spn"
 	nvram set modem_dialnum="$modem_dial"
 	nvram set modem_user="$modem_user"
 	nvram set modem_pass="$modem_pass"
@@ -195,6 +201,7 @@ else
 	nvram set usb_modem_auto_country="$modem_country"
 	nvram set usb_modem_auto_isp="$modem_isp"
 	nvram set usb_modem_auto_apn="$modem_apn"
+	nvram set usb_modem_auto_spn="$modem_spn"
 	nvram set usb_modem_auto_dialnum="$modem_dial"
 	nvram set usb_modem_auto_user="$modem_user"
 	nvram set usb_modem_auto_pass="$modem_pass"
@@ -203,6 +210,7 @@ else
 		nvram set modem_country="$modem_country"
 		nvram set modem_isp="$modem_isp"
 		nvram set modem_apn="$modem_apn"
+		nvram set modem_spn="$modem_spn"
 		nvram set modem_dialnum="$modem_dial"
 		nvram set modem_user="$modem_user"
 		nvram set modem_pass="$modem_pass"

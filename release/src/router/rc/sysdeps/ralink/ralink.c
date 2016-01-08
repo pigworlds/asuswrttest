@@ -458,7 +458,7 @@ int setRegSpec(const char *regSpec)
 	char file[64];
 	int i;
 
-	if (regSpec == NULL || regSpec[0] == '\0' || strlen(regSpec) > 3)
+	if (regSpec == NULL || regSpec[0] == '\0' || strlen(regSpec) > MAX_REGSPEC_LEN)
 		return -1;
 
 	memset(REGSPEC, 0, sizeof(REGSPEC));
@@ -3276,7 +3276,7 @@ int gen_ralink_config(int band, int is_iNIC)
 
 
 		fprintf(fp, "ApCliEnable=0\n");
-		fprintf(fp, "ApCliSsid=%s\n", nvram_safe_get("wlc_ssid"));
+		fprintf(fp, "ApCliSsid%d=%s\n", 1, nvram_safe_get("wlc_ssid"));
 		fprintf(fp, "ApCliBssid=\n");
 
 		str = nvram_safe_get("wlc_auth_mode");
@@ -3307,7 +3307,7 @@ int gen_ralink_config(int band, int is_iNIC)
 					fprintf(fp, "ApCliEncrypType=%s\n", "AES");
 
 				//WPAPSK
-				fprintf(fp, "ApCliWPAPSK=%s\n", nvram_safe_get("wlc_wpa_psk"));
+				fprintf(fp, "ApCliWPAPSK%d=%s\n", 1, nvram_safe_get("wlc_wpa_psk"));
 			}
 			else
 			{

@@ -753,6 +753,33 @@ void start_dnsmasq(void)
 			/*	    "dhcp-option=lan,46,8\n"*/);
 		}
 #endif
+#if (defined(RTCONFIG_TR069) && !defined(RTCONFIG_TR181))
+		unsigned char hwaddr[6];
+		char buf[13];
+
+#ifdef RTAC87U
+		ether_atoe(nvram_safe_get("et1macaddr"), hwaddr);
+#else
+		ether_atoe(nvram_safe_get("et0macaddr"), hwaddr);
+#endif
+		snprintf(buf, sizeof(buf), "%02X%02X%02X",
+			 hwaddr[0], hwaddr[1], hwaddr[2]);
+
+		fprintf(fp, "dhcp-option=cpewan-id,vi-encap:3561,4,\"%s\"\n", buf);
+
+#ifdef RTAC87U
+		ether_atoe(nvram_safe_get("et1macaddr"), hwaddr);
+#else
+		ether_atoe(nvram_safe_get("et0macaddr"), hwaddr);
+#endif
+		snprintf(buf, sizeof(buf), "%02X%02X%02X%02X%02X%02X",
+			 hwaddr[0], hwaddr[1], hwaddr[2],
+			 hwaddr[3], hwaddr[4], hwaddr[5]);
+
+		fprintf(fp, "dhcp-option=cpewan-id,vi-encap:3561,5,\"%s\"\n", buf);
+		//fprintf(fp, "dhcp-option=cpewan-id,vi-encap:3561,6,\"Wireless Router\"\n");
+		fprintf(fp, "dhcp-option=cpewan-id,vi-encap:3561,6,\"%s\"\n", nvram_safe_get("productid"));
+#endif
 		/* Shut up WPAD info requests */
 		fprintf(fp, "dhcp-option=lan,252,\"\\n\"\n");
 	}
@@ -873,7 +900,11 @@ void start_dnsmasq(void)
 	/* Create resolv.dnsmasq with empty server list */
 	f_write(dmservers, NULL, 0, FW_APPEND, 0666);
 
+#if (defined(RTCONFIG_TR069) && !defined(RTCONFIG_TR181))
+	eval("dnsmasq", "--log-async", "-6", "/sbin/dhcpc_lease");
+#else
 	eval("dnsmasq", "--log-async");
+#endif
 
 /* TODO: remove it for here !!!*/
 	char nvram_name[16], wan_proto[16];
@@ -3864,6 +3895,10 @@ again:
 #ifdef RTCONFIG_IPV6
 			stop_dhcp6c();
 #endif
+
+#ifdef RTCONFIG_TR069
+			stop_tr();
+#endif
 			stop_jffs2(1);
 			// TODO free necessary memory here
 		}
@@ -4782,6 +4817,10 @@ check_ddr_done:
 		if(action&RC_SERVICE_STOP) stop_bwdpi_monitor_service();
 		if(action&RC_SERVICE_START) start_bwdpi_monitor_service();
 	}
+	else if (strcmp(script, "wrs_force") == 0)
+	{
+		if(action & RC_SERVICE_STOP) stop_dpi_engine_service(1);
+	}
 #endif
 	else if (strcmp(script, "logger") == 0)
 	{
@@ -5139,6 +5178,12 @@ check_ddr_done:
 			}
 #endif
 		}
+	}
+#endif
+#ifdef RTCONFIG_TR069
+	else if (strncmp(script, "tr", 2) == 0) {
+		if (action & RC_SERVICE_STOP) stop_tr();
+		if (action & RC_SERVICE_START) start_tr();
 	}
 #endif
 	else if (strcmp(script, "sh") == 0) {
@@ -5673,11 +5718,14 @@ rsasign_sig_check_main(int argc, char *argv[])
 
 	_dprintf("rsa fw: %s\n", argv[1]);
 
+#ifdef RTCONFIG_HTTPS
 	if(check_rsasign(argv[1])) {
 		_dprintf("rsasign check sig OK\n");
 		nvram_set("bwdpi_rsa_check", "1");
 	}
-	else {
+	else
+#endif
+	{
 		_dprintf("rsasign check sig Fail\n");
 		nvram_set("bwdpi_rsa_check", "0");
 	}

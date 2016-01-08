@@ -396,7 +396,7 @@ NDIS_STATUS rtmp_nv_init(PRTMP_ADAPTER pAd)
 #ifdef CONFIG_RAETH_DSL
 	if (!strcmp(cc, "DE") || !strcmp(cc, "GB") || !strcmp(cc, "SG"))
 #else
-	if (!strcmp(cc, "DB") || !strcmp(cc, "US") || !strcmp(cc, "GB") || !strcmp(cc, "SG"))
+	if (!strcmp(cc, "DB") || !strcmp(cc, "US") || !strcmp(cc, "GB") || !strcmp(cc, "SG") || !strcmp(cc, "TW"))
 #endif
 	{
 		USHORT *p = pAd->eebuf;
@@ -430,6 +430,11 @@ NDIS_STATUS rtmp_nv_init(PRTMP_ADAPTER pAd)
 		else if (!strcmp(cc, "DE"))
 		{
 			pcc = GB;
+		}
+#else
+		else if (!strcmp(cc, "TW"))
+		{
+			pcc = US;
 		}
 #endif
 #if 0

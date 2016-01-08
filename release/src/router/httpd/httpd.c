@@ -994,7 +994,11 @@ handle_request(void)
 #endif
 			}
 
-			if(!strstr(file, ".cgi") && !strstr(file, "syslog.txt") && !(strstr(file,".CFG")) && !check_if_file_exist(file)){
+			if(!strstr(file, ".cgi") && !strstr(file, "syslog.txt") && !(strstr(file,".CFG")) && !check_if_file_exist(file)
+#ifdef RTCONFIG_USB_MODEM
+					&& !strstr(file, "modemlog.txt")
+#endif
+					){
 				send_error( 404, "Not Found", (char*) 0, "File not found." );
 				return;
 			}

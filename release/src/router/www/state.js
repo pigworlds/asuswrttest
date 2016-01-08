@@ -209,6 +209,7 @@ if(sw_mode == 4)
 
 var ntfs_sparse_support = isSupport("sparse");
 
+var tr069_support = isSupport("tr069");
 var QISWIZARD = "QIS_wizard.htm";
 // Todo: Support repeater mode
 if(isMobile() && sw_mode != 2 && !dsl_support)
@@ -458,7 +459,7 @@ tabtitle[4] = new Array("", "<#UPnPMediaServer#>", "<#menu5_4_1#>", "<#menu5_4_2
 tabtitle[5] = new Array("", "IPv6");
 tabtitle[6] = new Array("", "<#BOP_isp_heart_item#>", "VPN Client");	//, "VPN Client Advanced"
 tabtitle[7] = new Array("", "<#menu5_1_1#>", "<#menu5_5_2#>", "<#menu5_5_5#>", "<#menu5_5_3#>", "<#menu5_5_4#>", "<#menu5_5_6#>");
-tabtitle[8] = new Array("", "<#menu5_6_1#>", "<#menu5_6_2#>", "<#menu5_6_3#>", "<#menu5_6_4#>", "Performance tuning", "<#menu_dsl_setting#>", "<#menu_feedback#>", "SNMP");
+tabtitle[8] = new Array("", "<#menu5_6_1#>", "<#menu5_6_2#>", "<#menu5_6_3#>", "<#menu5_6_4#>", "Performance tuning", "<#menu_dsl_setting#>", "<#menu_feedback#>", "SNMP", "TR-069");
 tabtitle[9] = new Array("", "<#menu5_7_2#>", "<#menu5_7_4#>", "<#menu5_7_3#>", "IPv6", "<#menu5_7_6#>", "<#menu5_7_5#>", "<#menu_dsl_log#>", "<#Connections#>");
 tabtitle[10] = new Array("", "<#Network_Analysis#>", "Netstat", "<#NetworkTools_WOL#>", "SMTP Client");
 if(bwdpi_support){
@@ -481,7 +482,7 @@ tablink[4] = new Array("", "mediaserver.asp", "Advanced_AiDisk_samba.asp", "Adva
 tablink[5] = new Array("", "Advanced_IPv6_Content.asp");
 tablink[6] = new Array("", "Advanced_VPN_PPTP.asp", "Advanced_VPNClient_Content.asp");
 tablink[7] = new Array("", "Advanced_BasicFirewall_Content.asp", "Advanced_URLFilter_Content.asp", "Advanced_KeywordFilter_Content.asp","Advanced_MACFilter_Content.asp", "Advanced_Firewall_Content.asp", "Advanced_Firewall_IPv6_Content.asp");
-tablink[8] = new Array("", "Advanced_OperationMode_Content.asp", "Advanced_System_Content.asp", "Advanced_FirmwareUpgrade_Content.asp", "Advanced_SettingBackup_Content.asp", "Advanced_PerformanceTuning_Content.asp", "Advanced_ADSL_Content.asp", "Advanced_Feedback.asp", "Advanced_SNMP_Content.asp");
+tablink[8] = new Array("", "Advanced_OperationMode_Content.asp", "Advanced_System_Content.asp", "Advanced_FirmwareUpgrade_Content.asp", "Advanced_SettingBackup_Content.asp", "Advanced_PerformanceTuning_Content.asp", "Advanced_ADSL_Content.asp", "Advanced_Feedback.asp", "Advanced_SNMP_Content.asp", "Advanced_TR069_Content.asp");
 tablink[9] = new Array("", "Main_LogStatus_Content.asp", "Main_WStatus_Content.asp", "Main_DHCPStatus_Content.asp", "Main_IPV6Status_Content.asp", "Main_RouteStatus_Content.asp", "Main_IPTStatus_Content.asp", "Main_AdslStatus_Content.asp", "Main_ConnStatus_Content.asp");
 tablink[10] = new Array("", "Main_Analysis_Content.asp", "Main_Netstat_Content.asp", "Main_WOL_Content.asp", "SMTP_Client.asp");
 if(bwdpi_support){
@@ -770,6 +771,10 @@ function remove_url(){
 
 	if(!SwitchCtrl_support){
 		remove_menu_item("Advanced_SwitchCtrl_Content.asp");		
+	}
+
+	if(!tr069_support){
+		remove_menu_item("Advanced_TR069_Content.asp");
 	}
 
 	if(!snmp_support){
@@ -1589,11 +1594,13 @@ function show_footer(){
 		footer_codk_Download += '<td width="300" id="bottom_help_link" align="left">&nbsp&nbsp<a style="font-weight: bolder;text-decoration:underline;cursor:pointer;" href="http://www.asus.com/Networking/DSLN55U_Annex_B/HelpDesk_Manual/" target="_blank">Manual</a>&nbsp|&nbsp<a style="font-weight: bolder;text-decoration:underline;cursor:pointer;" href="http://www.asus.com/Networking/DSLN55U_Annex_B/HelpDesk_Download/" target="_blank">Utility</a>';
 	}
 	else{
-		if(based_modelid == "DSL-AC68U" || based_modelid == "DSL-AC68R" || based_modelid == "RT-N11P" || based_modelid == "RT-N12+")
-			href_lang = "";	//global only
+		if(based_modelid == "DSL-AC68U" || based_modelid == "DSL-AC68R" || based_modelid == "RT-N11P")
+			href_lang = "/";	//global only
 
-		if(based_modelid == "RT-N12+")
+		if(odmpid == "RT-N12+")
 			model_name_supportsite = "RTN12Plus";
+		else if(odmpid.search("RT-N12E_B") != -1)	//RT-N12E_B or RT-N12E_B1
+			model_name_supportsite = "RTN12E_B1";
 
 		if(tmo_support){
 				footer_code += '<td width="300" id="bottom_help_link" align="left">&nbsp';	

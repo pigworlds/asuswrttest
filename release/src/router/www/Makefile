@@ -365,3 +365,6 @@ endif
 ifneq ($(RTCONFIG_OLD_PARENTALCTRL), y)	
 	rm -rf $(INSTALLDIR)/www/Advanced_MACFilter_Content.asp
 endif
+ifneq ($(RTCONFIG_TR069), y)
+	rm -rf $(INSTALLDIR)/www/Advanced_TR069_Content.asp
+endif

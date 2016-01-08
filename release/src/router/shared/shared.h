@@ -590,6 +590,9 @@ extern char *get_productid(void);
 extern void logmessage_normal(char *logheader, char *fmt, ...);
 extern char *get_logfile_path(void);
 extern char *get_syslog_fname(unsigned int idx);
+#ifdef RTCONFIG_USB_MODEM
+extern char *get_modemlog_fname(void);
+#endif
 #if defined(RTCONFIG_SSH) || defined(RTCONFIG_HTTPS)
 extern int nvram_get_file(const char *key, const char *fname, int max);
 extern int nvram_set_file(const char *key, const char *fname, int max);

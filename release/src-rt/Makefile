@@ -1070,6 +1070,14 @@ define RouterOptions
 		sed -i "/RTCONFIG_NOWL/d" $(1); \
 		echo "RTCONFIG_NOWL=y" >>$(1); \
 	fi; \
+	if [ "$(TR069)" = "y" ]; then \
+		sed -i "/RTCONFIG_TR069/d" $(1); \
+		echo "RTCONFIG_TR069=y" >>$(1); \
+	fi; \
+	if [ "$(TR181)" = "y" ]; then \
+		sed -i "/RTCONFIG_TR181/d" $(1); \
+		echo "RTCONFIG_TR181=y" >>$(1); \
+	fi; \
 	)
 	$(call platformRouterOptions, $(1))
 endef
@@ -1328,6 +1336,12 @@ define BusyboxOptions
 		sed -i "/CONFIG_FEATURE_SHOW_THREADS/d" $(1); \
 		echo "CONFIG_FEATURE_SHOW_THREADS=y" >>$(1); \
 	fi; \
+	if [ "$(TR069)" = "y" ]; then \
+		if [ "$(TR181)" = "y" ]; then \
+			sed -i "/CONFIG_FEATURE_UDHCP_VIVSO/d" $(1); \
+			echo "CONFIG_FEATURE_UDHCP_VIVSO=y" >>$(1); \
+		fi; \
+	fi; \
 	)
 	$(call platformBusyboxOptions, $(1))
 endef
@@ -1437,12 +1451,20 @@ define KernelConfig
 		if [ "$(LESSMODEM)" = "y" ]; then \
 			sed -i "/CONFIG_HSO/d" $(1); \
 			echo "# CONFIG_HSO is not set" >>$(1); \
+			sed -i "/CONFIG_USB_IPHETH/d" $(1); \
+			echo "# CONFIG_USB_IPHETH is not set" >>$(1); \
 		fi; \
 	else \
 		sed -i "/CONFIG_USB_SERIAL/d" $(1); \
 		echo "# CONFIG_USB_SERIAL is not set" >>$(1); \
 		sed -i "/CONFIG_USB_ACM/d" $(1); \
 		echo "# CONFIG_USB_ACM is not set" >>$(1); \
+		sed -i "/CONFIG_USB_USBNET/d" $(1); \
+		echo "# CONFIG_USB_USBNET is not set" >>$(1); \
+		sed -i "/CONFIG_USB_WDM/d" $(1); \
+		echo "# CONFIG_USB_WDM is not set" >>$(1); \
+		sed -i "/CONFIG_USB_IPHETH/d" $(1); \
+		echo "# CONFIG_USB_IPHETH is not set" >>$(1); \
 	fi; \
 	if [ "$(AP_CARRIER_DETECTION)" = "y" ]; then \
 		sed -i "/CONFIG_RALINK_TIMER_DFS/d" $(1); \

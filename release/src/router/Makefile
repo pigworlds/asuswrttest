@@ -538,6 +538,10 @@ obj-$(RTCONFIG_BONDING) += ifenslave
 
 obj-$(RTCONFIG_GEOIP) += GeoIP-1.6.2
 
+#For TR-069 agent
+obj-$(RTCONFIG_TR069) += openssl
+obj-$(RTCONFIG_TR069) += tr069
+
 obj-clean := $(foreach obj, $(obj-y) $(obj-n) $(obj-), $(obj)-clean)
 obj-install := $(foreach obj,$(obj-y),$(obj)-install)
 
@@ -843,14 +847,16 @@ endif
 	$(if $(RTCONFIG_USB_MODEM),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/usbserial.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(RTCONFIG_USB_MODEM),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/option.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(RTCONFIG_USB_MODEM),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/*acm.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(RTCONFIG_USB_MODEM),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/cdc-wdm.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(RTCONFIG_USB_MODEM),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/net/usb/usbnet.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(RTCONFIG_USB_MODEM),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/net/usb/asix.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(RTCONFIG_USB_MODEM),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/net/usb/cdc_ether.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(RTCONFIG_USB_MODEM),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/net/usb/rndis_host.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(RTCONFIG_USB_MODEM),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/net/usb/cdc_ncm.*o $(PLATFORMDIR)/extras/ || true
-	$(if $(RTCONFIG_USB_MODEM),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/net/usb/cdc_wdm.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(RTCONFIG_USB_MODEM),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/net/usb/qmi_wwan.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(RTCONFIG_USB_MODEM),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/net/usb/cdc_mbim.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(RTCONFIG_USB_MODEM),@cp -rf,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/net/usb/hso* $(PLATFORMDIR)/extras/ || true
+	$(if $(RTCONFIG_USB_MODEM),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/net/usb/ipheth.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(RTCONFIG_USB_MODEM),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/sierra.*o $(PLATFORMDIR)/extras/ || true
 
 	@mv $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/usbkbd.*o $(PLATFORMDIR)/extras/ || true
@@ -1366,7 +1372,8 @@ dnsmasq:
 	COPTS="-DHAVE_BROKEN_RTC -DHAVE_LEASEFILE_EXPIRE -DNO_AUTH -DNO_IPSET \
 		$(if $(RTCONFIG_IPV6),-DUSE_IPV6,-DNO_IPV6) \
 		$(if $(RTCONFIG_WIDEDHCP6),-DNO_DHCP6,) \
-		$(if $(RTCONFIG_USB_EXTRAS),,-DNO_SCRIPT -DNO_TFTP)" \
+		$(if $(RTCONFIG_USB_EXTRAS)||$(RTCONFIG_TR069),,-DNO_SCRIPT) \
+		$(if $(RTCONFIG_USB_EXTRAS),,-DNO_TFTP)" \
 	CFLAGS="-Os -ffunction-sections -fdata-sections $(EXTRACFLAGS)" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections"
 
@@ -2096,6 +2103,36 @@ wpa_supplicant-install: wpa_supplicant
 wpa_supplicant-clean:
 	-@$(MAKE) -C wpa_supplicant/wpa_supplicant clean
 
+tr069:
+	cp tr069/Makefile.ASUSWRT tr069/Makefile
+	$(MAKE) -C $@
+	$(MAKE) -C $@/test
+
+tr069-clean:
+	-$(MAKE) -C tr069 clean
+	-$(MAKE) -C tr069/test clean
+
+tr069-install: tr069
+	install -D tr069/build/bin/tr $(INSTALLDIR)/tr069/sbin/tr069
+	install -D tr069/test/sendtocli $(INSTALLDIR)/tr069/sbin/sendtocli
+	install -D tr069/test/notify $(INSTALLDIR)/tr069/sbin/notify
+	install -D tr069/test/udpclient $(INSTALLDIR)/tr069/sbin/udpclient
+ifeq ($(RTCONFIG_TR181),y)
+	install -D tr069/conf/ASUSWRT/tr_181.xml $(INSTALLDIR)/tr069/usr/tr/tr.xml
+ifeq ($(RTCONFIG_DSL),y)
+	install -D tr069/conf/ASUSWRT/tr_181.xml.dsl $(INSTALLDIR)/tr069/usr/tr/tr.xml
+else
+	install -D tr069/conf/ASUSWRT/tr_181.xml $(INSTALLDIR)/tr069/usr/tr/tr.xml
+endif
+else
+
+ifeq ($(RTCONFIG_DSL),y)
+	install -D tr069/conf/ASUSWRT/tr_98.xml.dsl $(INSTALLDIR)/tr069/usr/tr/tr.xml
+else
+	install -D tr069/conf/ASUSWRT/tr_98.xml $(INSTALLDIR)/tr069/usr/tr/tr.xml
+endif
+endif
+
 #	libnet:
 #		@$(SEP)
 #		@-mkdir -p libnet/lib
@@ -2238,7 +2275,7 @@ sqlite/stamp-h1:
 	CC=$(CC) CFLAGS="-Os $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
 		$(CONFIGURE) --prefix=/usr --enable-shared --enable-static \
-		--disable-readline --disable-dynamic-extensions --disable-threadsafe \
+		--disable-readline --disable-dynamic-extensions --enable-threadsafe \
 		--disable-dependency-tracking
 	touch $@
 

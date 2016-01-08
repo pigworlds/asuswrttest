@@ -734,6 +734,7 @@ void clean_modem_state(int flag){
 	nvram_unset("usb_modem_auto_country");
 	nvram_unset("usb_modem_auto_isp");
 	nvram_unset("usb_modem_auto_apn");
+	nvram_unset("usb_modem_auto_spn");
 	nvram_unset("usb_modem_auto_dialnum");
 	nvram_unset("usb_modem_auto_user");
 	nvram_unset("usb_modem_auto_pass");
@@ -765,6 +766,8 @@ restore_defaults(void)
 	int restore_defaults;
 	char prefix[] = "usb_pathXXXXXXXXXXXXXXXXX_", tmp[100];
 	int unit;
+
+	nvram_unset(ASUS_STOP_COMMIT);
 
 	// Restore defaults if nvram version mismatch
 	restore_defaults = RESTORE_DEFAULTS();
@@ -975,6 +978,8 @@ restore_defaults(void)
 #endif
 
 	clean_modem_state(1);
+	nvram_unset("usb_modem_act_reset"); // only be unset at boot.
+	nvram_unset("usb_modem_act_reset_path"); // only be unset at boot.
 
 	for(i = 0; i < MAX_USB_TTY_NUM; ++i) { // MAX ttyUSB number is 10.
 		snprintf(prefix, sizeof(prefix), "usb_path_ttyUSB%d", i);
@@ -1100,6 +1105,8 @@ restore_defaults(void)
 #ifdef RTCONFIG_QTN
 	else nvram_unset("qtn_restore_defaults");
 #endif
+
+	nvram_unset("ateCommand_flag");
 }
 
 /* Set terminal settings to reasonable defaults */
@@ -1655,7 +1662,6 @@ int init_nvram(void)
 #endif
 
 	/* set default value */
-	nvram_unset(ASUS_STOP_COMMIT);
 	nvram_set("rc_support", "");
 	nvram_set_int("btn_rst_gpio", 0xff);
 	nvram_set_int("btn_wps_gpio", 0xff);
@@ -2256,7 +2262,7 @@ int init_nvram(void)
 				nvram_set("sb/1/regrev", "16");
 			}
 		}
-
+		nvram_set("sb/1/eu_edthresh2g", "-69"); //for CE adaptivity certification
 		/* go to common N12* init */
 		goto case_MODEL_RTN12X;
 
@@ -2289,8 +2295,8 @@ int init_nvram(void)
 			if (nvram_match("regulation_domain", "US") && nvram_match("sb/1/regrev", "0")) {
 				nvram_set("sb/1/regrev", "2");
 			}
-
 		}
+		nvram_set("sb/1/eu_edthresh2g", "-69"); //for CE adaptivity certification
 		/* go to common N12* init */
 		goto case_MODEL_RTN12X;
 
@@ -2596,7 +2602,6 @@ int init_nvram(void)
 
 	case MODEL_RTN18U:
 		nvram_set("vlan1hwname", "et0");
-		nvram_set("vlan2hwname", "et0");
 		nvram_set("lan_ifname", "br0");
 		nvram_set("landevs", "vlan1 wl0");
 
@@ -2766,7 +2771,6 @@ int init_nvram(void)
 		nvram_set("lan_ifnames", "vlan1 eth1 eth2");
 		nvram_set("wan_ifnames", "vlan100");
 #endif
-
 		nvram_set("wl_ifnames", "eth1 eth2");
 		nvram_set("wl0_vifnames", "wl0.1 wl0.2 wl0.3");
 		nvram_set("wl1_vifnames", "wl1.1 wl1.2 wl1.3");
@@ -2833,7 +2837,6 @@ int init_nvram(void)
 
 	case MODEL_RTAC3200:
 		nvram_set("vlan1hwname", "et0");
-		nvram_set("vlan2hwname", "et0");
 		nvram_set("lan_ifname", "br0");
 		nvram_set("landevs", "vlan1 wl0 wl1 wl2");
 
@@ -2949,7 +2952,6 @@ int init_nvram(void)
 		update_cfe();
 #endif
 		nvram_set("vlan1hwname", "et0");
-		nvram_set("vlan2hwname", "et0");
 		nvram_set("lan_ifname", "br0");
 		nvram_set("landevs", "vlan1 wl0 wl1");
 
@@ -3014,7 +3016,6 @@ int init_nvram(void)
 		nvram_set("lan_ifnames", "vlan1 eth1 eth2");
 		nvram_set("wan_ifnames", "eth0");
 #endif
-
 		nvram_set("wl_ifnames", "eth1 eth2");
 		nvram_set("wl0_vifnames", "wl0.1 wl0.2 wl0.3");
 		nvram_set("wl1_vifnames", "wl1.1 wl1.2 wl1.3");
@@ -3077,7 +3078,6 @@ int init_nvram(void)
 		if(nvram_match("QTNTELNETSRV","")) nvram_set("QTNTELNETSRV", "0");
 
 		nvram_set("vlan1hwname", "et1");
-		nvram_set("vlan2hwname", "et1");
 		nvram_set("lan_ifname", "br0");
 		nvram_set("landevs", "vlan1 wl0");
 
@@ -3105,7 +3105,7 @@ int init_nvram(void)
 						if (get_wans_dualwan()&WANSCAP_WAN)
 							add_wan_phy("vlan3");
 						else
-							add_wan_phy("vlan2");
+							add_wan_phy("eth0");
 					}
 					else if (get_dualwan_by_unit(unit) == WANS_DUALWAN_IF_2G)
 						add_wan_phy("eth1");
@@ -3130,7 +3130,7 @@ int init_nvram(void)
 				}
 			}
 			else
-				nvram_set("wan_ifnames", "vlan2 usb");
+				nvram_set("wan_ifnames", "eth0 usb");
 		}
 		else{
 			nvram_set("wandevs", "et1");
@@ -3211,7 +3211,6 @@ int init_nvram(void)
 	case MODEL_RTAC56S:
 	case MODEL_RTAC56U:
 		nvram_set("vlan1hwname", "et0");
-		nvram_set("vlan2hwname", "et0");
 		nvram_set("lan_ifname", "br0");
 		nvram_set("0:ledbh3", "0x87");	  /* since 163.42 */
 		nvram_set("1:ledbh10", "0x87");
@@ -3591,6 +3590,7 @@ int init_nvram(void)
 		nvram_set("ohci_ports", "2-1");
 		if (!nvram_get("ct_max"))
 			nvram_set("ct_max", "2048");
+		nvram_set("sb/1/eu_edthresh2g", "-69"); //for CE adaptivity certification
 		add_rc_support("2.4G mssid usbX1 nomedia small_fw");
 		break;
 
@@ -3664,6 +3664,8 @@ int init_nvram(void)
 			if (model == MODEL_RTN10D1)
 				nvram_set_int("ct_max", 1024);
 		}
+		nvram_set("sb/1/eu_edthresh2g", "-69"); //for CE adaptivity certification
+
 		add_rc_support("2.4G mssid");
 #ifdef RTCONFIG_KYIVSTAR
 		add_rc_support("kyivstar");
@@ -4033,6 +4035,14 @@ int init_nvram(void)
 #ifdef RTCONFIG_ROG
 	add_rc_support("rog");
 #endif
+#ifdef RTCONFIG_TR069
+	add_rc_support("tr069");
+
+#if defined(RTCONFIG_JFFS2) || defined(RTCONFIG_BRCM_NAND_JFFS2)
+	add_rc_support("jffs2");
+#endif
+#endif
+
 	return 0;
 }
 

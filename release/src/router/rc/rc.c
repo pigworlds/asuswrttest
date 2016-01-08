@@ -344,6 +344,9 @@ static const applets_t applets[] = {
 	{ "bwdpi_wred_alive",		bwdpi_wred_alive_main		},
 	{ "rsasign_sig_check",		rsasign_sig_check_main		},
 #endif
+#ifdef RTCONFIG_TR069
+	{ "dhcpc_lease",		dhcpc_lease_main		},
+#endif
 	{NULL, NULL}
 };
 

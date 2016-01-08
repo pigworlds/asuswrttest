@@ -734,3 +734,10 @@ config RTCONFIG_GEOIP
 config RTCONFIG_NOWL
 	bool "no load wl module (only dhd test)"
 	default n
+config RTCONFIG_TR069
+	bool "TR-069 agent"
+	default n
+
+config RTCONFIG_TR181
+	bool "Support TR-181 data model"
+	default n
