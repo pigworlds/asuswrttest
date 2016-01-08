@@ -88,6 +88,10 @@
 #define LOG_COMMIT_PERIOD	2		/* 2 x 30 seconds */
 static int log_commit_count = 0;
 #endif
+#if defined(RTCONFIG_USB_MODEM) && (defined(RTCONFIG_JFFS2) || defined(RTCONFIG_BRCM_NAND_JFFS2) || defined(RTCONFIG_UBIFS))
+#define MODEM_FLOW_PERIOD	1
+unsigned int modem_flow_count = 0;
+#endif
 
 #if 0
 static int cpu_timer = 0;
@@ -127,13 +131,14 @@ static int LED_switch_count = 0;
 static int BTN_pressed_count = 0;
 #endif
 #endif
+static int wlonunit = -1;
 
 extern int g_wsc_configured;
 extern int g_isEnrollee[MAX_NR_WL_IF];
 
 #define REGULAR_DDNS_CHECK	10 //10x30 sec
 static int ddns_check_count = 0;
-void 
+void
 sys_exit()
 {
 	printf("[watchdog] sys_exit");
@@ -154,14 +159,20 @@ extern int no_need_to_start_wps();
 
 void led_control_normal(void)
 {
-	led_control(LED_POWER, LED_ON);
-
-	if (nvram_get_int("led_pwr_gpio") != nvram_get_int("led_wps_gpio"))
-		led_control(LED_WPS, LED_OFF);
-
 #if defined(RTCONFIG_LED_BTN) && defined(RTAC87U)
 	LED_switch_count = nvram_get_int("LED_switch_count");
+	if(nvram_get_int("AllLED") == 0) return;
 #endif
+
+	led_control(LED_POWER, LED_ON);
+
+#if defined(RTN11P)
+	led_control(LED_WPS, LED_ON);	//wps led is also 2g led. and NO power led.
+#else
+	if (nvram_get_int("led_pwr_gpio") != nvram_get_int("led_wps_gpio"))
+		led_control(LED_WPS, LED_OFF);
+#endif
+
 }
 
 void erase_nvram(void)
@@ -290,9 +301,6 @@ void btn_check(void)
 				if (++btn_count > RESET_WAIT_COUNT)
 				{
 					fprintf(stderr, "You can release RESET button now!\n");
-#ifdef RTCONFIG_NEW_RST_BTN
-					setAllLedOff();
-#endif
 					btn_pressed = 2;
 				}
 				if (btn_pressed == 2)
@@ -563,14 +571,28 @@ void btn_check(void)
 
 			eval("et", "robowr", "0", "0x18", "0x01ff");
 			eval("et", "robowr", "0", "0x1a", "0x01ff");
-
-			eval("wl", "ledbh", "10", "7");
-			eval("wl", "-i", "eth2", "ledbh", "10", "7");
+			if (wlonunit == -1 || wlonunit == 0) {
+#ifdef RTAC68U
+				eval("wl", "ledbh", "10", "7");
+#elif RTAC3200
+				eval("wl", "-i", "eth2", "ledbh", "10", "7");
+#endif
+			}
+			if (wlonunit == -1 || wlonunit == 1) {
+#ifdef RTAC68U
+				eval("wl", "-i", "eth2", "ledbh", "10", "7");
+#elif RTAC3200
+				eval("wl", "ledbh", "10", "7");
+#endif
+			}
 #ifdef RTAC3200
-			eval("wl", "-i", "eth3", "ledbh", "10", "7");
+			if (wlonunit == -1 || wlonunit == 2) {
+				eval("wl", "-i", "eth3", "ledbh", "10", "7");
+			}
 #endif
 #ifdef RTAC68U
-			if (nvram_match("wl1_radio", "1"))
+			if (nvram_match("wl1_radio", "1") &&
+			   (wlonunit == -1 || wlonunit == 1))
 			{
 				nvram_set("led_5g", "1");
 				led_control(LED_5G, LED_ON);
@@ -612,7 +634,7 @@ void btn_check(void)
 
 			eval("et", "robowr", "0", "0x18", "0x01ff");
 			eval("et", "robowr", "0", "0x1a", "0x01ff");
-			qcsapi_wifi_run_script("set_test_mode", "lan4_led_ctrl on");
+			qcsapi_wifi_run_script("router_command.sh", "lan4_led_ctrl on");
 
 			if(nvram_match("wl0_radio", "1"))
 				eval("wl", "ledbh", "10", "7");
@@ -637,7 +659,7 @@ void btn_check(void)
 
 #ifdef RTCONFIG_BCMWL6
 #ifdef RTCONFIG_PROXYSTA
-	if (is_psta(0) || is_psta(1))
+	if (psta_exist())
 		return;
 #endif
 #endif
@@ -689,7 +711,7 @@ void btn_check(void)
 			alarmtimer(NORMAL_PERIOD, 0);
 		}
 	}
-	else 
+	else
 	{
 		if (!nvram_match("wps_ign_btn", "1")) {
 #ifndef RTCONFIG_WPS_RST_BTN
@@ -749,7 +771,6 @@ void btn_check(void)
 #endif
 }
 
-
 #define DAYSTART (0)
 #define DAYEND (60*60*23 + 60*59 + 59) // 86399
 static int in_sched(int now_mins, int now_dow, int sched_begin, int sched_end, int sched_begin2, int sched_end2, int sched_dow)
@@ -777,7 +798,7 @@ static int in_sched(int now_mins, int now_dow, int sched_begin, int sched_end, i
 	}
 
 	// wday: 1
-	if((now_dow & 0x20) != 0){ 
+	if((now_dow & 0x20) != 0){
 		// under Monday's sched time
 		if(((now_dow & sched_dow) != 0) && (now_mins >= sched_begin) && (now_mins <= sched_end) && (sched_begin < sched_end))
 			return 1;
@@ -788,7 +809,7 @@ static int in_sched(int now_mins, int now_dow, int sched_begin, int sched_end, i
 
 		// under Sunday's sched time
 		now_dow <<= 1; // Sunday
-		if(((now_dow & sched_dow) != 0) && (now_mins <= sched_end2) && (sched_begin2 >= sched_end2)) 
+		if(((now_dow & sched_dow) != 0) && (now_mins <= sched_end2) && (sched_begin2 >= sched_end2))
 			return 1;
 	}
 
@@ -820,7 +841,7 @@ static int in_sched(int now_mins, int now_dow, int sched_begin, int sched_end, i
 
 		// under Friday's sched time
 		now_dow <<= 1; // Friday
-		if(((now_dow & sched_dow) != 0) && (now_mins <= sched_end) && (sched_begin >= sched_end)) 
+		if(((now_dow & sched_dow) != 0) && (now_mins <= sched_end) && (sched_begin >= sched_end))
 			return 1;
 	}
 
@@ -868,7 +889,7 @@ int timecheck_item(char *activeDate, char *activeTime, char *activeTime2)
 }
 
 
-int svcStatus[8] = { -1, -1, -1, -1, -1, -1, -1, -1};
+int svcStatus[12] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 
 /* Check for time-reated service 	*/
 /* 1. Wireless Radio			*/
@@ -908,7 +929,7 @@ void timecheck(void)
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
 
 		//dbG("[watchdog] timecheck unit=%s radio=%s, timesched=%s\n", prefix, nvram_safe_get(strcat_r(prefix, "radio", tmp)), nvram_safe_get(strcat_r(prefix, "timesched", tmp2))); // radio toggle test
-		if (nvram_match(strcat_r(prefix, "radio", tmp), "0") || 
+		if (nvram_match(strcat_r(prefix, "radio", tmp), "0") ||
 			nvram_match(strcat_r(prefix, "timesched", tmp2), "0")){
 			item++;
 			unit++;
@@ -933,10 +954,11 @@ void timecheck(void)
 
 	// guest ssid expire check
 	if ((nvram_get_int("sw_mode") != SW_MODE_REPEATER) &&
-		(strlen(nvram_safe_get("wl0_vifs")) || strlen(nvram_safe_get("wl1_vifs"))))
+		(strlen(nvram_safe_get("wl0_vifs")) || strlen(nvram_safe_get("wl1_vifs")) ||
+		 strlen(nvram_safe_get("wl2_vifs"))))
 	{
 		lan_ifname = nvram_safe_get("lan_ifname");
-		sprintf(wl_vifs, "%s %s", nvram_safe_get("wl0_vifs"), nvram_safe_get("wl1_vifs"));
+		sprintf(wl_vifs, "%s %s %s", nvram_safe_get("wl0_vifs"), nvram_safe_get("wl1_vifs"), nvram_safe_get("wl2_vifs"));
 
 		foreach (word, wl_vifs, next) {
 			snprintf(nv, sizeof(nv) - 1, "%s_expire_tmp", wif_to_vif(word));
@@ -1098,7 +1120,7 @@ void fake_wl_led_2g(void)
 	static int j;
 	static int status = -1;
 	static int status_old;
-	
+
 	// check data per 10 count
 	if((blink_2g_check%10)==0) {
 		count_2g = get_2g_count();
@@ -1231,24 +1253,39 @@ void led_check(void)
 {
 #ifdef RTCONFIG_WLAN_LED
 	if (nvram_contains_word("rc_support", "led_2g"))
+	{
+#if defined(RTN53)
+		if(nvram_get_int("wl0_radio") == 0)
+			led_control(LED_2G, LED_OFF);
+		else
+#endif
 		fake_wl_led_2g();
+	}
 #endif
 
 #if defined(RTN18U)
 	if (nvram_match("bl_version", "1.0.0.0"))
-                fake_wl_led_2g();		
+		fake_wl_led_2g();
 #endif
 
 #if defined(RTCONFIG_BRCM_USBAP) || defined(RTAC66U) || defined(BCM4352)
 #if defined(RTAC66U) || defined(BCM4352)
-	if (nvram_match("led_5g", "1"))
+	if (nvram_match("led_5g", "1") &&
+	   (wlonunit == -1 || wlonunit == 1))
 #endif
-	fake_wl_led_5g();
+	{
+#if defined(RTN53)
+                if(nvram_get_int("wl1_radio") == 0)
+                        led_control(LED_5G, LED_OFF);
+                else
+#endif
+		fake_wl_led_5g();
+	}
 #endif
 
 // it is not really necessary, but if required, add internet led check here
 // using wan_primary_ifunit() to get current working wan unit wan0 or wan1
-// using wan0_state_t or wan1_state_t to get status of working wan, 
+// using wan0_state_t or wan1_state_t to get status of working wan,
 //	WAN_STATE_CONNECTED means internet connected
 //	else means internet disconnted
 
@@ -1401,11 +1438,9 @@ void regular_ddns_check(void)
 	struct in_addr ip_addr;
 	struct hostent *hostinfo;
 
-	//_dprintf("regular_ddns_check...\n");	
-        if(strstr(nvram_get("ddns_return_code"), "200"))
-                return;
+	//_dprintf("regular_ddns_check...\n");
 
-        hostinfo = gethostbyname(nvram_get("ddns_hostname_x"));
+	hostinfo = gethostbyname(nvram_get("ddns_hostname_x"));
 	ddns_check_count = 0;
 
 	if(hostinfo) {
@@ -1413,10 +1448,10 @@ void regular_ddns_check(void)
 		//_dprintf("  %s ?= %s\n", nvram_get("wan0_ipaddr"), inet_ntoa(ip_addr));
 		if(strcmp(nvram_get("wan0_ipaddr"), inet_ntoa(ip_addr))) {
 			//_dprintf("WAN IP change!\n");
-	       	        nvram_set("ddns_update_by_wdog", "1");
-                	//unlink("/tmp/ddns.cache");
-	                logmessage("watchdog", "Hostname/IP mapping error! Restart ddns.");
-               		notify_rc("start_ddns");
+			nvram_set("ddns_update_by_wdog", "1");
+			//unlink("/tmp/ddns.cache");
+			logmessage("watchdog", "Hostname/IP mapping error! Restart ddns.");
+			notify_rc("start_ddns");
 		}
 	}
 	return;
@@ -1424,21 +1459,23 @@ void regular_ddns_check(void)
 
 void ddns_check(void)
 {
+	//_dprintf("ddns_check... %d\n", ddns_check_count);
 	if(nvram_match("ddns_enable_x", "1") &&
 	  (nvram_match("wan0_state_t", "2") && nvram_match("wan0_auxstate_t", "0")) )
 	{
-		ddns_check_count++;
-
 		if (pids("ez-ipupdate")) //ez-ipupdate is running!
 			return;
 
-		/*
-		if(ddns_check_count == REGULAR_DDNS_CHECK) {
-			regular_ddns_check();
-			ddns_check_count = 0;
+		if (nvram_match("ddns_regular_check", "1")&& !nvram_match("ddns_server_x", "WWW.ASUS.COM")) {
+			int period = nvram_get_int("ddns_regular_period");
+			if (period < 30) period = 60;
+		    	if (ddns_check_count >= (period*2)) {
+				regular_ddns_check();
+				ddns_check_count = 0;
 			return;
+			}
+			ddns_check_count++;
 		}
-		*/
 
 		if( nvram_match("ddns_updated", "1") ) //already updated success
 			return;
@@ -1475,7 +1512,7 @@ void syslog_commit_check(void)
 	int tmp_stat, jffs_stat;
 
 	tmp_stat = stat("/tmp/syslog.log", &tmp_log_stat);
-	if(tmp_stat == -1) 
+	if(tmp_stat == -1)
 		return;
 
 	if(++log_commit_count >= LOG_COMMIT_PERIOD) {
@@ -1490,6 +1527,75 @@ void syslog_commit_check(void)
 			eval("cp", "/tmp/syslog.log", "/tmp/syslog.log-1", "/jffs");
 
 		log_commit_count = 0;
+	}
+	return;
+}
+#endif
+
+#if defined(RTCONFIG_USB_MODEM) && (defined(RTCONFIG_JFFS2) || defined(RTCONFIG_BRCM_NAND_JFFS2) || defined(RTCONFIG_UBIFS))
+void modem_flow_check(void){
+	time_t now, start, diff;
+	char timebuf[16];
+	int day_now, day_start, day_cycle;
+	int reset;
+	int unit;
+
+	unit = get_wan_unit(nvram_safe_get("usb_modem_act_dev"));
+	if(unit == -1)
+		return;
+
+	if(!is_wan_connect(unit))
+		return;
+
+	if(++modem_flow_count >= MODEM_FLOW_PERIOD){
+		start = strtol(nvram_safe_get("modem_bytes_data_start"), NULL, 10);
+		strftime(timebuf, 16, "%d", gmtime(&start));
+		day_start = strtol(timebuf, NULL, 10);
+
+		now = uptime();
+		strftime(timebuf, 16, "%d", gmtime(&now));
+		day_now = strtol(timebuf, NULL, 10);
+
+		strftime(timebuf, 16, "%b", gmtime(&start));
+
+		day_cycle = strtol(nvram_safe_get("modem_bytes_data_cycle"), NULL, 10);
+		if(day_cycle > 0 && !strcmp("modem_bytes_data_cycle_debug", "1"))
+			_dprintf("modem_flow_check: start=%d, %s, now=%d, cycle=%d.\n", day_start, timebuf, day_now, day_cycle);
+
+		diff = now-start;
+		reset = 0;
+		if(day_cycle > 0){
+			if(day_now == day_cycle){
+				if(now-start < 30)
+					reset = 1;
+			}
+			// 2419200 = 28 days
+			// 2592000 = 30 days
+			// 2678400 = 31 days
+			else if(diff > 2678400){
+				reset = 1;
+			}
+			else if(diff > 2592000){
+				if(strcmp(timebuf, "Jan") && strcmp(timebuf, "Mar") && strcmp(timebuf, "May") && strcmp(timebuf, "Jul") && strcmp(timebuf, "Aug") && strcmp(timebuf, "Oct") && strcmp(timebuf, "Dec"))
+					reset = 1;
+			}
+			else if(diff > 2419200){
+				if(strcmp(timebuf, "Apr") && strcmp(timebuf, "Jun") && strcmp(timebuf, "Sep") && strcmp(timebuf, "Nov"))
+					reset = 1;
+			}
+		}
+
+		if(reset){
+			eval("modem_status.sh", "bytes-");
+			//snprintf(timebuf, 16, "%d", 86400*day_cycle);
+			snprintf(timebuf, 16, "%d", (int)now);
+			nvram_set("modem_bytes_data_start", timebuf);
+			nvram_commit();
+		}
+		else
+			eval("modem_status.sh", "bytes");
+
+		modem_flow_count = 0;
 	}
 	return;
 }
@@ -1519,6 +1625,12 @@ static void auto_firmware_check()
 			period = -1;
 		}
 	}
+#ifdef RTAC68U
+	else if (nvram_match("bl_version", "2.1.2.2")) {
+		periodic_check = 1;
+		nvram_set_int("fw_check_period", 10);
+	}
+#endif
 
 	if (bootup_check || periodic_check)
 		period = (period + 1) % cycle;
@@ -1531,13 +1643,22 @@ static void auto_firmware_check()
 			bootup_check = 0;
 
 		eval("/usr/sbin/webs_update.sh");
+#ifdef RTCONFIG_DSL
+		eval("/usr/sbin/notif_update.sh");
+#endif
 
 		if (nvram_get_int("webs_state_update") &&
 		    !nvram_get_int("webs_state_error") &&
 		    strlen(nvram_safe_get("webs_state_info")))
 		{
 			dbg("retrieve firmware information\n");
-#ifdef RTCONFIG_TMOBILE
+#ifdef RTAC68U
+			if (!nvram_match("bl_version", "2.1.2.2"))
+				return;
+
+			if (!nvram_match("login_ip", ""))
+				return;
+
 			if (!nvram_get_int("webs_state_flag"))
 			{
 				dbg("no need to upgrade firmware\n");
@@ -1553,10 +1674,14 @@ static void auto_firmware_check()
 				dbg("error execute upgrade script\n");
 				goto ERROR;
 			}
+
+			nvram_set("restore_defaults", "1");
+			ResetDefault();
+
 #ifdef RTCONFIG_DUAL_TRX
 			int count = 80;
 #else
-			int count = 40;
+			int count = 50;
 #endif
 			while ((count-- > 0) && (nvram_get_int("webs_state_upgrade") == 1))
 			{
@@ -1569,7 +1694,7 @@ static void auto_firmware_check()
 		}
 		else
 			dbg("could not retrieve firmware information!\n");
-#ifdef RTCONFIG_TMOBILE
+#ifdef RTAC68U
 ERROR:
 		nvram_set_int("auto_upgrade", 0);
 #endif
@@ -1735,53 +1860,6 @@ void push_mail(void)
 #endif
 #endif
 
-#ifdef RTCONFIG_DSL
-
-#define DSL_LOSS_TIME_TH	18000
-
-void dsl_sync_check(void)
-{
-	static long last_loss_time = 0;
-	static int last_status = 0;	//0: others, 1: up
-	struct sysinfo info;
-
-	if(nvram_get_int("dsltmp_syncloss_apply")) {
-		nvram_set("dsltmp_syncloss_apply", "0");
-		nvram_set("dsltmp_adslsyncsts", "down");
-		nvram_set("dsltmp_syncloss", "0");
-		last_loss_time = 0;
-		last_status = 0;
-	}
-
-	if(nvram_match("dsltmp_syncloss", "2"))
-		return;
-
-	if(nvram_match("dsltmp_adslsyncsts", "up")) {
-		if(!last_status)
-			last_status = 1;
-	}
-	else {
-		if(last_status) {
-			last_status = 0;
-			sysinfo(&info);
-			if(!last_loss_time) {	//first time
-				last_loss_time = info.uptime;
-			}
-			else {
-				if(info.uptime - last_loss_time < DSL_LOSS_TIME_TH) {
-					nvram_set("dsltmp_syncloss", "1");
-				}
-				else {
-					last_loss_time = info.uptime;
-				}
-			}
-		}
-		else
-			;//wait to up
-	}
-}
-#endif
-
 #ifdef RTCONFIG_USER_LOW_RSSI
 #define ETHER_ADDR_STR_LEN	18
 
@@ -1809,7 +1887,9 @@ void init_wllc()
 	}
 }
 
-#if !defined(RTCONFIG_RALINK)
+#if defined(RTCONFIG_RALINK)
+#elif defined(RTCONFIG_QCA)
+#else
 void rssi_check_unit(int unit)
 {
 	int lrsi = 0, lrc = 0;
@@ -1832,7 +1912,7 @@ void rssi_check_unit(int unit)
 		return;
 
 #ifdef RTCONFIG_PROXYSTA
-	if (is_psta(1 - unit))
+	if (psta_exist_except(unit))
 	{
 		dbg("%s radio is disabled\n",
 			nvram_match(strcat_r(prefix, "nband", tmp), "1") ? "5 GHz" : "2.4 GHz");
@@ -1879,12 +1959,12 @@ void rssi_check_unit(int unit)
 
 		ether_etoa((void *)&assoc->ea[i], ea);
 
-		_dprintf("rssi chk.1. wlif(%s), chk ea=%s, rssi=%d(%d), lowr_cnt=%d, lrc=%d\n", name, ea, scb_val.val, lrsi, wllc[unit].lowc, lrc);	// tmp test
+		_dprintf("rssi chk.1. wlif(%s), chk ea=%s, rssi=%d(%d), lowr_cnt=%d, lrc=%d\n", name, ea, scb_val.val, lrsi, wllc[unit].lowc, lrc);
 
 		if(scb_val.val < lrsi){
-			_dprintf("rssi chk.2. low rssi: ea=%s, lowc=%d(%d)\n", ea, wllc[unit].lowc, lrc);	// tmp test
+			_dprintf("rssi chk.2. low rssi: ea=%s, lowc=%d(%d)\n", ea, wllc[unit].lowc, lrc);
 			if(++wllc[unit].lowc > lrc){
-				_dprintf("rssi chk.3. deauth ea=%s\n", ea);	// tmp test
+				_dprintf("rssi chk.3. deauth ea=%s\n", ea);
 
 				scb_val.val = 8;	// reason code: Disassociated because sending STA is leaving BSS
 				wllc[unit].lowc = 0;
@@ -1920,12 +2000,12 @@ void rssi_check_unit(int unit)
 
 				ether_etoa((void *)&assoc->ea[ii], ea);
 
-				_dprintf("rssi chk.1. wlif(%s), chk ea=%s, rssi=%d(%d), lowr_cnt=%d, lrc=%d\n", name_vif, ea, scb_val.val, lrsi, wllc[unit].lowc, lrc);	// tmp test
+				_dprintf("rssi chk.1. wlif(%s), chk ea=%s, rssi=%d(%d), lowr_cnt=%d, lrc=%d\n", name_vif, ea, scb_val.val, lrsi, wllc[unit].lowc, lrc);
 
 				if(scb_val.val < lrsi){
-					_dprintf("rssi chk.2. low rssi: ea=%s, lowc=%d(%d)\n", ea, wllc[unit].lowc, lrc);	// tmp test
+					_dprintf("rssi chk.2. low rssi: ea=%s, lowc=%d(%d)\n", ea, wllc[unit].lowc, lrc);
 					if(++wllc[unit].lowc > lrc){
-						_dprintf("rssi chk.3. deauth ea=%s\n", ea);	// tmp test
+						_dprintf("rssi chk.3. deauth ea=%s\n", ea);
 
 						scb_val.val = 8;	// reason code: Disassociated because sending STA is leaving BSS
 						wllc[unit].lowc = 0;
@@ -1971,7 +2051,7 @@ void rssi_check()
 static void send_wrslog_email(char *path)
 {
 	FILE *fp;
-	char tmp[1024], buf[1024], title[64], attach[64];
+	char tmp[1024], buf[1024], title[64], attach[64], smtp_auth_pass[256];
 	char date[30];
 	time_t now;
 
@@ -1980,11 +2060,12 @@ static void send_wrslog_email(char *path)
 	memset(title, 0, sizeof(title));
 	memset(attach, 0, sizeof(attach));
 	memset(date, 0, sizeof(date));
+	memset(smtp_auth_pass, 0, sizeof(smtp_auth_pass));
 
 	// get current date
 	time(&now);
 	StampToDate(now, date);
-	
+
 	//printf("send_mail : path = %s\n", path);
 	// check path for protection
 	if(!strcmp(path, "")) return;
@@ -1996,6 +2077,12 @@ static void send_wrslog_email(char *path)
 		return;
 	}
 
+#ifdef RTCONFIG_HTTPS
+	strncpy(smtp_auth_pass,pwdec(nvram_get("PM_SMTP_AUTH_PASS")),256);
+#else
+	strncpy(smtp_auth_pass,nvram_get("PM_SMTP_AUTH_PASS"),256);
+#endif
+
 	fprintf(fp,"SMTP_SERVER = '%s'\n", nvram_safe_get("PM_SMTP_SERVER"));
 	fprintf(fp,"SMTP_PORT = '%s'\n", nvram_safe_get("PM_SMTP_PORT"));
 	fprintf(fp,"MY_NAME = 'Administrator'\n");
@@ -2003,7 +2090,7 @@ static void send_wrslog_email(char *path)
 	fprintf(fp,"USE_TLS = 'true'\n");
 	fprintf(fp,"SMTP_AUTH = 'LOGIN'\n");
 	fprintf(fp,"SMTP_AUTH_USER = '%s'\n", nvram_safe_get("PM_SMTP_AUTH_USER"));
-	fprintf(fp,"SMTP_AUTH_PASS = '%s'\n", nvram_safe_get("PM_SMTP_AUTH_PASS"));
+	fprintf(fp,"SMTP_AUTH_PASS = '%s'\n", smtp_auth_pass);
 	fclose(fp);
 
 	// email content
@@ -2011,7 +2098,7 @@ static void send_wrslog_email(char *path)
 		printf("fail to open %s\n", CC_CONTENT);
 		return;
 	}
-	
+
 	// extract mail log into seperated event information
 	extract_data(path, fp);
 
@@ -2046,23 +2133,6 @@ static void capture_bwdpi_log()
 	int flag = merge_log(path);
 	//printf("[capture log] flag = %d, path = %s\n", flag, path);
 	if(flag) send_wrslog_email(path);
-}
-
-static void check_dc_alive()
-{
-	// check no qos service
-	if(nvram_get_int("wrs_enable") == 0 && nvram_get_int("wrs_app_enable") == 0 && 
-		nvram_get_int("wrs_vp_enable") == 0 && nvram_get_int("wrs_cc_enable") == 0 &&
-		nvram_get_int("qos_enable") == 0)
-		return;
-
-	// check traditional qos service
-	if(nvram_get_int("wrs_enable") == 0 && nvram_get_int("wrs_app_enable") == 0 && 
-		nvram_get_int("wrs_vp_enable") == 0 && nvram_get_int("wrs_cc_enable") == 0 &&
-		nvram_get_int("qos_enable") == 1 && nvram_get_int("qos_type") == 0)
-		return;
-
-	start_dc();
 }
 
 static void auto_sig_check()
@@ -2132,6 +2202,7 @@ ERROR:
 }
 #endif
 
+#if 0
 static time_t	tt=0, tt_old=0;
 static int 	bcnt=0;
 void
@@ -2155,6 +2226,7 @@ period_chk_cnt()
 		tt = tt_old = bcnt = 0;
 	}
 }
+#endif
 
 /* wathchdog is runned in NORMAL_PERIOD, 1 seconds
  * check in each NORMAL_PERIOD
@@ -2170,8 +2242,9 @@ void watchdog(int sig)
 #ifdef RTCONFIG_PUSH_EMAIL
 	//push_mail();
 #endif
+#if 0
 	period_chk_cnt();
-
+#endif
 	/* handle button */
 	btn_check();
 	if(nvram_match("asus_mfg", "0")
@@ -2208,8 +2281,11 @@ void watchdog(int sig)
 #ifdef RTCONFIG_BCMARM
 	if(u3_chk_life < 20) {
 		chkusb3_period = (chkusb3_period + 1) % u3_chk_life;
-		if(!chkusb3_period && nvram_match("usb_usb3", "1") && nvram_match("usb_path1_speed", "12")){
-			_dprintf("force reset usb pwr\n");	// tmp test
+		if(!chkusb3_period && nvram_match("usb_usb3", "1") && nvram_match("usb_path1_speed", "12")
+				&& strcmp(nvram_safe_get("usb_path1"), "printer")
+				&& strcmp(nvram_safe_get("usb_path1"), "modem")
+				) {
+			_dprintf("force reset usb pwr\n");
 			stop_usb_program(1);
 			sleep(1);
 			set_pwr_usb(0);
@@ -2239,21 +2315,20 @@ void watchdog(int sig)
 #if defined(RTCONFIG_JFFS2LOG) && (defined(RTCONFIG_JFFS2)||defined(RTCONFIG_BRCM_NAND_JFFS2))
 	syslog_commit_check();
 #endif
+#if defined(RTCONFIG_USB_MODEM) && (defined(RTCONFIG_JFFS2) || defined(RTCONFIG_BRCM_NAND_JFFS2) || defined(RTCONFIG_UBIFS))
+	modem_flow_check();
+#endif
 	auto_firmware_check();
 
-#ifdef RTCONFIG_DSL
-	dsl_sync_check();
-#endif
 #ifdef RTCONFIG_BWDPI
 	auto_sig_check();
 	capture_bwdpi_log();
-	check_dc_alive();
 #endif
 
 	return;
 }
 
-int 
+int
 watchdog_main(int argc, char *argv[])
 {
 	FILE *fp;
@@ -2269,9 +2344,14 @@ watchdog_main(int argc, char *argv[])
 	pre_sw_mode=nvram_get_int("sw_mode");
 #endif
 
+	if ((nvram_get_int("sw_mode") == SW_MODE_AP) && (nvram_get_int("wlc_psta") == 1))
+		wlonunit = nvram_get_int("wlc_band");
+
 #ifdef RTCONFIG_RALINK
 	doSystem("iwpriv %s set WatchdogPid=%d", WIF_2G, getpid());
+#if defined(RTCONFIG_HAS_5G)
 	doSystem("iwpriv %s set WatchdogPid=%d", WIF_5G, getpid());
+#endif	/* RTCONFIG_HAS_5G */
 #endif	/* RTCONFIG_RALINK */
 
 	/* set the signal handler */
@@ -2322,3 +2402,4 @@ watchdog_main(int argc, char *argv[])
 
 	return 0;
 }
+

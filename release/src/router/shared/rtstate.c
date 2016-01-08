@@ -32,6 +32,24 @@ void add_rc_support(char *feature)
 		nvram_set("rc_support", feature);
 }
 
+int is_wan_connect(int unit){
+	char tmp[100], prefix[]="wanXXXXXX_";
+	int wan_state, wan_sbstate, wan_auxstate;
+
+	snprintf(prefix, sizeof(prefix), "wan%d_", unit);
+
+	wan_state = nvram_get_int(strcat_r(prefix, "state_t", tmp));
+	wan_sbstate = nvram_get_int(strcat_r(prefix, "sbstate_t", tmp));
+	wan_auxstate = nvram_get_int(strcat_r(prefix, "auxstate_t", tmp));
+
+	if(wan_state == 2 && wan_sbstate == 0 &&
+			(wan_auxstate == 0 || wan_auxstate == 2)
+			)
+		return 1;
+	else
+		return 0;
+}
+
 int get_wan_state(int unit)
 {
 	char tmp[100], prefix[]="wanXXXXXX_";
@@ -207,8 +225,7 @@ int get_wanports_status(int wan_unit)
 	if(get_dualwan_by_unit(wan_unit) == WANS_DUALWAN_IF_DSL)
 #endif
 	{
-		/* Paul modify 2012/10/18, check both ADSL sync status, and WAN0 state. */
-		if (nvram_match("dsltmp_adslsyncsts","up") && nvram_match("wan0_state_t","2")) return 1;
+		if (nvram_match("dsltmp_adslsyncsts","up")) return 1;
 		return 0;
 	}
 #ifdef RTCONFIG_DUALWAN

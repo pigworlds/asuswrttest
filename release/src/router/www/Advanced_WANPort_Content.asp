@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml"> 
 <html xmlns:v>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -57,7 +57,7 @@
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
-<script language="JavaScript" type="text/javascript" src="/detect.js"></script>
+<script language="JavaScript" type="text/javascript" src="/validator.js"></script>
 <script type="text/javascript" src="/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script>
@@ -70,8 +70,6 @@ var wans_flag;
 var switch_stb_x = '<% nvram_get("switch_stb_x"); %>';
 var wans_caps_primary;
 var wans_caps_secondary;
-<% login_state_hook(); %>
-var wireless = [<% wl_auth_list(); %>];	// [[MAC, associated, authorized], ...]
 
 var $j = jQuery.noConflict();
 
@@ -282,14 +280,12 @@ function addWANOption(obj, wanscapItem){
 	for(i=0; i<wanscapItem.length; i++){
 		if(wanscapItem[i].length > 0){
 			var wanscapName = wanscapItem[i].toUpperCase();
-			if(wanscapName == "LAN")
-				wanscapName = "Ethernet LAN";
 	               //MODELDEP: DSL-N55U, DSL-N55U-B, DSL-AC68U, DSL-AC68R
         	        if(wanscapName == "LAN" && 
                 	        (productid == "DSL-N55U" || productid == "DSL-N55U-B" || productid == "DSL-AC68U" || productid == "DSL-AC68R")) 
-		                        wanscapName = "Ethernet WAN";
+				wanscapName = "Ethernet WAN";
                 	else if(wanscapName == "LAN")
-		                        wanscapName = "Ethernet LAN";
+				wanscapName = "Ethernet LAN";
 			obj.options[i] = new Option(wanscapName, wanscapItem[i]);
 		}	
 	}
@@ -476,14 +472,14 @@ function addRow_Group(upper){
 			if(document.form.wans_FromIP_x_0.value==""){
 				document.form.wans_FromIP_x_0.value = "all";
 			}
-			else if(valid_IP_form(document.form.wans_FromIP_x_0,2) != true){
+			else if(validator.validIPForm(document.form.wans_FromIP_x_0,2) != true){
 				return false;
 			} 
 			
 			if(document.form.wans_ToIP_x_0.value==""){
 					document.form.wans_ToIP_x_0.value = "all";
 			}
-			else if(valid_IP_form(document.form.wans_ToIP_x_0,2) != true){
+			else if(validator.validIPForm(document.form.wans_ToIP_x_0,2) != true){
 				document.form.wans_FromIP_x_0.value = "";
 				document.form.wans_ToIP_x_0.value = "";				
 				return false;
@@ -662,49 +658,6 @@ function appendcountry(obj){
 	}
 }
 
-function is_ipaddr_plus_netmask(o,event){
-	keyPressed = event.keyCode ? event.keyCode : event.which;
-
-	if (is_functionButton(event)){
-		return true;
-	}
-
-	if((keyPressed > 46 && keyPressed < 58)){
-		j = 0;
-		
-		for(i = 0; i < o.value.length; i++){
-			if(o.value.charAt(i) == '.'){
-				j++;
-			}
-		}
-		
-		if(j < 3 && i >= 3){
-			if(o.value.charAt(i-3) != '.' && o.value.charAt(i-2) != '.' && o.value.charAt(i-1) != '.'){
-				o.value = o.value+'.';
-			}
-		}
-		
-		return true;
-	}
-	else if(keyPressed == 46){
-		j = 0;
-		
-		for(i = 0; i < o.value.length; i++){
-			if(o.value.charAt(i) == '.'){
-				j++;
-			}
-		}
-		
-		if(o.value.charAt(i-1) == '.' || j == 3){
-			return false;
-		}
-		
-		return true;
-	}	
-	return false;
-}
-
-
 function del_Row(obj){
   var i=obj.parentNode.parentNode.rowIndex;
   $('wans_RoutingRules_table').deleteRow(i);
@@ -725,17 +678,20 @@ function del_Row(obj){
 		show_wans_rules();
 }
 
-//copy array from Main_Analysis page
-var client_list_array = [["Google ", "www.google.com"], ["Facebook", "www.facebook.com"], ["Youtube", "www.youtube.com"], ["Yahoo", "www.yahoo.com"],
-												 ["Baidu", "www.baidu.com"], ["Wikipedia", "www.wikipedia.org"], ["Windows Live", "www.live.com"], ["QQ", "www.qq.com"],
-												 ["Amazon", "www.amazon.com"], ["Twitter", "www.twitter.com"], ["Taobao", "www.taobao.com"], ["Blogspot", "www.blogspot.com"], 
-												 ["Linkedin", "www.linkedin.com"], ["Sina", "www.sina.com"], ["eBay", "www.ebay.com"], ["MSN", "msn.com"], ["Bing", "www.bing.com"], 
-												 ["Яндекс", "www.yandex.ru"], ["WordPress", "www.wordpress.com"], ["ВКонтакте", "www.vk.com"]];
 
 function showLANIPList(){
+	//copy array from Main_Analysis page
+	var APPListArray = [
+		["Google ", "www.google.com"], ["Facebook", "www.facebook.com"], ["Youtube", "www.youtube.com"], ["Yahoo", "www.yahoo.com"],
+		["Baidu", "www.baidu.com"], ["Wikipedia", "www.wikipedia.org"], ["Windows Live", "www.live.com"], ["QQ", "www.qq.com"],
+		["Amazon", "www.amazon.com"], ["Twitter", "www.twitter.com"], ["Taobao", "www.taobao.com"], ["Blogspot", "www.blogspot.com"], 
+		["Linkedin", "www.linkedin.com"], ["Sina", "www.sina.com"], ["eBay", "www.ebay.com"], ["MSN", "msn.com"], ["Bing", "www.bing.com"], 
+		["Яндекс", "www.yandex.ru"], ["WordPress", "www.wordpress.com"], ["ВКонтакте", "www.vk.com"]
+	];
+
 	var code = "";
-	for(var i = 0; i < client_list_array.length; i++){
-		code += '<a><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP(\''+client_list_array[i][1]+'\');"><strong>'+client_list_array[i][0]+'</strong></div></a>';
+	for(var i = 0; i < APPListArray.length; i++){
+		code += '<a><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP(\''+APPListArray[i][1]+'\');"><strong>'+APPListArray[i][0]+'</strong></div></a>';
 	}
 	code +='<!--[if lte IE 6.5]><iframe class="hackiframe2"></iframe><![endif]-->';	
 	$("ClientList_Block_PC").innerHTML = code;
@@ -896,9 +852,9 @@ function pullLANIPList(obj){
 			          		<tr>
 			            		<th><#dualwan_mode_lb_setting#></th>
 			            		<td>
-												<input type="text" maxlength="1" class="input_3_table" name="wans_lb_ratio_0" value="" onkeypress="return is_number(this,event);" />
+												<input type="text" maxlength="1" class="input_3_table" name="wans_lb_ratio_0" value="" onkeypress="return validator.isNumber(this,event);" />
 												&nbsp; : &nbsp;
-												<input type="text" maxlength="1" class="input_3_table" name="wans_lb_ratio_1" value="" onkeypress="return is_number(this,event);" />												
+												<input type="text" maxlength="1" class="input_3_table" name="wans_lb_ratio_1" value="" onkeypress="return validator.isNumber(this,event);" />												
 											</td>
 			          		</tr>
 
@@ -939,26 +895,26 @@ function pullLANIPList(obj){
 					<tr>
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(26,3);"><#Interval#></a></th>
 						<td>
-		        		<input type="text" name="wandog_interval" class="input_3_table" maxlength="1" value="<% nvram_get("wandog_interval"); %>" onKeyPress="return is_number(this, event);" placeholder="5">&nbsp;&nbsp;<#Second#>
+		        		<input type="text" name="wandog_interval" class="input_3_table" maxlength="1" value="<% nvram_get("wandog_interval"); %>" onKeyPress="return validator.isNumber(this, event);" placeholder="5">&nbsp;&nbsp;<#Second#>
 						</td>
 					</tr>	
 					<tr>
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(26,4);"><#Delay#></a></th>
 						<td>
-		        		<input type="text" name="wandog_delay" class="input_3_table" maxlength="2" value="<% nvram_get("wandog_delay"); %>" onKeyPress="return is_number(this, event);" placeholder="0">&nbsp;&nbsp;<#Second#>
+		        		<input type="text" name="wandog_delay" class="input_3_table" maxlength="2" value="<% nvram_get("wandog_delay"); %>" onKeyPress="return validator.isNumber(this, event);" placeholder="0">&nbsp;&nbsp;<#Second#>
 						</td>
 					</tr>
 					<tr>
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(26,5);"><#dualwan_pingtime_fc#></a></th>
 						<td>
-		        		<input type="text" name="wandog_maxfail" class="input_3_table" maxlength="2" value="<% nvram_get("wandog_maxfail"); %>" onKeyPress="return is_number(this, event);" placeholder="12">
+		        		<input type="text" name="wandog_maxfail" class="input_3_table" maxlength="2" value="<% nvram_get("wandog_maxfail"); %>" onKeyPress="return validator.isNumber(this, event);" placeholder="12">
 						</td>
 					</tr>
 
 					<tr id="wandog_fb_count_tr">
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(26,6);"><#dualwan_failback_count#></a></th>
 						<td>
-		        		<input type="text" name="wandog_fb_count" class="input_3_table" maxlength="2" value="<% nvram_get("wandog_fb_count"); %>" onKeyPress="return is_number(this, event);" placeholder="12">
+		        		<input type="text" name="wandog_fb_count" class="input_3_table" maxlength="2" value="<% nvram_get("wandog_fb_count"); %>" onKeyPress="return validator.isNumber(this, event);" placeholder="12">
 						</td>
 					</tr>
 
@@ -1014,10 +970,10 @@ function pullLANIPList(obj){
 			  			<!-- rules info -->
 			  		
             			<td width="30%">            			
-                		<input type="text" class="input_15_table" maxlength="18" name="wans_FromIP_x_0" style="" onKeyPress="return is_ipaddr_plus_netmask(this,event)">
+                		<input type="text" class="input_15_table" maxlength="18" name="wans_FromIP_x_0" style="" onKeyPress="return validator.isIPAddrPlusNetmask(this,event)">
                 	</td>
             			<td width="30%">
-            				<input type="text" class="input_15_table" maxlength="18" name="wans_ToIP_x_0" onkeypress="return is_ipaddr_plus_netmask(this,event)">
+            				<input type="text" class="input_15_table" maxlength="18" name="wans_ToIP_x_0" onkeypress="return validator.isIPAddrPlusNetmask(this,event)">
             			</td>
             			<td width="25%">
 										<select name="wans_unit_x_0" class="input_option">

@@ -41,6 +41,7 @@ int wds_enable(void)
 	return foreach_wif(1, NULL, is_wds);
 }
 #endif
+
 #ifdef CONFIG_BCMWL5
 void
 start_nas(void)
@@ -48,18 +49,12 @@ start_nas(void)
 	stop_nas();
 
 	system("nas&");
-#ifdef RTCONFIG_TMOBILE
-	system("radpd");
-#endif
 }
 
 void
 stop_nas(void)
 {
 	killall_tk("nas");
-#ifdef RTCONFIG_TMOBILE
-	killall_tk("radpd");
-#endif
 }
 #ifdef REMOVE
 void notify_nas(const char *ifname)

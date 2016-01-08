@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -53,11 +53,21 @@
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
+<script language="JavaScript" type="text/javascript" src="/validator.js"></script>
 <script language="JavaScript" type="text/javascript" src="/jquery.js"></script>
 <script>
 function initial(){
 	show_menu();
 	showLANIPList();
+}
+
+function validForm(){
+	if(document.form.cmdMethod.value == "ping"){
+		if(!validator.range(document.form.pingCNT, 1, 9))
+			return false;
+	}
+
+	return true;
 }
 
 function onSubmitCtrl(o, s) {
@@ -67,7 +77,7 @@ function onSubmitCtrl(o, s) {
 
 function updateOptions(){
 	if(document.form.destIP.value == ""){
-		document.form.destIP.value = client_list_array[0][1];
+		document.form.destIP.value = AppListArray[0][1];
 	}
 
 	if(document.form.cmdMethod.value == "ping"){	
@@ -79,11 +89,13 @@ function updateOptions(){
 	else
 		document.form.SystemCmd.value = document.form.cmdMethod.value + " " + document.form.destIP.value;
 	
-	document.form.submit();
-	document.getElementById("cmdBtn").disabled = true;
-	document.getElementById("cmdBtn").style.color = "#666";
-	document.getElementById("loadingIcon").style.display = "";
-	setTimeout("checkCmdRet();", 500);
+	if(validForm()){
+		document.form.submit();
+		document.getElementById("cmdBtn").disabled = true;
+		document.getElementById("cmdBtn").style.color = "#666";
+		document.getElementById("loadingIcon").style.display = "";
+		setTimeout("checkCmdRet();", 500);
+	}
 }
 
 function hideCNT(_val){
@@ -150,15 +162,18 @@ function checkCmdRet(){
 	});
 }
 
-var client_list_array = [["Google ", "www.google.com"], ["Facebook", "www.facebook.com"], ["Youtube", "www.youtube.com"], ["Yahoo", "www.yahoo.com"],
-												 ["Baidu", "www.baidu.com"], ["Wikipedia", "www.wikipedia.org"], ["Windows Live", "www.live.com"], ["QQ", "www.qq.com"],
-												 ["Amazon", "www.amazon.com"], ["Twitter", "www.twitter.com"], ["Taobao", "www.taobao.com"], ["Blogspot", "www.blogspot.com"], 
-												 ["Linkedin", "www.linkedin.com"], ["Sina", "www.sina.com"], ["eBay", "www.ebay.com"], ["MSN", "msn.com"], ["Bing", "www.bing.com"], 
-												 ["Яндекс", "www.yandex.ru"], ["WordPress", "www.wordpress.com"], ["ВКонтакте", "www.vk.com"]];
+var AppListArray = [
+		["Google ", "www.google.com"], ["Facebook", "www.facebook.com"], ["Youtube", "www.youtube.com"], ["Yahoo", "www.yahoo.com"],
+		["Baidu", "www.baidu.com"], ["Wikipedia", "www.wikipedia.org"], ["Windows Live", "www.live.com"], ["QQ", "www.qq.com"],
+		["Amazon", "www.amazon.com"], ["Twitter", "www.twitter.com"], ["Taobao", "www.taobao.com"], ["Blogspot", "www.blogspot.com"], 
+		["Linkedin", "www.linkedin.com"], ["Sina", "www.sina.com"], ["eBay", "www.ebay.com"], ["MSN", "msn.com"], ["Bing", "www.bing.com"], 
+		["Яндекс", "www.yandex.ru"], ["WordPress", "www.wordpress.com"], ["ВКонтакте", "www.vk.com"]
+	];
+
 function showLANIPList(){
 	var code = "";
-	for(var i = 0; i < client_list_array.length; i++){
-		code += '<a><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP(\''+client_list_array[i][1]+'\');"><strong>'+client_list_array[i][0]+'</strong></div></a>';
+	for(var i = 0; i < AppListArray.length; i++){
+		code += '<a><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP(\''+AppListArray[i][1]+'\');"><strong>'+AppListArray[i][0]+'</strong></div></a>';
 	}
 	code +='<!--[if lte IE 6.5]><iframe class="hackiframe2"></iframe><![endif]-->';	
 	$("ClientList_Block_PC").innerHTML = code;
@@ -248,7 +263,7 @@ function pullLANIPList(obj){
 										<tr id="pingCNT_tr">
 											<th width="20%"><#NetworkTools_Count#></th>
 											<td>
-		              			<input type="text" name="pingCNT" class="input_3_table" maxlength="1" value="" onblur="" onKeyPress="return is_number(this, event);" placeholder="5">
+		              			<input type="text" name="pingCNT" class="input_3_table" maxlength="1" value="" onblur="" onKeyPress="return validator.isNumber(this, event);" placeholder="5">
 											</td>
 										</tr>
 									</table>

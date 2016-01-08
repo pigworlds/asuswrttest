@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -11,15 +11,13 @@
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
-
 <script type="text/javascript" src="/state.js"></script>
-<script type="text/javascript" src="/detect.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/help.js"></script>
+<script type="text/javascript" src="/validator.js"></script>
 <script type="text/javascript" src="/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script type="text/javascript" src="/disk_functions.js"></script>
-<script type="text/javascript" src="/aidisk/AiDisk_folder_tree.js"></script>
 <style type="text/css">
 .upnp_table{
 	height: 790px;
@@ -107,7 +105,6 @@ wan_proto = '<% nvram_get("wan_proto"); %>';
 var dms_status = <% dms_info(); %>;
 var _dms_dir = '<%nvram_get("dms_dir");%>';
 <% get_AiDisk_status(); %>
-<% disk_pool_mapping_info(); %>
 var _layer_order = "";
 var FromObject = "0";
 var lastClickedObj = 0;
@@ -277,7 +274,7 @@ if(document.form.daapd_enable.value == 1){
 	}
 	else{
 		
-		var alert_str1 = validate_hostname(document.form.daapd_friendly_name);
+		var alert_str1 = validator.hostName(document.form.daapd_friendly_name);
 		if(alert_str1 != ""){
 			showtext($("alert_msg1"), alert_str1);
 			$("alert_msg1").style.display = "";
@@ -301,7 +298,7 @@ if(document.form.dms_enable.value == 1){
 	}
 	else{
 		
-		var alert_str2 = validate_hostname(document.form.dms_friendly_name);
+		var alert_str2 = validator.hostName(document.form.dms_friendly_name);
 		if(alert_str2 != ""){
 			showtext($("alert_msg2"), alert_str2);
 			$("alert_msg2").style.display = "";
@@ -345,12 +342,18 @@ function get_tree_items(treeitems){
 	this.isLoading = 1;
 	var array_temp = new Array();
 	var array_temp_split = new Array();
-	for(var j=0;j<treeitems.length;j++){ // To hide folder 'Download2' & 'asusware'
-		array_temp_split[j] = treeitems[j].split("#");
-		if( array_temp_split[j][0].match(/^Download2$/) || array_temp_split[j][0].match(/^asusware$/)	){
+	for(var j=0;j<treeitems.length;j++){
+		//treeitems[j] : "Download2#22#0"
+		array_temp_split[j] = treeitems[j].split("#"); 
+		// Mipsel:asusware  Mipsbig:asusware.big  Armel:asusware.arm  // To hide folder 'asusware'
+		if( array_temp_split[j][0].match(/^asusware$/)	|| array_temp_split[j][0].match(/^asusware.big$/) || array_temp_split[j][0].match(/^asusware.arm$/) ){
 			continue;					
 		}
-		
+
+		//Specific folder 'Download2/Complete'
+		if( array_temp_split[j][0].match(/^Download2$/) ){
+			treeitems[j] = "Download2/Complete"+"#"+array_temp_split[j][1]+"#"+array_temp_split[j][2];
+		}		
 		array_temp.push(treeitems[j]);
 	}
 	this.Items = array_temp;	
@@ -479,16 +482,7 @@ function BuildTree(){
 	TempObject +='</table>';
 	$("e"+this.FromObject).innerHTML = TempObject;
 }
-function get_layer(barcode){
-	var tmp, layer;
-	layer = 0;
-	while(barcode.indexOf('_') != -1){
-		barcode = barcode.substring(barcode.indexOf('_'), barcode.length);
-		++layer;
-		barcode = barcode.substring(1);		
-	}
-	return layer;
-}
+
 function build_array(obj,layer){
 	var path_temp ="/mnt";
 	var layer2_path ="";
@@ -936,7 +930,7 @@ function set_dms_dir(obj){
        	<tr>
        		<th><#iTunesServer_itemname#></th>
 					<td>
-						<div><input name="daapd_friendly_name" type="text" style="margin-left:15px;" class="input_15_table" value=""><br/><div id="alert_msg1" style="color:#FC0;margin-left:10px;"></div></div>
+						<div><input name="daapd_friendly_name" type="text" style="margin-left:15px;" class="input_15_table" maxlength="32" value=""><br/><div id="alert_msg1" style="color:#FC0;margin-left:10px;"></div></div>
 					</td>
       	</tr>
       	</table> 
@@ -981,7 +975,7 @@ function set_dms_dir(obj){
        	<tr>
        		<th><#DLNA_itemname#></th>
 					<td>
-						<div><input name="dms_friendly_name" type="text" style="margin-left:15px;" class="input_15_table" value=""><br/><div id="alert_msg2" style="color:#FC0;margin-left:10px;"></div></div>
+						<div><input name="dms_friendly_name" type="text" style="margin-left:15px;" class="input_15_table" maxlength="32" value=""><br/><div id="alert_msg2" style="color:#FC0;margin-left:10px;"></div></div>
 					</td>
       	</tr>
    			<tr>
@@ -1013,17 +1007,17 @@ function set_dms_dir(obj){
         		<th><#list_add_delete#></th>
 			  	</tr>			  
 			  	<tr>
-            	<td width="45%">
-            		<input id="PATH" type="text" class="input_30_table" value="" onclick="get_disk_tree();" readonly="readonly"/" placeholder="<#Select_menu_default#>" >
-							</td>
-            	<td width="40%">
-            		<input type="checkbox" class="input" name="type_A_audio" checked>&nbsp;Audio&nbsp;&nbsp;
+						<td width="45%">
+								<input id="PATH" type="text" class="input_30_table" value="" onclick="get_disk_tree();" readonly="readonly"/" placeholder="<#Select_menu_default#>" >
+						</td>
+						<td width="40%">
+								<input type="checkbox" class="input" name="type_A_audio" checked>&nbsp;Audio&nbsp;&nbsp;
 								<input type="checkbox" class="input" name="type_P_image" checked>&nbsp;Image&nbsp;&nbsp;
 								<input type="checkbox" class="input" name="type_V_video" checked>&nbsp;Video
-            	</td>
-            	<td width="15%">
-									<input type="button" class="add_btn" onClick="addRow_Group(10);" value="">
-            	</td>
+						</td>
+						<td width="15%">
+								<input type="button" class="add_btn" onClick="addRow_Group(10);" value="">
+						</td>
 			  	</tr>		  
 			  </table>
 			  <div id="dlna_path_Block"></div>

@@ -21,7 +21,12 @@ INSTALL = install
 
 OBJS = req_dsl_drv.o
 
+ifneq ($(wildcard ./prebuild),)
+all:
+	@-cp -f ./prebuild/req_dsl_drv .
+else
 all: req_dsl_drv
+endif
 
 req_dsl_drv: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^

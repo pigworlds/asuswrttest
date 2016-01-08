@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -16,10 +16,8 @@
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/help.js"></script>
-<script type="text/javascript" src="/detect.js"></script>
 
 <script>
-var wireless = [<% wl_auth_list(); %>];	// [[MAC, associated, authorized], ...]
 
 function initial(){
 	var dsl_modulation_x = "<% nvram_get("dslx_modulation"); %>";
@@ -60,6 +58,7 @@ function initial(){
 			document.form.dslx_annex[1].checked = true;
 	}
 	show_menu();
+	hideXDSLSetting(document.form.dslx_testlab.value);
 }
 
 function applyRule(){
@@ -73,6 +72,25 @@ function valid_form(){
 	return true;
 }
 
+function disableOption(obj){
+	obj.style.backgroundColor = "#CCCCCC";
+	obj.disabled = true;
+}
+
+function enableOption(obj){
+	obj.style.backgroundColor = "#576D73";
+	obj.disabled = false;
+}
+
+function hideXDSLSetting(_value){
+	if( _value == "AU" || _value == "BR" || _value == "GB" ){
+		disableOption(document.form.dslx_snrm_offset);
+	}
+	else
+	{
+		enableOption(document.form.dslx_snrm_offset);
+	}
+}
 </script>
 </head>
 
@@ -148,7 +166,7 @@ function valid_form(){
 		<td><input name="dslx_modulation" type="radio" value="1"> G.lite </td>
 		</tr>
 		<tr>
-		<td><input name="dslx_modulation" type="radio" value="2"> G.Dmt </td>
+		<td><input name="dslx_modulation" type="radio" value="2"> G.DMT </td>
 		</tr>
 		<tr>
 		<td><input name="dslx_modulation" type="radio" value="3"> ADSL2 </td>
@@ -157,7 +175,7 @@ function valid_form(){
 		<td><input name="dslx_modulation" type="radio" value="4"> ADSL2+ </td>
 		</tr>
 		<tr>
-		<td><input name="dslx_modulation" type="radio" value="5"> Multiple Mode </td>
+		<td><input name="dslx_modulation" type="radio" value="5"> Auto Sync-Up </td>
 		</tr>
 		</table>
 		<br>
@@ -167,11 +185,6 @@ function valid_form(){
 		<td colspan="7"><#dslsetting_disc2#></td>
 		</tr>
 		</thead>
-<!--###HTML_PREP_START###-->
-<!--###HTML_PREP_ELSE###-->
-<!--
-[DSL-N55U]
-{annex a}
 		<tr>
 		<td><input name="dslx_annex" type="radio" value="0"> Annex A </td>
 		</tr>
@@ -187,15 +200,23 @@ function valid_form(){
 		<tr>
 		<td><input name="dslx_annex" type="radio" value="4"> Annex A/I/J/L/M </td>
 		</tr>
-[DSL-N55U-B]
+</table>
+		<br>
+<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
+		<thead>
 		<tr>
-		<td><input name="dslx_annex" type="radio" value="5"> Annex B </td>
+		<td colspan="7"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(25,9);">Country-Specific Setting</a></td>
 		</tr>
+		</thead>
 		<tr>
-		<td><input name="dslx_annex" type="radio" value="6"> Annex B/J </td>
+		<td>
+			<select id="" class="input_option" name="dslx_testlab" onchange="hideXDSLSetting(this.value);">
+				<option value="disable" <% nvram_match("dslx_testlab", "disable", "selected"); %>><#btn_Disabled#></option>
+				<option value="GB" <% nvram_match("dslx_testlab", "GB", "selected"); %>>United Kingdom</option>
+				<option value="AU" <% nvram_match("dslx_testlab", "AU", "selected"); %>>Australia</option>
+			</select>
+		</td>
 		</tr>
--->
-<!--###HTML_PREP_END###-->
 </table>
 		<br>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
@@ -208,6 +229,11 @@ function valid_form(){
 		<td>
 			<select id="" class="input_option" name="dslx_snrm_offset">
 				<option value="0" <% nvram_match("dslx_snrm_offset", "0", "selected"); %>><#btn_Disabled#></option>
+				<option value="5120" <% nvram_match("dslx_snrm_offset", "5120", "selected"); %>>10 dB</option>
+				<option value="4608" <% nvram_match("dslx_snrm_offset", "4608", "selected"); %>>9 dB</option>
+				<option value="4096" <% nvram_match("dslx_snrm_offset", "4096", "selected"); %>>8 dB</option>
+				<option value="3584" <% nvram_match("dslx_snrm_offset", "3584", "selected"); %>>7 dB</option>
+				<option value="3072" <% nvram_match("dslx_snrm_offset", "3072", "selected"); %>>6 dB</option>
 				<option value="2560" <% nvram_match("dslx_snrm_offset", "2560", "selected"); %>>5 dB</option>
 				<option value="2048" <% nvram_match("dslx_snrm_offset", "2048", "selected"); %>>4 dB</option>
 				<option value="1536" <% nvram_match("dslx_snrm_offset", "1536", "selected"); %>>3 dB</option>

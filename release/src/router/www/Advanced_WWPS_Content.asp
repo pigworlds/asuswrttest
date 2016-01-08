@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -15,8 +15,6 @@
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
-<script type="text/javascript" src="/ajax.js"></script>
-<script type="text/javascript" src="/detect.js"></script>
 <script type="text/javascript" src="/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script>
@@ -26,10 +24,8 @@ var $j = jQuery.noConflict();
 wan_route_x = '<% nvram_get("wan_route_x"); %>';
 wan_nat_x = '<% nvram_get("wan_nat_x"); %>';
 wan_proto = '<% nvram_get("wan_proto"); %>';
-<% login_state_hook(); %>
 <% wl_get_parameter(); %>
 
-var wireless = [<% wl_auth_list(); %>];	// [[MAC, associated, authorized], ...]
 var wsc_config_state_old = '<% nvram_get("wsc_config_state"); %>';
 var wps_enable_old = '<% nvram_get("wps_enable"); %>';
 var wl_wps_mode_old = '<% nvram_get("wl_wps_mode"); %>';
@@ -38,6 +34,11 @@ var timerID = null;
 var timerRunning = false;
 var timeout = 2000;
 var delay = 1000;
+var wl_ssid_closed = "<% nvram_get("wl_closed"); %>";
+var curState = "<% nvram_get("wps_enable"); %>";
+var radio_2 = '<% nvram_get("wl0_radio"); %>';
+var radio_5 = '<% nvram_get("wl1_radio"); %>';
+var band_string = "";
 
 function reject_wps(auth_mode, wep){
 	return (auth_mode == "open" && wep != "0") || auth_mode == "shared" || auth_mode == "psk" || auth_mode == "wpa" || auth_mode == "wpa2" || auth_mode == "wpawpa2" || auth_mode == "radius";
@@ -46,8 +47,14 @@ function reject_wps(auth_mode, wep){
 function get_band_str(band){
 	if(band == 0)
 		return "2.4GHz";
-	else if(band == 1)
-		return "5GHz";
+	else if(band == 1){
+		if(!wl_info.band5g_2_support)
+			return "5GHz";	
+		else
+			return "5GHz-1";	
+	}
+	else if(band == 2)
+		return "5GHz-2";
 	return "";
 }
 
@@ -57,7 +64,11 @@ function initial(){
 	if(!band5g_support){
 		$("wps_band_tr").style.display = "none";
 		
-	}else{										//Dual band
+	}else{		
+		if(wl_info.band5g_2_support){
+			$("wps_switch").style.display = "none";	
+			$("wps_select").style.display = "";
+		}								//Dual band
 		$("wps_band_tr").style.display = "";
 		if(!wps_multiband_support || document.form.wps_multiband.value == "0") {
 			$("wps_band_word").innerHTML = get_band_str(document.form.wps_band.value);
@@ -127,6 +138,29 @@ function SwitchBand(){
 		return false;
 	}
 
+	FormActions("apply.cgi", "change_wps_unit", "", "");
+	document.form.target = "";
+	document.form.submit();
+	applyRule();
+}
+
+function SelectBand(wps_band){
+	if(wps_enable_old == "0"){
+	var wps_band = document.form.wps_band.value;
+	var wps_multiband = document.form.wps_multiband.value;
+	if (!wps_multiband_support){
+		if(document.form.wps_unit[0].selected)
+			document.form.wps_band.value = 0;
+		else if(document.form.wps_unit[1].selected)
+			document.form.wps_band.value = 1;
+		else if(document.form.wps_unit[2].selected)
+			document.form.wps_band.value = 2;
+		}
+	}
+	else{
+		$("wps_band_hint").innerHTML = "* <#1821#>";
+	return false;
+	}
 	FormActions("apply.cgi", "change_wps_unit", "", "");
 	document.form.target = "";
 	document.form.submit();
@@ -208,15 +242,17 @@ function PIN_PBC_Check(){
 			array_temp = document.form.wps_sta_pin.value.split("-");
 			document.form.wps_sta_pin.value = array_temp[0] + array_temp[1];
 		}
-			
-		if(document.form.wps_sta_pin.value.length != 8 || !ValidateChecksum(document.form.wps_sta_pin.value)){
-			alert("<#JS_InvalidPIN#>");
-			document.form.wps_sta_pin.focus();
-			document.form.wps_sta_pin.select();
-			return false;
+	
+		if(document.form.wps_sta_pin.value.length != 4 || isNaN(document.form.wps_sta_pin.value/1)){		//new format, 4 digits and doesn't need to checksum
+			if(document.form.wps_sta_pin.value.length != 8 || !ValidateChecksum(document.form.wps_sta_pin.value)){
+				alert("<#JS_InvalidPIN#>");
+				document.form.wps_sta_pin.focus();
+				document.form.wps_sta_pin.select();
+				return false;
+			}
 		}
 	}	
-	
+
 	return true;
 }
 
@@ -260,12 +296,9 @@ function StartTheTimer(){
 }
 
 function updateWPS(){
-	var ie = window.ActiveXObject;
-
-	if (ie)
-		makeRequest_ie('/WPS_info.asp');
-	else
-		makeRequest('/WPS_info.asp');
+	require(['/require/modules/makeRequest.js'], function(makeRequest) {
+		makeRequest.start('/WPS_info.xml', refresh_wpsinfo, updateWPS);
+	});
 }
 
 function loadXML(){
@@ -305,7 +338,7 @@ function refresh_wpsinfo(xmldoc){
 
 function show_wsc_status(wps_infos){
 	var wep;
-
+	var currentBand = 0;
 	if (document.form.wps_band.value == "0")
 		wep = document.form.wl0_wep_x.value
 	else
@@ -315,6 +348,10 @@ function show_wsc_status(wps_infos){
 		$("wps_enable_word").innerHTML = "<#btn_Enabled#>";
 		$("enableWPSbtn").value = "<#btn_disable#>";
 		$("switchWPSbtn").style.display = "none";
+		if(wl_info.band5g_2_support){
+			$("wps_switch").style.display = "";	
+			$("wps_select").style.display = "none";
+		}
 	}
 	else{
 		$("wps_enable_word").innerHTML = "<#btn_Disabled#>"
@@ -322,21 +359,48 @@ function show_wsc_status(wps_infos){
 
 		if(wps_infos[12].firstChild.nodeValue == 0){
 			$("wps_band_word").innerHTML = "2.4GHz";
+			band_string = "2.4GHz";
+			currentBand = 0;
 		}
 		else if(wps_infos[12].firstChild.nodeValue == 1){
-			$("wps_band_word").innerHTML = "5GHz";
+			if(!wl_info.band5g_2_support){
+				$("wps_band_word").innerHTML = "5GHz";
+				band_string = "5GHz";
+			}else{
+				$("wps_band_word").innerHTML = "5GHz-1";
+				band_string = "5GHz-1";
+			}
+			currentBand = 1;
 		}	
+		else if(wps_infos[12].firstChild.nodeValue == 2){
+			$("wps_band_word").innerHTML = "5GHz-2";
+			band_string = "5GHz-2";
+			currentBand = 1;
+		}
 		$("switchWPSbtn").style.display = "";
 	}
 
-	if (reject_wps(wps_infos[11].firstChild.nodeValue, wep)){
-		$("wps_enable_hint").innerHTML = "<#WPS_weptkip_hint#><br><#wsc_mode_hint1#> <a style='color:#FC0; text-decoration: underline; font-family:Lucida Console;cursor:pointer;' onclick=\"_change_wl_unit_status(" + wps_infos[12].firstChild.nodeValue + ");\"><#menu5_1_1#></a> <#wsc_mode_hint2#>"
-		$("wps_state_tr").style.display = "none";
-		$("devicePIN_tr").style.display = "none";
-		$("wpsmethod_tr").style.display = "none";
+	var controlDisplayItem = function () {
+		document.getElementById("wps_state_tr").style.display = "none";
+		document.getElementById("devicePIN_tr").style.display = "none";
+		document.getElementById("wpsmethod_tr").style.display = "none";
 		if (wps_multiband_support)
-			$("wps_band_word").innerHTML = "<del>" + $("wps_band_word").innerHTML + "</del>";
-
+			document.getElementById("wps_band_word").innerHTML = "<del>" + $("wps_band_word").innerHTML + "</del>";
+	};
+	// First filter whether turn on Wi-Fi or not
+	if(currentBand === 0 && radio_2 !== "1") {	//2.4GHz
+		document.getElementById("wps_enable_hint").innerHTML = "* Turn Wi-Fi on to operate the WPS. <a style='color:#FC0; text-decoration: underline; font-family:Lucida Console;cursor:pointer;' onclick=\"_change_wl_advanced_unit_status(" + wps_infos[12].firstChild.nodeValue + ");\"><#btn_go#></a>"
+		controlDisplayItem();
+		return;
+	}
+	else if(currentBand === 1 && radio_5 !== "1") {	//5GHz
+		document.getElementById("wps_enable_hint").innerHTML = "* Turn Wi-Fi on to operate the WPS. <a style='color:#FC0; text-decoration: underline; font-family:Lucida Console;cursor:pointer;' onclick=\"_change_wl_advanced_unit_status(" + wps_infos[12].firstChild.nodeValue + ");\"><#btn_go#></a>"
+		controlDisplayItem();
+		return;
+	}
+	else if (reject_wps(wps_infos[11].firstChild.nodeValue, wep)){ // Second filter the authentication method
+		document.getElementById("wps_enable_hint").innerHTML = "<#WPS_weptkip_hint#><br><#wsc_mode_hint1#> <a style='color:#FC0; text-decoration: underline; font-family:Lucida Console;cursor:pointer;' onclick=\"_change_wl_unit_status(" + wps_infos[12].firstChild.nodeValue + ");\"><#menu5_1_1#></a> <#wsc_mode_hint2#>"
+		controlDisplayItem();
 		return;
 	}
 
@@ -434,8 +498,25 @@ function show_wsc_status2(wps_infos0, wps_infos1){
 		$("switchWPSbtn").style.display = "";
 	}
 
-	if(rej0 || rej1){
-		var band_link = "";
+	var band_link = "";
+	if(radio_2 !== "1" || radio_5 !== "1") {	// First filter whether turn on Wi-Fi or not
+		if(radio_2 !== "1") {
+			band_link += " <a style='color:#FC0; text-decoration: underline; font-family:Lucida Console;cursor:pointer;' onclick=\"_change_wl_advanced_unit_status(0);\"><#btn_go#> " + get_band_str(wps_infos0[12].firstChild.nodeValue) + "</a>"
+		}
+		if(radio_5 !== "1") {
+			band_link += " <a style='color:#FC0; text-decoration: underline; font-family:Lucida Console;cursor:pointer;' onclick=\"_change_wl_advanced_unit_status(1);\"><#btn_go#> " + get_band_str(wps_infos1[12].firstChild.nodeValue) + "</a>"
+		}
+
+		document.getElementById("wps_enable_hint").innerHTML = "* Turn Wi-Fi on to operate the WPS." + band_link + "";
+
+		if(radio_2 !== "1" && radio_5 !== "1") {
+			document.getElementById("wps_state_tr").style.display = "none";
+			document.getElementById("devicePIN_tr").style.display = "none";
+			document.getElementById("wpsmethod_tr").style.display = "none";
+			return;
+		}
+	}	
+	else if(rej0 || rej1){	// Second filter the authentication method
 		if(rej0)
 			band_link += "<a style='color:#FC0; text-decoration: underline; font-family:Lucida Console;cursor:pointer;' onclick=\"_change_wl_unit_status(0);\"><#menu5_1_1#> " + get_band_str(wps_infos0[12].firstChild.nodeValue) + "</a> ";
 		if(rej1)
@@ -518,6 +599,12 @@ function _change_wl_unit_status(__unit){
 	document.titleForm.next_page.value = "Advanced_Wireless_Content.asp?af=wl_auth_mode_x";
 	change_wl_unit_status(__unit);
 }
+
+function _change_wl_advanced_unit_status(__unit){
+	document.titleForm.current_page.value = "Advanced_WAdvanced_Content.asp?af=wl_radio";
+	document.titleForm.next_page.value = "Advanced_WAdvanced_Content.asp?af=wl_radio";
+	change_wl_unit_status(__unit);
+}
 </script>
 </head>
 
@@ -587,6 +674,12 @@ function _change_wl_unit_status(__unit){
 						<script type="text/javascript">
 							$j('#radio_wps_enable').iphoneSwitch('<% nvram_get("wps_enable"); %>', 
 								 function() {
+									if(wl_ssid_closed == 1){
+										alert("If you want to enable WPS, you need to disable hiding " + band_string + " SSID first");
+										$j('#iphone_switch').animate({backgroundPosition: -37}, "slow", function() {});
+										return false;
+									}
+
 									document.form.wps_enable.value = "1";
 									enableWPS();
 								 },
@@ -606,11 +699,18 @@ function _change_wl_unit_status(__unit){
 			<tr id="wps_band_tr">
 				<th width="30%"><a class="hintstyle" href="javascript:void(0);" onclick="openHint(13,5);"><#Current_band#></th>
 				
-				<td>
+				<td id="wps_switch">
 						<span class="devicepin" style="color:#FFF;" id="wps_band_word"></span>&nbsp;&nbsp;
 						<input type="button" class="button_gen_long" name="switchWPSbtn" id="switchWPSbtn" value="<#Switch_band#>" class="button" onClick="SwitchBand();">
 						<br><span id="wps_band_hint"></span>
 		  	</td>
+				<td  id="wps_select" style="display:none">
+						<select name="wps_unit" class="input_option" onChange="SelectBand();">
+							<option id="wps_opt0" class="content_input_fd" value="0" <% nvram_match("wps_band", "0","selected"); %>>2.4GHz</option>
+							<option id="wps_opt1" class="content_input_fd" value="1" <% nvram_match("wps_band", "1","selected"); %>>5GHz-1</option>
+							<option id="wps_opt2" class="content_input_fd" value="2" <% nvram_match("wps_band", "2","selected"); %>>5GHz-2</option>
+						</select>			
+				</td>
 			</tr>
 			
 			<tr id="wps_state_tr">

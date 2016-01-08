@@ -116,39 +116,43 @@ body{
 	letter-spacing:1px;
 	margin:10px 0px 0px 18px;
 }
+
+.desc_info{
+	font-weight:bold;
+	font-size:13px;
+}
 </style>	
-<script type="text/JavaScript" src="/state.js"></script>
-<script type="text/JavaScript" src="/jquery.js"></script>
-<script type="text/javascript" src="/client_function.js"></script>
 <script type="text/javascript">
 var casenum = '<% get_parameter("cat_id"); %>';
 var block_info = <% bwdpi_redirect_info(); %>;
-var category_info = [["Parental Controls", "1", "Adult", "Pornography", "Sites with profane or vulgar content generally considered inappropriate for minors; includes sites that offer erotic content or ads for sexual services, but excludes sites with sexually explicit images."],
-				     ["Parental Controls", "2", "Adult", "Pornography", "Sites that provide information about or software for sharing and transferring files related to child pornography."],
-				     ["Parental Controls", "3", "Adult", "Pornography", "Sites with sexually explicit imagery designed for sexual arousal, including sites that offer sexual services."],
-				     ["Parental Controls", "4", "Adult", "Pornography", "Sites with or without explicit images that discuss reproduction, sexuality, birth control, sexually transmitted disease, safe sex, or coping with sexual trauma."],
-				     ["Parental Controls", "5", "Adult", "Pornography", "Sites that sell swimsuits or intimate apparel with images of models wearing them."],
-				     ["Parental Controls", "6", "Adult", "Pornography", "Sites showing nude or partially nude images that are generally considered artistic, not vulgar or pornographic."],
-				     ["Parental Controls", "8", "Adult", "Pornography", "Sites that promote, sell, or provide information about alcohol or tobacco products."],			     
-					 ["Parental Controls", "9", "Adult", "Illegal and Violence", "Sites that promote and discuss how to perpetrate nonviolent crimes, including burglary, fraud, intellectual property theft, and plagiarism; includes sites that sell plagiarized or stolen materials."],
-					 ["Parental Controls", "10", "Adult", "Illegal and Violence", "Sites with content that is gratuitously offensive and shocking; includes sites that show extreme forms of body modification or mutilation and animal cruelty."],
-					 ["Parental Controls", "14", "Adult", "Illegal and Violence", "Sites that promote hate and violence; includes sites that espouse prejudice against a social group, extremely violent and dangerous activities, mutilation and gore, or the creation of destructive devices."],
-					 ["Parental Controls", "15", "Adult", "Illegal and Violence", "Sites about weapons, including their accessories and use; excludes sites about military institutions or sites that discuss weapons as sporting or recreational equipment."],
-					 ["Parental Controls", "16", "Adult", "Illegal and Violence", "Sites that promote, encourage, or discuss abortion, including sites that cover moral or political views on abortion."],
-					 ["Parental Controls", "25", "Adult", "Illegal and Violence", "Sites that promote, glamorize, supply, sell, or explain how to use illicit or illegal intoxicants."],
-					 ["Parental Controls", "26", "Adult", "Illegal and Violence", "Sites that discuss the cultivation, use, or preparation of marijuana, or sell related paraphernalia."],				 
-					 ["Parental Controls", "11", "Adult", "Gambling", "Sites that promote or provide information on gambling, including online gambling sites."],
-				     ["Parental Controls", "24", "Instant Message and Communication", "Internet Telephony", "Sites that provide web-based services or downloadable software for Voice over Internet Protocol (VoIP) calls"],				    
-					 ["Parental Controls", "51", "Instant Message and Communication", "Instant Mssaging", "Sites that send malicious tracking cookies to visiting web browsers."],				    
- 					 ["Parental Controls", "53", "Instant Message and Communication", "Virtual Community", "Sites that provide software for bypassing computer security systems."],
-				     ["Parental Controls", "89", "Instant Message and Communication", "Virtual Community", "Malicious Domain or website, Domains that host malicious payloads."],				
-					 ["Parental Controls", "42", "Instant Message and Communication", "Blog", "Content servers, image servers, or sites used to gather, process, and present data and data analysis, including web analytics tools and network monitors."],
-				     ["Parental Controls", "56", "P2P and File Transfer", "File transfer", "Sites that provide downloadable 'joke' software, including applications that can unsettle users."],
-				     ["Parental Controls", "70", "P2P and File Transfer", "File transfer", "Sites that use scraped or copied content to pollute search engines with redundant and generally unwanted results."],
-				     ["Parental Controls", "71", "P2P and File Transfer", "File transfer", "Sites dedicated to displaying advertisements, including sites used to display banner or popup advertisement."],	    
-					 ["Parental Controls", "57", "P2P and File Transfer", "Peer to Peer", "Sites that distribute password cracking software."],					
-				     ["Parental Controls", "69", "Streaming and Entertainment", "Streaming media", "Sites that provide tools for remotely monitoring and controlling computers"],
-					 ["Parental Controls", "23", "Streaming and Entertainment", "Internet Radio and TV", "Sites that primarily provide streaming radio or TV programming; excludes sites that provide other kinds of streaming content."],				 
+var client_list_array = '<% get_client_detail_info(); %>';
+var custom_name = decodeURIComponent('<% nvram_char_to_ascii("", "custom_clientlist"); %>').replace(/&#62/g, ">").replace(/&#60/g, "<");
+var category_info = [["Parental Controls", "1", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult1#>", "Sites with profane or vulgar content generally considered inappropriate for minors; includes sites that offer erotic content or ads for sexual services, but excludes sites with sexually explicit images."],
+				     ["Parental Controls", "2", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult1#>", "Sites that provide information about or software for sharing and transferring files related to child pornography."],
+				     ["Parental Controls", "3", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult1#>", "Sites with sexually explicit imagery designed for sexual arousal, including sites that offer sexual services."],
+				     ["Parental Controls", "4", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult1#>", "Sites with or without explicit images that discuss reproduction, sexuality, birth control, sexually transmitted disease, safe sex, or coping with sexual trauma."],
+				     ["Parental Controls", "5", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult1#>", "Sites that sell swimsuits or intimate apparel with images of models wearing them."],
+				     ["Parental Controls", "6", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult1#>", "Sites showing nude or partially nude images that are generally considered artistic, not vulgar or pornographic."],
+				     ["Parental Controls", "8", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult1#>", "Sites that promote, sell, or provide information about alcohol or tobacco products."],			     
+					 ["Parental Controls", "9", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult2#>", "Sites that promote and discuss how to perpetrate nonviolent crimes, including burglary, fraud, intellectual property theft, and plagiarism; includes sites that sell plagiarized or stolen materials."],
+					 ["Parental Controls", "10", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult2#>", "Sites with content that is gratuitously offensive and shocking; includes sites that show extreme forms of body modification or mutilation and animal cruelty."],
+					 ["Parental Controls", "14", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult2#>", "Sites that promote hate and violence; includes sites that espouse prejudice against a social group, extremely violent and dangerous activities, mutilation and gore, or the creation of destructive devices."],
+					 ["Parental Controls", "15", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult2#>", "Sites about weapons, including their accessories and use; excludes sites about military institutions or sites that discuss weapons as sporting or recreational equipment."],
+					 ["Parental Controls", "16", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult2#>", "Sites that promote, encourage, or discuss abortion, including sites that cover moral or political views on abortion."],
+					 ["Parental Controls", "25", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult2#>", "Sites that promote, glamorize, supply, sell, or explain how to use illicit or illegal intoxicants."],
+					 ["Parental Controls", "26", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult2#>", "Sites that discuss the cultivation, use, or preparation of marijuana, or sell related paraphernalia."],				 
+					 ["Parental Controls", "11", "<#AiProtection_filter_Adult#>", "<#AiProtection_filter_Adult3#>", "Sites that promote or provide information on gambling, including online gambling sites."],
+				     ["Parental Controls", "24", "<#AiProtection_filter_message#>", "<#AiProtection_filter_Adult4#>", "Sites that provide web-based services or downloadable software for Voice over Internet Protocol (VoIP) calls"],				    
+					 ["Parental Controls", "51", "<#AiProtection_filter_message#>", "<#AiProtection_filter_Adult5#>", "Sites that send malicious tracking cookies to visiting web browsers."],				    
+ 					 ["Parental Controls", "53", "<#AiProtection_filter_message#>", "<#AiProtection_filter_Adult6#>", "Sites that provide software for bypassing computer security systems."],
+				     ["Parental Controls", "89", "<#AiProtection_filter_message#>", "<#AiProtection_filter_Adult6#>", "Malicious Domain or website, Domains that host malicious payloads."],				
+					 ["Parental Controls", "42", "<#AiProtection_filter_message#>", "<#AiProtection_filter_Adult7#>", "Content servers, image servers, or sites used to gather, process, and present data and data analysis, including web analytics tools and network monitors."],
+				     ["Parental Controls", "56", "<#AiProtection_filter_p2p#>", "<#AiProtection_filter_p2p1#>", "Sites that provide downloadable 'joke' software, including applications that can unsettle users."],
+				     ["Parental Controls", "70", "<#AiProtection_filter_p2p#>", "<#AiProtection_filter_p2p1#>", "Sites that use scraped or copied content to pollute search engines with redundant and generally unwanted results."],
+				     ["Parental Controls", "71", "<#AiProtection_filter_p2p#>", "<#AiProtection_filter_p2p1#>", "Sites dedicated to displaying advertisements, including sites used to display banner or popup advertisement."],	    
+					 ["Parental Controls", "57", "<#AiProtection_filter_p2p#>", "<#AiProtection_filter_p2p2#>", "Sites that distribute password cracking software."],					
+				     ["Parental Controls", "69", "<#AiProtection_filter_stream#>", "<#AiProtection_filter_stream2#>", "Sites that provide tools for remotely monitoring and controlling computers"],
+					 ["Parental Controls", "23", "<#AiProtection_filter_stream#>", "<#AiProtection_filter_stream3#>", "Sites that primarily provide streaming radio or TV programming; excludes sites that provide other kinds of streaming content."],				 
 					 ["Home Protection", "91", "Anti-Trojan detecting and blocked", "", "Anti-Trojan detecting and blocked"],			   			   
 				     ["Home Protection", "39", "Malicious site blocked", "", "Sites about bypassing proxy servers or web filtering systems, including sites that provide tools for that purpose."],
 				     ["Home Protection", "73", "Malicious site blocked", "", "Sites that contain potentially harmful downloads."],
@@ -171,7 +175,6 @@ var category_info = [["Parental Controls", "1", "Adult", "Pornography", "Sites w
 	
 var target_info = {
 	name: "",
-	ip: "",
 	mac: "",
 	url: "",
 	category_id: "",
@@ -186,9 +189,28 @@ function initial(){
 }
 
 function get_target_info(){
-	target_info.name = clientList[block_info[0]].name;
-	target_info.ip = clientList[block_info[0]].ip;
-	target_info.mac = clientList[block_info[0]].mac;
+	var client_list_row = client_list_array.split('<');
+	var custom_name_row = custom_name.split('<');
+	var match_flag = 0;
+	
+	for(i=1;i<custom_name_row.length;i++){
+		var custom_name_col = custom_name_row[i].split('>');
+		if(custom_name_col[1] == block_info[0]){
+			target_info.name = custom_name_col[0];	
+			match_flag =1;
+		}
+	}
+
+	if(match_flag == 0){
+		for(i=1;i< client_list_row.length;i++){
+			var client_list_col = client_list_row[i].split('>');
+			if(client_list_col[3] == block_info[0]){
+				target_info.name = client_list_col[1];
+			}
+		}
+	}
+
+	target_info.mac = block_info[0];
 	target_info.url = block_info[1];
 	target_info.category_id = block_info[2];
 	get_category_info();
@@ -214,35 +236,39 @@ function get_category_info(){
 function show_information(){
 	var code = "";	
 	var code_suggestion = "";
+	var code_title = "";
 	
 	code = "<ul>";
-	code += "<li><span>Description: " + target_info.desc + "</span></li>";
-	code += "<li><span>Host: " + target_info.name + "</span></li>";
-	code += "<li><span>URL: " + target_info.url +"</span></li>";
+	code += "<li><div><span class='desc_info'>Description:</span><br>" + target_info.desc + "</div></li>";
+	code += "<li><div><span class='desc_info'>Host: </span>" + target_info.name + "</div></li>";
+	code += "<li><div><span class='desc_info'>URL: </span>" + target_info.url +"</div></li>";
 	if(target_info.category_type == "Parental Controls")
-		code += "<li><span>Content Category: " + target_info.content_category + "</span></li>";	
+		code += "<li><div><span class='desc_info'><#AiProtection_filter_category#> :</span>" + target_info.content_category + "</div></li>";	
 	
 	code += "</ul>";
 	document.getElementById('detail_info').innerHTML = code;
 	
 	if(target_info.category_type == "Parental Controls"){
+		code_title = "<div class='er_title' style='height:auto;'>The web page category is filtered</div>"
 		code_suggestion = "<ul>";
-		code_suggestion += "<li><span>If you are a manager and still want to visit this website, please go to <a href='ParentalControl_WebProtector.asp'>Parental Controls</a> for configuration change.</span></li>";
+		code_suggestion += "<li><span>If you are a manager and still want to visit this website, please go to <a href='AiProtection_WebProtector.asp'>Parental Controls</a> for configuration change.</span></li>";
 		code_suggestion += "<li><span>If you are a client and have any problems, please contact your manager.</span></li>";		
 		code_suggestion += "</ul>";
 	}
 	else{
+		code_title = "<div class='er_title' style='height:auto;'>Warning! The website contains malware. Visiting this site may harm your computer</div>"
 		code_suggestion = "<ul>";
-		code_suggestion += "If you are a manager and want to disable this protection, please go to <a href='ParentalControl_HomeSecurity.asp'>Home Protection</a> for configuration";
+		code_suggestion += "If you are a manager and want to disable this protection, please go to <a href='AiProtection_HomeProtection.asp'>Home Protection</a> for configuration";
 		code_suggestion += "</ul>";
 	}
 	
+	document.getElementById('page_title').innerHTML = code_title;
 	document.getElementById('suggestion').innerHTML = code_suggestion;
 }
 </script>
 </head>
 
-<body onload="setTimeout('initial();',500);">
+<body onload="initial();">
 <br><br>
 <table width="500" border="0" align="center" cellspacing="0" class="erTable">
 	<thead>
@@ -251,10 +277,7 @@ function show_information(){
 		</tr>
 	</thead>
 	<tr>
-		<th valign="top" style="height:40px;" background="images/statusTitle.gif">
-			<div class="er_title" style="height:auto;">The web page category is filtered</div>
-			<div class="er_title" style="height:auto;display:none;">Warning! The website contains malware. Visiting this site may harm your computer.</div>
-		</th>
+		<th valign="top" style="height:40px;" id="page_title"></th>
 	</tr>
 	<tr>
 		<td  valign="top" class="erpage_td">
@@ -290,3 +313,4 @@ function show_information(){
 </table>
 </body>
 </html>
+

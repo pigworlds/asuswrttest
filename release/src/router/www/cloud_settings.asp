@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -15,14 +15,12 @@
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/help.js"></script>
-<script type="text/javascript" src="/detect.js"></script>
+<script type="text/javascript" src="/validator.js"></script>
 <script type="text/javascript" src="/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script>
 var $j = jQuery.noConflict();
-<% login_state_hook(); %>
 
-var wireless = [<% wl_auth_list(); %>];	// [[MAC, associated, authorized], ...]
 wan_route_x = '<% nvram_get("wan_route_x"); %>';
 wan_nat_x = '<% nvram_get("wan_nat_x"); %>';
 wan_proto = '<% nvram_get("wan_proto"); %>';
@@ -51,10 +49,10 @@ function initial(){
 
 function applyRule(){
 
-	if(	validate_number_range(document.form.webdav_lock_times, 1, 10)
-		&&validate_number_range(document.form.webdav_lock_interval, 1, 60)
-		&&validate_number_range(document.form.webdav_http_port, 1, 65535)
-		&&validate_number_range(document.form.webdav_https_port, 1, 65535)
+	if(	validator.numberRange(document.form.webdav_lock_times, 1, 10)
+		&&validator.numberRange(document.form.webdav_lock_interval, 1, 60)
+		&&validator.numberRange(document.form.webdav_http_port, 1, 65535)
+		&&validator.numberRange(document.form.webdav_https_port, 1, 65535)
 		&&isPortConflict_webdav(document.form.webdav_http_port)
 		&&isPortConflict_webdav(document.form.webdav_https_port)
 	){
@@ -125,7 +123,7 @@ function unlockAcc(){
 					<tbody>
 					<tr>
 						<td>
-							<a href="cloud_main.asp"><div class="tab"><span>AiCloud</span></div></a>
+							<a href="cloud_main.asp"><div class="tab"><span>AiCloud 2.0</span></div></a>
 						</td>
 						<td>
 							<a href="cloud_sync.asp"><div class="tab"><span>Smart Sync</span></div></a>
@@ -152,7 +150,7 @@ function unlockAcc(){
 							<tr>
 							  <td bgcolor="#4D595D" valign="top">
 									<div>&nbsp;</div>
-									<div class="formfonttitle">AiCloud - Settings</div>
+									<div class="formfonttitle">AiCloud 2.0 - Settings</div>
 									<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 
 								  <div class="formfontdesc" style="font-style: italic;font-size: 14px;">
@@ -195,13 +193,13 @@ function unlockAcc(){
 		  											<tr>
      													<th style="white-space:normal;"><#AiCloud_lock_time#></th>
 															<td style="text-align:left;">
-																<input type="text" name="webdav_lock_times" class="input_3_table" maxlength="2" onblur="validate_number_range(this, 1, 10);" value="<% nvram_get("webdav_lock_times"); %>">
+																<input type="text" name="webdav_lock_times" class="input_3_table" maxlength="2" onblur="validator.numberRange(this, 1, 10);" value="<% nvram_get("webdav_lock_times"); %>">
 															</td>
 														</tr>	
 														<tr>
      													<th><#AiCloud_lock_interval#></th>
 															<td style="text-align:left;">
-																<input type="text" name="webdav_lock_interval" class="input_3_table" maxlength="2" onblur="validate_number_range(this, 1, 60);" value="<% nvram_get("webdav_lock_interval"); %>"> <#Minute#>
+																<input type="text" name="webdav_lock_interval" class="input_3_table" maxlength="2" onblur="validator.numberRange(this, 1, 60);" value="<% nvram_get("webdav_lock_interval"); %>"> <#Minute#>
 															</td>
 														</tr>
 														</table>
@@ -225,10 +223,10 @@ function unlockAcc(){
 									  <tr bgcolor="#444f53">
 									    <td colspan="5" class="cloud_main_radius">
 												<div style="padding:30px;font-size:18px;word-break:break-all;border-style:dashed;border-radius:10px;border-width:1px;border-color:#999;">
-													<#AiCloud_webport#> <input type="text" name="webdav_https_port" class="input_6_table" maxlength="5" onKeyPress="return is_number(this,event);" value="<% nvram_get("webdav_https_port"); %>">
+													<#AiCloud_webport#> <input type="text" name="webdav_https_port" class="input_6_table" maxlength="5" onKeyPress="return validator.isNumber(this,event);" value="<% nvram_get("webdav_https_port"); %>">
 													<br>
 													<br>
-													<#AiCloud_streamport#> <input type="text" name="webdav_http_port" class="input_6_table" maxlength="5" onKeyPress="return is_number(this,event);" value="<% nvram_get("webdav_http_port"); %>">
+													<#AiCloud_streamport#> <input type="text" name="webdav_http_port" class="input_6_table" maxlength="5" onKeyPress="return validator.isNumber(this,event);" value="<% nvram_get("webdav_http_port"); %>">
 												</div>
 											</td>
 									  </tr>

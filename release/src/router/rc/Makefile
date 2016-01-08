@@ -4,6 +4,9 @@ CFLAGS += -Wall -Os $(EXTRACFLAGS)
 CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE)/include -idirafter$(LINUXDIR)/include
 CFLAGS += -I$(TOP)/openssl/include
 CFLAGS += -I$(TOP)/push_log
+ifeq ($(RTCONFIG_DPSTA),y)
+CFLAGS += -I$(TOP)/dpsta
+endif
 CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -DDLM -DASUS_DDNS -DASUS_EXT -DBTN_SETUP -DWEB_REDIRECT
 
@@ -25,15 +28,6 @@ endif
 
 include $(SRCBASE)/.config
 
-ifneq ($(findstring DSL,$(BUILD_NAME)),)
-MODEL = $(subst -,_,$(BUILD_NAME))
-else
-MODEL = $(subst -,,$(BUILD_NAME))
-endif
-
-export CFLAGS += -D$(MODEL)
-
-
 LDFLAGS = -L$(TOP)/nvram${BCMEX} -lnvram -L$(TOP)/shared -lshared -lcrypt -L$(TOP)/libbcmcrypto -lbcmcrypto
 
 ifeq ($(RTCONFIG_BCMARM),y)
@@ -42,7 +36,7 @@ CFLAGS += -I$(SRCBASE)/common/include
 LDFLAGS += -L$(TOP)/libbcm -lbcm
 LDFLAGS += -lgcc_s
 ifeq ($(RTCONFIG_QTN),y)
-CFLAGS += -I$(TOP)/libqcsapi_client -I$(TOP)/httpd
+CFLAGS += -I$(TOP)/libqcsapi_client -I$(TOP)/shared/sysdeps/qtn
 LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
 endif
 endif
@@ -79,14 +73,6 @@ LDFLAGS += -L$(TOP)/curl-7.21.7/lib/.libs -lcurl
 LDFLAGS += -L$(TOP)/libxml2/.libs -lxml2
 LDFLAGS += -L$(TOP)/wb -lws
 LDFLAGS += -L$(TOP)/push_log -lpush_log
-endif
-
-ifeq ($(RTCONFIG_TMOBILE),y)
-CFLAGS += -I$(TOP)/wb/ws_src
-LDFLAGS += -L$(TOP)/openssl -lcrypto -lssl
-LDFLAGS += -L$(TOP)/curl-7.21.7/lib/.libs -lcurl
-LDFLAGS += -L$(TOP)/libxml2/.libs -lxml2
-LDFLAGS += -L$(TOP)/wb -lws
 endif
 
 ifeq ($(RTCONFIG_ODMPID),y)
@@ -177,6 +163,9 @@ ifeq ($(RTCONFIG_ACCEL_PPTPD),y)
 OBJS += vpn.o
 endif
 
+ifeq ($(RTCONFIG_SNMPD),y)
+OBJS += snmpd.o
+endif
 ifeq ($(RTCONFIG_OPENVPN),y)
 CFLAGS += -DRTCONFIG_CROND
 OBJS += openvpn.o
@@ -195,7 +184,10 @@ OBJS += dsl.o
 ifeq ($(RTCONFIG_RALINK),y)
 OBJS += dsl-upg.o
 endif
+ifeq ($(RTCONFIG_DSL_TCLINUX),y)
 OBJS += dsl_fb.o
+OBJS += dsl_diag.o
+endif
 endif
 
 ifeq ($(RTCONFIG_BCMWL6),y)
@@ -228,29 +220,34 @@ ifeq ($(RTCONFIG_QTN),y)
 OBJS += qtn.o
 OBJS += find_host_addr.o
 OBJS += qtn_monitor.o
-OBJS += web-qtn.o
 endif
 
 ifeq ($(RTCONFIG_BWDPI),y)
 OBJS += bwdpi.o
 OBJS += bwdpi_monitor.o
 OBJS += bwdpi_check.o
+OBJS += bwdpi_wred_alive.o
 endif
 
 OBJS += speedtest.o
-ifeq ($(RTCONFIG_TMOBILE),y)
-OBJS += sendm.o
-endif
 
 ifeq ($(RTCONFIG_IPERF),y)
 OBJS += monitor.o
 endif
 
+ifeq ($(RTCONFIG_HTTPS),y)
+OBJS += pwdec.o
+endif
+
+ifeq ($(RTAC68U),y)
+OBJS += sysdeps/broadcom/cfe.o
+endif
+
 ifeq ($(RTCONFIG_BCMARM),y)
 ifeq ($(RTCONFIG_QTN),y)
-vpath %.c sysdeps sysdeps/broadcom sysdeps/ralink sysdeps/qtn $(TOP)/libqcsapi_client/qcsapi_rpc_common/client $(TOP)/httpd/sysdeps $(SRCBASE)/shared
+vpath %.c sysdeps sysdeps/broadcom sysdeps/qtn $(TOP)/libqcsapi_client/qcsapi_rpc_common/client $(TOP)/sysdeps/qtn $(SRCBASE)/shared
 else
-vpath %.c sysdeps sysdeps/broadcom sysdeps/ralink $(SRCBASE)/shared
+vpath %.c sysdeps sysdeps/broadcom $(SRCBASE)/shared
 endif
 else
 vpath %.c sysdeps sysdeps/broadcom sysdeps/ralink
@@ -410,15 +407,22 @@ ifeq ($(RTCONFIG_BWDPI),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc bwdpi
 	@cd $(INSTALLDIR)/sbin && ln -sf rc bwdpi_monitor
 	@cd $(INSTALLDIR)/sbin && ln -sf rc bwdpi_check
+	@cd $(INSTALLDIR)/sbin && ln -sf rc bwdpi_wred_alive
 endif
 ifeq ($(RTCONFIG_USB_MODEM),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc write_3g_ppp_conf
-endif
-ifeq ($(RTCONFIG_TMOBILE),y)
-	@cd $(INSTALLDIR)/sbin && ln -sf rc sendm
+	@cd $(INSTALLDIR)/sbin && ln -sf rc modem_bytes_plus
 endif
 ifeq ($(RTCONFIG_IPERF),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc monitor
+endif
+
+ifeq ($(RT4GAC55U),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc lteled
+endif
+ifeq ($(and $(RTCONFIG_IPV6),$(RTCONFIG_WIDEDHCP6)),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc stop_ipv6
+	@cd $(INSTALLDIR)/sbin && ln -sf rc start_dhcp6c
 endif
 
 clean:
@@ -426,6 +430,31 @@ clean:
 
 size: rc
 	mipsel-uclibc-nm --print-size --size-sort rc
+
+# handle prebuilt object here
+ifneq ($(wildcard ./prebuild),)
+ifeq ($(RTCONFIG_DSL),y)
+ifeq ($(RTCONFIG_DSL_TCLINUX),y)
+dsl_fb.o:
+	@-cp -f ./prebuild/dsl_fb.o .
+dsl_diag.o:
+	@-cp -f ./prebuild/dsl_diag.o .
+endif
+endif
+ifeq ($(RTCONFIG_HTTPS),y)
+pwdec.o:
+	@-cp -f ./prebuild/pwdec.o .
+endif
+else
+ifeq ($(RTCONFIG_HTTPS),y)
+dsl_fb.o:dsl_fb.c
+	@echo "encrypt dsl password"
+	./dsl_fb_enc.sh
+	$(CC) $(CFLAGS) -c dsl_fb.c
+	@echo "decrypt dsl password"
+	./dsl_fb_dec.sh
+endif
+endif
 
 %.o: %.c
 	@echo " [rc] CC $@"

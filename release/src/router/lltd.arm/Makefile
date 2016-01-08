@@ -2,22 +2,14 @@ include ../common.mak
 
 include $(SRCBASE)/.config
 
-ifneq ($(findstring DSL,$(BUILD_NAME)),)
-MODEL = $(subst -,_,$(BUILD_NAME))
-else
-MODEL = $(subst -,,$(BUILD_NAME))
-endif
-
-export CFLAGS += -D$(MODEL)
-
 all:
 
 install: all
 	install -d $(INSTALLDIR)/usr/sbin
 ifeq ($(RTAC3200), y)
 	install lld2d.rtac3200 $(INSTALLDIR)/usr/sbin/lld2d
-	install icon.rtac68u.ico $(INSTALLDIR)/usr/sbin/icon.ico
-	install icon.large.rtac68u.ico $(INSTALLDIR)/usr/sbin/icon.large.ico
+	install icon.rtac3200.ico $(INSTALLDIR)/usr/sbin/icon.ico
+	install icon.large.rtac3200.ico $(INSTALLDIR)/usr/sbin/icon.large.ico
 else ifeq ($(RTAC56U), y)
 	install lld2d.rtac56u $(INSTALLDIR)/usr/sbin/lld2d
 	install icon.rtac56u.ico $(INSTALLDIR)/usr/sbin/icon.ico

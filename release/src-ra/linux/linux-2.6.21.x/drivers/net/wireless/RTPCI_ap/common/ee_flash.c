@@ -423,7 +423,7 @@ NDIS_STATUS rtmp_nv_init(PRTMP_ADAPTER pAd)
 			else
 				pcc = SG_2;
 #else
-			pcc = SG;
+			pcc = US;
 #endif
 		}
 #ifdef CONFIG_RAETH_DSL

@@ -25,7 +25,7 @@ APP_LINK_LIB=$APP_LINK_DIR/lib
 APP_FS_TYPE=`mount | grep $APPS_MOUNTED_PATH | sed -e "s,.*on.* type \([^ ]*\) (.*$,\1,"`
 
 APPS_MOUNTED_TYPE=`mount |grep "/dev/$APPS_DEV on " |awk '{print $5}'`
-if [ "$APPS_MOUNTED_TYPE" != "vfat" ]; then
+if [ "$APPS_MOUNTED_TYPE" != "vfat" ] && [ "$APPS_MOUNTED_TYPE" != "tfat" ]; then
 	if [ "$APP_FS_TYPE" != "fuseblk" ] ; then
 		chmod -R 777 $APPS_INSTALL_PATH
 	fi
@@ -77,8 +77,8 @@ for obj in $objs; do
 		continue
 	fi
 
-	if [ -d "$APP_LINK_DIR/$obj" ]; then
-		rm -rf $APP_LINK_DIR/$obj
+	if [ -d "$APP_LINK_BIN/$obj" ]; then
+		rm -rf $APP_LINK_BIN/$obj
 	fi
 	ln -sf $APP_BIN/$obj $APP_LINK_BIN/$obj 
 done
@@ -97,8 +97,8 @@ for obj in $objs; do
 		continue
 	fi
 
-	if [ -d "$APP_LINK_DIR/$obj" ]; then
-		rm -rf $APP_LINK_DIR/$obj
+	if [ -d "$APP_LINK_LIB/$obj" ]; then
+		rm -rf $APP_LINK_LIB/$obj
 	fi
 	ln -sf $APP_LIB/$obj $APP_LINK_LIB/$obj 
 done

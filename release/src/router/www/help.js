@@ -2,12 +2,15 @@
 	fw_size_higher_mem : 'Memory space is NOT enough to upgrade on internet. Please wait for rebooting.',
 	the_array_is_end : "end here.",
 	link_rate : "Link rate",
+	ASUSGATE_note9 : "Your DSL line appears to be unstable. DLA (Dynamic Line Adjustment) which enabled by default already adopted necessary changes and ensure stability. However if interruption continues please submit a feedback form for our analysis.",
 	ASUSGATE_note6 : "Your DSL line appears to be unstable. We strongly recommend that you submit a feedback form for our analysis.",
 	ASUSGATE_note7 : "If you are experiencing any DSL related issues or have any comments / suggestions, please feel free to inform our support team.",
 	JS_validclientname : "Client device name only accept alphanumeric characters, under line and dash symbol. The first character cannot be dash \"-\" or under line \"_\".",
 	ASUSGATE_act_feedback : "Feedback now",
-	intelligence_type_desc : "Intelligence QoS type supports you to modify APPs category priority based on router stream. QoS type switching will only keep priority configuration for each client",
-	traditional_type_desc : "Traditional QoS type offers you advanced configure item including port, protocol and transferred. QoS type switching will only keep priority configuration for each client."
+	ASUSGATE_DSL_setting : "Go setting DSL",
+	ISP_not_support : 'We currently do not support this location, please use <b>Manual</b>.',
+	period_time_validation : 'The value of check period can\'t be less than',
+	filter_lw_date_valid : 'Please select at least one day or disable this feature.'
 };
 var clicked_help_string = "<#Help_init_word1#> <a class=\"hintstyle\" style=\"background-color:#7aa3bd\"><#Help_init_word2#></a> <#Help_init_word3#>";
 
@@ -19,14 +22,6 @@ if(isSupport("tmo"))
         var theUrl = "cellspot.router";
 else
         var theUrl = "router.asus.com";
-
-// init Helper
-function addNewScript_help(scriptName){
-	var script = document.createElement("script");
-	script.type = "text/javascript";
-	script.src = scriptName;
-	document.getElementsByTagName("head")[0].appendChild(script);
-}
 
 /* convert some special character for shown string */
 function handle_show_str(show_str)
@@ -81,8 +76,17 @@ function isMobile_help(){
 
 var helptitle = new Array();
 var helpcontent = new Array();
-if(!isMobile_help())
-	setTimeout("addNewScript_help('/help_content.js');", 2000);
+
+(function(){
+	if(!isMobile_help()){
+		setTimeout(function(){
+			var newScript = document.createElement("script");
+			newScript.type = "text/javascript";
+			newScript.src = '/help_content.js';
+			document.getElementsByTagName("head")[0].appendChild(newScript);
+		}, 2000);
+	}
+})();
 
 function suspendconn(wanenable){
 	document.internetForm_title.wan_enable.value = wanenable;
@@ -120,41 +124,65 @@ function gotoDSL_log(){
 	top.location.href = "/Main_AdslStatus_Content.asp";
 }
 
-<% available_disk_names_and_sizes(); %>
 function overHint(itemNum){
 	var statusmenu = "";
 	var title2 = 0;
 	var title5 = 0;
-
-	//for AiProtection-Router Security Scan
+	var title5_2 = 0;
+	
+	if(itemNum == 91){
+		statusmenu ="<span><#Adaptive_Category1#></span>";
+	}
+	else if(itemNum == 92){
+		statusmenu ="<span><#Adaptive_Category2#></span>";
+	}
+	else if(itemNum == 93){
+		statusmenu ="<span><#Adaptive_Category3#></span>";
+	}
+	else if(itemNum == 94){
+		statusmenu ="<span><#Adaptive_Category4#></span>";
+	}
+	else if(itemNum == 95){
+		statusmenu ="<span><#Adaptive_Category5#></span>";
+	}
+	if(itemNum == 96){
+		statusmenu ="<span><#Adaptive_Category6#></span>";
+	}
+	
+	if(itemNum == 24)		
+		statusmenu += "<span>The USB 3.0 cable without well-shielded would affect the 2.4Ghz wireless range.Enabling this feature to ensure the best wireless performance If your USB 3.0 device is not USB-IF certified.</span>";
+	
+	//for AiProtection-Router Security Assessment
+	if(itemNum == 25)
+		statusmenu += "<span>Disable Wi-Fi Protected Setup to avoid attacker to obtain the keys via an intelligent brute force </span>";
 	if(itemNum == 23)		
-		statusmenu += "<span>Enable Infected device detecting and blocked to detects any suspicious connections or activities and blocks them to prevent data stealing.</span>";
+		statusmenu += "<span><#AiProtection_scan_note23#></span>";
 	if(itemNum == 22)		
-		statusmenu += "<span>Enable Intruder Prevention to prevent cracker invasion via vulnerability of router or device software.</span>";
+		statusmenu += "<span><#AiProtection_scan_note22#></span>";
 	if(itemNum == 21)		
-		statusmenu += "<span>Enable Malicious site blocking to restricts access to known malicious websites.</span>";
+		statusmenu += "<span><#AiProtection_scan_note21#></span>";
 	if(itemNum == 20)		
-		statusmenu += "<span>Disable guest login for Network Place Share to avoid unauthorized user have chance to access your data.</span>";
+		statusmenu += "<span><#AiProtection_scan_note20#></span>";
 	if(itemNum == 19)		
-		statusmenu += "<span>Disable Anonymous login to FTP share to avoid unauthorized user have chance to access your data.</span>";
+		statusmenu += "<span><#AiProtection_scan_note19#></span>";
 	if(itemNum == 18)		
-		statusmenu += "<span>Disable Port forwarding to prevent your router from cracker access via specific port.</span>";
+		statusmenu += "<span><#AiProtection_scan_note18#></span>";
 	if(itemNum == 17)		
-		statusmenu += "<span>Disable Port trigger to prevent your router from cracker access via specific port.</span>";
+		statusmenu += "<span><#AiProtection_scan_note17#></span>";
 	if(itemNum == 16)		
-		statusmenu += "<span>Disable DMZ to avoid all the inbounds packets are redirected to the computer exposing on internet.</span>";
+		statusmenu += "<span><#AiProtection_scan_note16#></span>";
 	if(itemNum == 15)		
-		statusmenu += "<span>Disable PING from WAN to avoid cracker can connect to router from external network.</span>";
+		statusmenu += "<span><#AiProtection_scan_note15#></span>";
 	if(itemNum == 14)		
-		statusmenu += "<span>Disable Web access from WAN to prevent your router from external control.</span>";
+		statusmenu += "<span><#AiProtection_scan_note14#></span>";
 	if(itemNum == 13)		
-		statusmenu += "<span>Disable UPnP service to avoid any program have chance to use UPnP port to alter a your router's settings.</span>";
+		statusmenu += "<span><#AiProtection_scan_note13#></span>";
 	if(itemNum == 12)		
-		statusmenu += "<span>Your wireless network is insecure because there is not wireless password. Click the hyper link to set the password.</span>";
+		statusmenu += "<span><#AiProtection_scan_note12#></span>";
 	if(itemNum == 11)		
-		statusmenu += "<span>Please make your network password more complex for better security.</span>";	
+		statusmenu += "<span><#AiProtection_scan_note11#></span>";	
 	if(itemNum == 10)		
-		statusmenu += "<span>Please change your login username and password for better router security.</span>";	
+		statusmenu += "<span><#AiProtection_scan_note10#></span>";	
 	
 	// Viz add 2013.04 for dsl sync status
 	if(itemNum == 9){
@@ -163,7 +191,7 @@ function overHint(itemNum){
 			lineDesc = "Link up";
 		else if(wan_line_state == "wait for init")	
 			lineDesc = "Wait for init";
-		else if(wan_line_state == "init")
+		else if(wan_line_state == "init" || wan_line_state == "initializing")
 			lineDesc = "Initializing";
 		else
 			lineDesc = "Link down";
@@ -184,8 +212,7 @@ function overHint(itemNum){
 				else
 						wifiDesc = "<b>2.4GHz -</b><br><#btn_Enabled#><br><br><b>5 GHz -</b><br><#btn_Enabled#>";
 			
-				statusmenu += "<span>" + wifiDesc + "</span>";
-		
+				statusmenu += "<span>" + wifiDesc + "</span>";	
 		}
 		else{
 				if(wlan0_radio_flag == "0")
@@ -212,19 +239,22 @@ function overHint(itemNum){
 
 	// printer
 	if(itemNum == 6){
-		for(var i=0; i<usbDevices.length; i++){
-			if(usbDevices[i].deviceType != "printer") continue;
+	 	require(['/require/modules/diskList.js'], function(diskList){
+	 		var usbDevicesList = diskList.list();
+			for(var i=0; i<usbDevicesList.length; i++){
+				if(usbDevicesList[i].deviceType != "printer") continue;
 
-			statusmenu += "<div class='StatusHint' style='margin-top:8px'>" + usbDevices[i].deviceName + ":</div>";
-			if(usbDevices[i].serialNum == '<% nvram_get("u2ec_serial"); %>'){
-				statusmenu += "<div><#CTL_Enabled#></div>";
+				statusmenu += "<div class='StatusHint' style='margin-top:8px'>" + usbDevicesList[i].deviceName + ":</div>";
+				if(usbDevicesList[i].serialNum == '<% nvram_get("u2ec_serial"); %>'){
+					statusmenu += "<div><#CTL_Enabled#></div>";
 
-				if(monoClient != "monoClient=")
-					statusmenu += "<div><#Printing_button_item#>" + monoClient.substring(11, monoClient.length) + "</div>";
+					if(monoClient != "monoClient=")
+						statusmenu += "<div><#Printing_button_item#>" + monoClient.substring(11, monoClient.length) + "</div>";
+				}
+				else
+					statusmenu += "<div><#CTL_Disabled#></div>";
 			}
-			else
-				statusmenu += "<div><#CTL_Disabled#></div>";
-		}
+		});
 	}
 	if(itemNum == 5){
 		statusmenu = "<span class='StatusHint'><#no_printer_detect#></span>";	
@@ -266,7 +296,10 @@ function overHint(itemNum){
 			for(var i=0; i<gn_array_5g.length; i++){
 				if(gn_array_5g[i][0] == 1){
 					if(title5 == 0){
-						statusmenu += "<div class='StatusHint' style='margin-top:15px;'>5GHz Network:</div>";				
+						if(wl_info.band5g_2_support)
+							statusmenu += "<div class='StatusHint' style='margin-top:15px;'>5GHz-1 Network:</div>";			
+						else	
+							statusmenu += "<div class='StatusHint' style='margin-top:15px;'>5GHz Network:</div>";		
 						title5 = 1;
 					}
 	
@@ -294,7 +327,39 @@ function overHint(itemNum){
 				}
 			}
 		}
-		if(title2 == 0 && title5 == 0)
+		if(wl_info.band5g_2_support){
+			for(var i=0; i<gn_array_5g_2.length; i++){
+				if(gn_array_5g_2[i][0] == 1){
+					if(title5_2 == 0){
+						statusmenu += "<div class='StatusHint' style='margin-top:15px;'>5GHz-2 Network:</div>";				
+						title5_2 = 1;
+					}
+	
+					var show_str = gn_array_5g_2[i][1];
+					show_str = decodeURIComponent(show_str);
+					show_str = handle_show_str(show_str);
+					statusmenu += "<span>" + show_str + " (";
+
+					if(gn_array_5g_2[i][11] == 0)
+						statusmenu += '<#Limitless#>';
+					else{
+						var expire_hr = Math.floor(gn_array_5g_2[i][13]/3600);
+						var expire_min = Math.floor((gn_array_5g_2[i][13]%3600)/60);
+						if(expire_hr > 0)
+							statusmenu += '<b id="expire_hr_'+i+'">'+ expire_hr + '</b> Hr <b id="expire_min_'+i+'">' + expire_min +'</b> Min';
+						else{
+							if(expire_min > 0)
+								statusmenu += '<b id="expire_min_'+i+'">' + expire_min +'</b> Min';
+							else	
+								statusmenu += '<b id="expire_min_'+i+'">< 1</b> Min';
+						}
+					}
+
+					statusmenu += " left)</span><br>";
+				}
+			}
+		}
+		if(title2 == 0 && title5 == 0 && title5_2 == 0)
 			statusmenu += "<div class='StatusHint'><#Guest_Network#>:</div><span><#CTL_Disabled#></span>";
 	}
 
@@ -328,8 +393,10 @@ function overHint(itemNum){
 					statusmenu = "<span class='StatusHint'><#APSurvey_msg_connected#></span><br><br>";
 					if(wlc_band == 0)	
 						statusmenu += "<b>Link rate: </b>"+ data_rate_info_2g;
-					else
+					else if(wlc_band == 1)
 						statusmenu += "<b>Link rate: </b>"+ data_rate_info_5g;
+					else if(wlc_band == 2)
+						statusmenu += "<b>Link rate: </b>"+ data_rate_info_5g_2;
 				}	
 				else{
 					if(_wlc_sbstate == "wlc_sbstate=2")
@@ -343,28 +410,35 @@ function overHint(itemNum){
 
 	// usb storage
 	if(itemNum == 2){
-		if(!usbDevices.length){
-			statusmenu = "<div class='StatusHint'><#no_usb_found#></div>";}
-		else{
-			statusmenu = "";
-			for(var i=0; i<usbDevices.length; i++){
-				if(usbDevices[i].deviceType == "printer") continue;
+	 	require(['/require/modules/diskList.js'], function(diskList){
+	 		var usbDevicesList = diskList.list();
 
-				statusmenu += "<div class='StatusHint' style='margin-top:8px'>" + usbDevices[i].deviceName + ":</div>";
-				statusmenu += "<div>" + usbDevices[i].deviceType.charAt(0).toUpperCase() + usbDevices[i].deviceType.substring(1).toLowerCase() + "</div>";
+			if(!usbDevicesList.length){
+				statusmenu = "<div class='StatusHint'><#no_usb_found#></div>";
+			}
+			else{
+				statusmenu = "";
+				for(var i=0; i<usbDevicesList.length; i++){
+					if(usbDevicesList[i].deviceType == "printer") continue;
 
-				if(usbDevices[i].deviceType == "storage" && usbDevices[i].mountNumber == 0)
-					statusmenu += "<div><#DISK_UNMOUNTED#></div>";
-				else if(usbDevices[i].hasErrPart)
-					statusmenu += "<div><#diskUtility_crash_found#></div>";
-				else{				
-					if(usbDevices[i].hasAppDev)
-						statusmenu += "<div><#menu5_4#></div>";
-					if(usbDevices[i].hasTM)
-						statusmenu += "<div>Time Machine</div>";
+					statusmenu += "<div class='StatusHint' style='margin-top:8px'>" + usbDevicesList[i].deviceName + ":</div>";
+					statusmenu += "<div>" + usbDevicesList[i].deviceType.charAt(0).toUpperCase() + usbDevicesList[i].deviceType.substring(1).toLowerCase() + "</div>";
+
+					if(usbDevicesList[i].deviceType == "storage" && usbDevicesList[i].mountNumber == 0)
+						statusmenu += "<div><#DISK_UNMOUNTED#></div>";
+					else if(usbDevicesList[i].hasErrPart)
+						statusmenu += "<div><#diskUtility_crash_found#></div>";
+					else{				
+						if(usbDevicesList[i].hasAppDev)
+							statusmenu += "<div><#menu5_4#></div>";
+						if(usbDevicesList[i].hasTM)
+							statusmenu += "<div>Time Machine</div>";
+					}
 				}
 			}
-		}
+
+			return overlib(statusmenu, OFFSETX, -160, LEFT, DELAY, 400);
+		});
 	}
 
 	return overlib(statusmenu, OFFSETX, -160, LEFT, DELAY, 400);
@@ -431,21 +505,25 @@ function openHint(hint_array_id, hint_show_id, flag){
 			_caption = "Internet Status";
 		}
 		else if(hint_show_id == 2){
-			var statusmenu = "";
+			statusmenu = "";
 
-			for(var i=0; i<usbDevices.length; i++){
-				if(usbDevices[i].mountNumber > 0){
-					statusmenu += "<div style='margin-top:2px;' class='StatusClickHint' onclick='remove_disk("+ usbDevices[i].node +");' onmouseout='this.className=\"StatusClickHint\"' onmouseover='this.className=\"StatusClickHint_mouseover\"'>";
-					statusmenu += "<#Eject_usb_disk#> <span style='font-weight:normal'>"+ usbDevices[i].deviceName +"</span></div>";
+		 	require(['/require/modules/diskList.js'], function(diskList){
+		 		var usbDevicesList = diskList.list();
+				for(var i=0; i<usbDevicesList.length; i++){
+					if(usbDevicesList[i].mountNumber > 0){
+						statusmenu += "<div style='margin-top:2px;' class='StatusClickHint' onclick='remove_disk("+ usbDevicesList[i].node +");' onmouseout='this.className=\"StatusClickHint\"' onmouseover='this.className=\"StatusClickHint_mouseover\"'>";
+						statusmenu += "<#Eject_usb_disk#> <span style='font-weight:normal'>"+ usbDevicesList[i].deviceName +"</span></div>";
+					}
 				}
-			}
 
-			if(statusmenu == "")
-				statusmenu = "<span class='StatusHint'><#DISK_UNMOUNTED#></span>";
-			else if(statusmenu.howMany("remove_disk") > 1)
-				statusmenu += "<div style='margin-top:2px;' class='StatusClickHint' onclick='remove_disk(\"all\");' onmouseout='this.className=\"StatusClickHint\"' onmouseover='this.className=\"StatusClickHint_mouseover\"'>Eject all USB disks</div>";
+				if(statusmenu == "")
+					statusmenu = "<span class='StatusHint'><#DISK_UNMOUNTED#></span>";
+				else if(statusmenu.howMany("remove_disk") > 1)
+					statusmenu += "<div style='margin-top:2px;' class='StatusClickHint' onclick='remove_disk(\"all\");' onmouseout='this.className=\"StatusClickHint\"' onmouseover='this.className=\"StatusClickHint_mouseover\"'>Eject all USB disks</div>";
 
 				_caption = "USB storage";
+				return overlib(statusmenu, OFFSETX, -160, LEFT, STICKY, CAPTION, " ", CLOSETITLE, '');
+			});
 		}
 		else if(hint_show_id == 1){
 			if(hadPlugged("printer"))
@@ -689,7 +767,7 @@ if (olNs4) {
 if (olIe4) {
 	var agent = navigator.userAgent;
 	if (/MSIE/.test(agent)) {
-		var versNum = parseFloat(agent.match(/MSIE[ ](\d\.\d+)\.*/i)[1]);
+		var versNum = parseFloat(agent.match(/MSIE[ ](\d+\.\d+)\.*/i)[1]);
 		if (versNum >= 5){
 			olIe5=true;
 			olIe55=(versNum>=5.5&&!olOp) ? true : false;
@@ -2144,7 +2222,7 @@ function chkPass(pwd, flag) {
 		
 		/* Determine complexity based on overall score */
 		if (nScore > 100) { nScore = 100; } else if (nScore < 0) { nScore = 0; }
-		if(document.form.current_page.value != "ParentalControl_HomeSecurity.asp"){	
+		if(document.form.current_page.value != "AiProtection_HomeProtection.asp"){	
 			if (nScore >= 0 && nScore < 20) { sComplexity = "<#PASS_score0#>"; }
 			else if (nScore >= 20 && nScore < 40) { sComplexity = "<#PASS_score1#>"; }
 			else if (nScore >= 40 && nScore < 60) { sComplexity = "<#PASS_score2#>"; }
@@ -2160,7 +2238,7 @@ function chkPass(pwd, flag) {
 		}
 		
 		/* Display updated score criteria to client */
-		if(document.form.current_page.value != "ParentalControl_HomeSecurity.asp"){		//for Router weakness status, Jimeing added at 2014/06/07
+		if(document.form.current_page.value != "AiProtection_HomeProtection.asp"){		//for Router weakness status, Jimeing added at 2014/06/07
 			$('scorebarBorder').style.display = "";
 			oScorebar.style.backgroundPosition = "-" + parseInt(nScore * 4) + "px";
 		}

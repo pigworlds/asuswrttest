@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -17,11 +17,58 @@
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/disk_functions.js"></script>
 <script type="text/javascript" src="/jquery.js"></script>
+<style>
+#Aidisk_png{
+  background: url(images/New_ui/USBExt/APP_list.png);
+  background-position: 0px 0px;
+  width: 66px;
+  height: 66px;
+}
+#server_png{
+  background: url(images/New_ui/USBExt/APP_list.png);
+  background-position: 0px -76px;
+  width: 66px;
+  height: 66px;
+}
+#PrinterServer_png{
+  background: url(images/New_ui/USBExt/APP_list.png);
+  background-position: 0px -152px;
+  width: 66px;
+  height: 66px;
+}
+#modem_png{
+  background: url(images/New_ui/USBExt/APP_list.png);
+  background-position: 0px -228px;
+  width: 66px;
+  height: 66px;
+}
+#downloadmaster_png{
+  background: url(images/New_ui/USBExt/APP_list.png);
+  background-position: 0px -304px;
+  width: 66px;
+  height: 66px;
+}
+#mediaserver_png{
+  background: url(images/New_ui/USBExt/APP_list.png);
+  background-position: 0px -380px;
+  width: 66px;
+  height: 66px;
+}
+#aicloud_png{
+  background: url(images/New_ui/USBExt/APP_list.png);
+  background-position: 0px -456px;
+  width: 66px;
+  height: 66px;
+}
+#TimeMachine_png{
+  background: url(images/New_ui/USBExt/TimeMachine.png);
+  width: 66px;
+  height: 66px;
+}
+</style>
 <script>
 var $j = jQuery.noConflict();
-</script>
-<script>
-<% login_state_hook(); %>
+
 wan_route_x = '<% nvram_get("wan_route_x"); %>';
 wan_nat_x = '<% nvram_get("wan_nat_x"); %>';
 wan_proto = '<% nvram_get("wan_proto"); %>';
@@ -34,7 +81,6 @@ var apps_download_percent_done = 0;
 
 <% apps_action(); %> //trigger apps_action.
 
-var curr_pool_name = "";
 var stoppullstate = 0;
 var isinstall = 0;
 var installPercent = 1;
@@ -55,16 +101,15 @@ var webs_state_update;
 var webs_state_error;
 var webs_state_info;
 
-<% disk_pool_mapping_info(); %>
 
 function initial(){
 	show_menu();
 
-	default_apps_array = [["AiDisk", "aidisk.asp", "<#AiDiskWelcome_desp1#>", "Aidisk.png", ""],
-												["<#Servers_Center#>", tablink[4][1], "<#UPnPMediaServer_Help#>", "server.png", ""],
-												["<#Network_Printer_Server#>", "PrinterServer.asp", "<#Network_Printer_desc#>", "PrinterServer.png", ""],
-												["3G/4G", "Advanced_Modem_Content.asp", "<#HSDPAConfig_hsdpa_enable_hint1#>", "modem.png", ""],
-												["Time Machine", "Advanced_TimeMachine.asp", "Time Machine Support.", "TimeMachine.png", "1.0.0.1"]];
+	default_apps_array = [["AiDisk", "aidisk.asp", "<#AiDiskWelcome_desp1#>", "Aidisk_png", ""],
+												["<#Servers_Center#>", tablink[4][1], "<#UPnPMediaServer_Help#>", "server_png", ""],
+												["<#Network_Printer_Server#>", "PrinterServer.asp", "<#Network_Printer_desc#>", "PrinterServer_png", ""],
+												["3G/4G", "Advanced_Modem_Content.asp", "<#HSDPAConfig_hsdpa_enable_hint1#>", "modem_png", ""],
+												["Time Machine", "Advanced_TimeMachine.asp", "Enable Time Machine functionality.", "TimeMachine_png", "1.0.0.1"]];
 	
 	if(!media_support){
 			default_apps_array[1].splice(2,1,"<#MediaServer_Help#>");						
@@ -101,7 +146,7 @@ function initial(){
 
 	if(!nodm_support){
 		addOnlineHelp($("faq"), ["ASUSWRT", "download","master"]);
-		addOnlineHelp($("faq2"), ["ASUSWRT", "download","tool"]);
+		addOnlineHelp($("faq2"), ["ASUSWRT", "download","associated"]);
 	}
 }
 
@@ -135,11 +180,11 @@ function update_appstate(e){
 			if(stoppullstate == 1)
 				return false;
 			else if(!check_appstate()){
-      	setTimeout("update_appstate();", 1000);
+      			setTimeout("update_appstate();", 1000);
 				calHeight(0);
 			}
 			else
-      	setTimeout("update_applist();", 3000);
+      			setTimeout("update_applist();", 3000);
 		}    
   });
 }
@@ -150,10 +195,10 @@ function update_applist(e){
     dataType: 'script',
 	
     error: function(xhr){
-      update_applist();
+		update_applist();
     },
     success: function(response){
-			if(isinstall > 0 && getCookie_help("apps_last") == "downloadmaster"){
+			if(isinstall > 0 && cookie.get("apps_last") == "downloadmaster"){
 				for(var i = 0; i < apps_array.length; i++){
 					if(apps_array[i][0] == "DM2_Utility")
 						$("DMUtilityLink").href = apps_array[i][5]+ "/" + apps_array[i][12];
@@ -168,7 +213,7 @@ function update_applist(e){
 				$("return_btn").style.display = "";
 			}
 			else{
-				setTimeout('show_partition();', 100);
+				// setTimeout('show_partition();', 100);
 				setTimeout('show_apps();', 100);
 			}
 		}    
@@ -188,8 +233,6 @@ function check_appstate(){
 		if(apps_state_install == 5 || apps_state_upgrade == 4){
 			if(installPercent > 1 && installPercent < 95)
 				installPercent = 95;
-			/*else if(installPercent < 98)
-				installPercent = installPercent + 1;*/
 			else
 				return true;
 		}
@@ -200,10 +243,7 @@ function check_appstate(){
 	var errorcode;
 	var proceed = 0.6;
 
-	/*if(apps_state_install == 5 || apps_state_upgrade == 4 || (apps_state_enable == 1 && apps_state_install == 4)){
-		$("apps_state_desc").innerHTML = "[" + getCookie_help("apps_last") + "] " + "<#Excute_processing#> <b>" + Math.round(installPercent) +"</b> <span style='font-size: 16px;'>%</span>";
-	}
-	else */if(apps_state_upgrade != 4 && apps_state_upgrade != ""){ // upgrade error handler
+	if(apps_state_upgrade != 4 && apps_state_upgrade != ""){ // upgrade error handler
 		errorcode = "apps_state_upgrade = " + apps_state_upgrade;
 		if(apps_state_error == 1)
 			$("apps_state_desc").innerHTML = "<#usb_inputerror#>";
@@ -230,7 +270,7 @@ function check_appstate(){
 				if(installPercent > 99)
 					installPercent = 99;
 				$("loadingicon").style.display = "none";
-				$("apps_state_desc").innerHTML = "[" + getCookie_help("apps_last") + "] " + "<#Excute_processing#> <b>" + Math.round(installPercent) +"</b> <span style='font-size: 16px;'>%</span>";
+				$("apps_state_desc").innerHTML = "[" + cookie.get("apps_last") + "] " + "<#Excute_processing#> <b>" + Math.round(installPercent) +"</b> <span style='font-size: 16px;'>%</span>";
 				installPercent = installPercent + proceed;//*/
 			}
 			else{
@@ -243,9 +283,9 @@ function check_appstate(){
 		else{
 			if(apps_depend_action_target != "terminated" && apps_depend_action_target != "error"){
 				if(apps_depend_action_target == "")
-					$("apps_state_desc").innerHTML = "<b>[" + getCookie_help("apps_last") + "] " + "<#Excute_processing#> </b>";
+					$("apps_state_desc").innerHTML = "<b>[" + cookie.get("apps_last") + "] " + "<#Excute_processing#> </b>";
 				else
-					$("apps_state_desc").innerHTML = "<b>[" + getCookie_help("apps_last") + "] " + "<#Excute_processing#> </b>"
+					$("apps_state_desc").innerHTML = "<b>[" + cookie.get("apps_last") + "] " + "<#Excute_processing#> </b>"
 							+"<br> <span style='font-size: 16px;'> <#Excute_processing#>："+apps_depend_do+"</span>"
 							+"<br> <span style='font-size: 16px;'>"+apps_depend_action+"  "+apps_depend_action_target+"</span>"
 							;
@@ -254,7 +294,7 @@ function check_appstate(){
 				if(installPercent > 99)
 					installPercent = 99;
 				$("loadingicon").style.display = "none";
-				$("apps_state_desc").innerHTML = "[" + getCookie_help("apps_last") + "] " + "<#Excute_processing#> <b>" + Math.round(installPercent) +"</b> <span style='font-size: 16px;'>%</span>";
+				$("apps_state_desc").innerHTML = "[" + cookie.get("apps_last") + "] " + "<#Excute_processing#> <b>" + Math.round(installPercent) +"</b> <span style='font-size: 16px;'>%</span>";
 				installPercent = installPercent + proceed;
 			}
 		}
@@ -356,7 +396,7 @@ function check_appstate(){
 				if(installPercent > 99)
 					installPercent = 99;
 				$("loadingicon").style.display = "none";
-				$("apps_state_desc").innerHTML = "[" + getCookie_help("apps_last") + "] " + "<#Excute_processing#> <b>" + Math.round(installPercent) +"</b> <span style='font-size: 16px;'>%</span>";
+				$("apps_state_desc").innerHTML = "[" + cookie.get("apps_last") + "] " + "<#Excute_processing#> <b>" + Math.round(installPercent) +"</b> <span style='font-size: 16px;'>%</span>";
 				installPercent = installPercent + proceed;//*/
 			}
 			else{
@@ -370,13 +410,13 @@ function check_appstate(){
 					if(installPercent > 99)
 						installPercent = 99;
 					$("loadingicon").style.display = "none";
-					$("apps_state_desc").innerHTML = "[" + getCookie_help("apps_last") + "] " + "<#Excute_processing#> <b>" + Math.round(installPercent) +"</b> <span style='font-size: 16px;'>%</span>";
+					$("apps_state_desc").innerHTML = "[" + cookie.get("apps_last") + "] " + "<#Excute_processing#> <b>" + Math.round(installPercent) +"</b> <span style='font-size: 16px;'>%</span>";
 					installPercent = installPercent + proceed;
 				}
 				else{
 					var _apps_depend_do = apps_depend_do.replace(apps_depend_action, "<span style='color:#FC0'>"+apps_depend_action+"</span>");
 
-					$("apps_state_desc").innerHTML = "<b>[" + getCookie_help("apps_last") + "] " + "<#Excute_processing#> </b>"
+					$("apps_state_desc").innerHTML = "<b>[" + cookie.get("apps_last") + "] " + "<#Excute_processing#> </b>"
 							+"<br> <span style='font-size: 16px;'> <#Excute_processing#>："+_apps_depend_do+"</span>"
 							+"<br><br> <span style='font-size: 18px;'>"+apps_depend_action+"  "+apps_depend_action_target+"</span>"
 					;
@@ -386,7 +426,7 @@ function check_appstate(){
 				if(installPercent > 99)
 					installPercent = 99;
 				$("loadingicon").style.display = "none";
-				$("apps_state_desc").innerHTML = "[" + getCookie_help("apps_last") + "] " + "<#Excute_processing#> <b>" + Math.round(installPercent) +"</b> <span style='font-size: 16px;'>%</span>";
+				$("apps_state_desc").innerHTML = "[" + cookie.get("apps_last") + "] " + "<#Excute_processing#> <b>" + Math.round(installPercent) +"</b> <span style='font-size: 16px;'>%</span>";
 				installPercent = installPercent + proceed;
 			}
 		}
@@ -404,7 +444,6 @@ function check_appstate(){
 	else
 		$("return_btn").style.display = "none";
 
-	//$("apps_state_desc").innerHTML += '<span class="app_action" onclick="apps_form(\'cancel\',\'\',\'\');">(<#CTL_Cancel#>)</span>';
 	$("cancelBtn").style.display = "";
 	return false;
 }
@@ -415,15 +454,15 @@ function show_apps(){
 
 	var counter = 0;
 	appnum = 0;
-
+	
 	if(apps_array == "" && (appnet_support || appbase_support)){
-		apps_array = [["downloadmaster", "", "", "no", "no", "", "", "Download tools", "downloadmaster.png", "", "", ""],
-									["mediaserver", "", "", "no", "no", "", "", "", "mediaserver.png", "", "", ""]];
+		apps_array = [["downloadmaster", "", "", "no", "no", "", "", "PC-free download manager.", "downloadmaster_png", "", "", ""],
+									["mediaserver", "", "", "no", "no", "", "", "", "mediaserver_png", "", "", ""]];
 		if(nodm_support)
 			apps_array[1][0] = "mediaserver2";
 
 		if(aicloudipk_support)
-			apps_array.push(["aicloud", "", "", "no", "no", "", "", "AiCloud utilities", "aicloud.png", "", "", ""]);
+			apps_array.push(["aicloud", "", "", "no", "no", "", "", "AiCloud 2.0 utilities", "aicloud_png", "", "", ""]);
 	}
 
 	if(!aicloudipk_support){
@@ -461,7 +500,7 @@ function show_apps(){
 		var media_idx = apps_array.getIndexByValue2D("mediaserver");
 		if(!nodm_support && (media_idx == -1 || media_idx[1] == -1)){
 			var apps_len = apps_array.length;
-			apps_array[apps_len] = ["mediaserver", "", "", "no", "no", "", "", "", "mediaserver.png", "", "", ""];
+			apps_array[apps_len] = ["mediaserver", "", "", "no", "no", "", "", "", "mediaserver_png", "", "", ""];
 		}
   }
 
@@ -470,9 +509,17 @@ function show_apps(){
 	
 	//show default Apps
 	for(var i = 0; i < default_apps_array.length; i++){
-		htmlcode += '<tr><td align="center" class="app_table_radius_left" style="width:85px"><img style="margin-top:0px;" src="/images/New_ui/USBExt/'+ default_apps_array[i][3] +'" style="cursor:pointer" onclick="location.href=\''+ default_apps_array[i][1] +'\';"></td><td class="app_table_radius_right" style="width:350px;">\n';
+		htmlcode += '<tr><td align="center" class="app_table_radius_left" style="width:85px">';
+		//Viz modified to CSS sprites : htmlcode += '<img style="margin-top:0px;" src="/images/New_ui/USBExt/'+ default_apps_array[i][3] +'" style="cursor:pointer" onclick="location.href=\''+ default_apps_array[i][1] +'\';">';
+		htmlcode += '<div id="'+default_apps_array[i][3]+'" style="cursor:pointer" onclick="location.href=\''+ default_apps_array[i][1] +'\';"></div>';
+		htmlcode += '</td><td class="app_table_radius_right" style="width:350px;">\n';
 		htmlcode += '<div class="app_name"><a style="text-decoration: underline;" href="' + default_apps_array[i][1] + '">' + default_apps_array[i][0] + '</a></div>\n';
-		htmlcode += '<div class="app_desc">' + default_apps_array[i][2] + '</div>\n';
+		if(i ==3){
+			htmlcode += '<div class="app_desc">' + default_apps_array[i][2] + ' <a href="http://www.asus.com/event/networks_3G4G_support/" target="_blank" style="text-decoration:underline;">Support</a></div>\n';
+		}
+		else{
+			htmlcode += '<div class="app_desc">' + default_apps_array[i][2] + '</div>\n';
+		}
 		htmlcode += '<div style="margin-top:10px;"></div><br/><br/></td></tr>\n';
 	}
 
@@ -503,20 +550,16 @@ function show_apps(){
 		htmlcode += '<tr style="height: 100px;"><td class="app_table_radius_left" align="center" style="width:85px">\n';
 		if(apps_array[i][4] == "yes" && apps_array[i][3] == "yes"){
 			if(apps_array[i][6] != ""){
-				if(apps_array[i][0] == "mediaserver" || apps_array[i][0] == "mediaserver2")
-					htmlcode += '<img style="margin-top:0px;" src="/images/New_ui/USBExt/mediaserver.png" style="cursor:pointer" onclick="location.href=\''+ apps_array[i][6] +'\';"></td>\n';
-				else
-					htmlcode += '<img style="margin-top:0px;" src="/images/New_ui/USBExt/'+ apps_array[i][0] +'.png" style="cursor:pointer" onclick="location.href=\''+ apps_array[i][6] +'\';"></td>\n';
+				htmlcode += '<div id="'+apps_array[i][0]+'_png" style="cursor:pointer" onclick="location.href=\''+ apps_array[i][6] +'\';"></div>';
 			}
-			else
-				htmlcode += '<img style="margin-top:0px;" src="/images/New_ui/USBExt/'+ apps_array[i][0] +'.png"></td>\n';				
+			else{
+				htmlcode += '<div id="'+apps_array[i][0]+'_png"></div>';	
+			}
 		}	
 		else{
-			if(apps_array[i][0] == "mediaserver" || apps_array[i][0] == "mediaserver2")
-				htmlcode += '<img style="margin-top:0px;" src="/images/New_ui/USBExt/mediaserver.png"></td>\n';			
-			else
-				htmlcode += '<img style="margin-top:0px;" src="/images/New_ui/USBExt/'+ apps_array[i][0] +'.png"></td>\n';			
+			htmlcode += '<div id="'+apps_array[i][0]+'_png"></div>';
 		}
+		htmlcode += '</td>\n';
 
 		// apps_name
 		htmlcode += '<td class="app_table_radius_right" style="width:350px;">\n';
@@ -525,7 +568,7 @@ function show_apps(){
 		else if(apps_array[i][0] == "mediaserver" || apps_array[i][0] == "mediaserver2")
 			apps_array[i][0] = "Media Server";
 		else if(apps_array[i][0] == "aicloud")
-			apps_array[i][0] = "AiCloud";
+			apps_array[i][0] = "AiCloud 2.0";
 
 		if(apps_array[i][6] != ""){ // with hyper-link
 			htmlcode += '<div class="app_name">';
@@ -572,7 +615,7 @@ function show_apps(){
 			else
 				apps_array[i][0] = "mediaserver2";
 		}
-		else if(apps_array[i][0] == "AiCloud")
+		else if(apps_array[i][0] == "AiCloud 2.0")
 			apps_array[i][0] = "aicloud";
 
 		// apps_desc
@@ -605,8 +648,8 @@ function show_apps(){
 				htmlcode += '<span class="app_action" onclick="divdisplayctrl(\'none\', \'none\', \'none\', \'\');">Help</span>\n';
 			}
 
-			cookie_help.set("dm_install", apps_array[i][3], 1000);
-			cookie_help.set("dm_enable", apps_array[i][4], 1000);
+			cookie.set("dm_install", apps_array[i][3], 1000);
+			cookie.set("dm_enable", apps_array[i][4], 1000);
 		}
 
 		if(hasNewVer(apps_array[i]))
@@ -627,7 +670,7 @@ function show_apps(){
 	divdisplayctrl("", "none", "none", "none");
 	stoppullstate = 1;
 	calHeight(1);
-	cookie_help.set("hwaddr", '<% nvram_get("lan_hwaddr"); %>', 1000);
+	cookie.set("hwaddr", '<% nvram_get("lan_hwaddr"); %>', 1000);
 }
 
 /* 
@@ -646,11 +689,11 @@ var hasNewVer = function(arr){
 		return false;
 	
 	for(var i=0; i<4; i++){ 
-		if(newVer[i] > oldVer[i]){
+		if(parseInt(newVer[i]) > parseInt(oldVer[i])){
 			return true;
 			break;
 		}
-		else if(newVer[i] == oldVer[i])
+		else if(parseInt(newVer[i]) == parseInt(oldVer[i]))
 			continue;
 		else
 			return false;
@@ -670,92 +713,73 @@ var hasNewVer = function(arr){
 	return false;
 }
 
-var partitions_array = "";
+var partitions_array = [];
 function show_partition(){
-	var htmlcode = "";
-	var mounted_partition = 0;
+ 	require(['/require/modules/diskList.js'], function(diskList){
+		var htmlcode = "";
+		var mounted_partition = 0;
+		partitions_array = [];
+		$("app_table").style.display = "none";
+		htmlcode += '<table align="center" style="margin:auto;border-collapse:collapse;">';
 
-	if(pool_names() != "") //  avoid no_disk error
-		partitions_array = pool_devices(); 
+ 		var usbDevicesList = diskList.list();
 
-	var diskArray = new Array()
-	for(var i=0; i<foreign_disk_total_mounted_number().length; i++){
-		for(var j=0; j<foreign_disk_total_mounted_number()[i]; j++){
-			diskArray.push(foreign_disks()[i]);
-		}			
-	}
-	
-	$("app_table").style.display = "none";
-	htmlcode += '<table align="center" style="margin:auto;border-collapse:collapse;">';
+		for(var i=0; i < usbDevicesList.length; i++){
+			for(var j=0; j < usbDevicesList[i].partition.length; j++){
+				partitions_array.push(usbDevicesList[i].partition[j].mountPoint);
+				var accessableSize = simpleNum(usbDevicesList[i].partition[j].size-usbDevicesList[i].partition[j].used);
+				var totalSize = simpleNum(usbDevicesList[i].partition[j].size);
 
-	for(var i = 0; i < partitions_array.length; i++){
-		var all_accessable_size = simpleNum(pool_kilobytes()[i]-pool_kilobytes_in_use()[i]);
-		var all_total_size = simpleNum(pool_kilobytes()[i]);
+				if(usbDevicesList[i].partition[j].status == "unmounted")
+					continue;
+					
+				if(usbDevicesList[i].partition[j].isAppDev){
+					if(accessableSize > 1)
+						htmlcode += '<tr><td class="app_table_radius_left"><div class="iconUSBdisk" onclick="apps_form(\'install\',\'' + _appname +'\',\'' + usbDevicesList[i].partition[j].mountPoint +'\');"></div></td><td class="app_table_radius_right" style="width:300px;">\n';
+					else
+						htmlcode += '<tr><td class="app_table_radius_left"><div class="iconUSBdisk_noquota"></div></td><td class="app_table_radius_right" style="width:300px;">\n';
 
-		if(pool_status()[i] == "unmounted")
-			continue;
+					htmlcode += '<div class="app_desc"><b>'+ usbDevicesList[i].partition[j].partName + ' (active)</b></div>';
+				}
+				else{
+					if(accessableSize > 1)
+						htmlcode += '<tr><td class="app_table_radius_left"><div class="iconUSBdisk" onclick="apps_form(\'switch\',\''+_appname+'\',\''+usbDevicesList[i].partition[j].mountPoint+'\');"></div></td><td class="app_table_radius_right" style="width:300px;">\n';
+					else
+						htmlcode += '<tr><td class="app_table_radius_left"><div class="iconUSBdisk_noquota"></div></td><td class="app_table_radius_right" style="width:300px;">\n';
+					htmlcode += '<div class="app_desc"><b>'+ usbDevicesList[i].partition[j].partName + '</b></div>'; 
+				}
 
-		if(apps_dev == partitions_array[i]){
-			curr_pool_name = pool_names()[i];
-			if(all_accessable_size > 1)
-				htmlcode += '<tr><td class="app_table_radius_left"><div class="iconUSBdisk" onclick="apps_form(\'install\',\''+ _appname +'\',\''+ partitions_array[i] +'\');"></div></td><td class="app_table_radius_right" style="width:300px;">\n';
-			else
-				htmlcode += '<tr><td class="app_table_radius_left"><div class="iconUSBdisk_noquota"></div></td><td class="app_table_radius_right" style="width:300px;">\n';
-			htmlcode += '<div class="app_desc"><b>'+ pool_names()[i] + ' (active)</b></div>';
+				if(accessableSize > 1)
+					htmlcode += '<div class="app_desc"><#Availablespace#>: <b>'+ accessableSize+" GB" + '</b></div>'; 
+				else
+					htmlcode += '<div class="app_desc"><#Availablespace#>: <b>'+ accessableSize+" GB <span style=\'color:#FFCC00\'>(Disk quota can not less than 1GB)" + '</span></b></div>'; 
+
+				htmlcode += '<div class="app_desc"><#Totalspace#>: <b>'+ totalSize+" GB" + '</b></div>'; 
+				htmlcode += '<div class="app_desc"><b>' + usbDevicesList[i].deviceName + '</b></div>'; 
+				htmlcode += '</div><br/><br/></td></tr>\n';
+				mounted_partition++;	
+			}
 		}
-		else{
-			if(all_accessable_size > 1)
-				htmlcode += '<tr><td class="app_table_radius_left"><div class="iconUSBdisk" onclick="apps_form(\'switch\',\''+_appname+'\',\''+partitions_array[i]+'\');"></div></td><td class="app_table_radius_right" style="width:300px;">\n';
-			else
-				htmlcode += '<tr><td class="app_table_radius_left"><div class="iconUSBdisk_noquota"></div></td><td class="app_table_radius_right" style="width:300px;">\n';
-			htmlcode += '<div class="app_desc"><b>'+ pool_names()[i] + '</b></div>'; 
-		}
 
-		if(all_accessable_size > 1)
-			htmlcode += '<div class="app_desc"><#Availablespace#>: <b>'+ all_accessable_size+" GB" + '</b></div>'; 
-		else
-			htmlcode += '<div class="app_desc"><#Availablespace#>: <b>'+ all_accessable_size+" GB <span style=\'color:#FFCC00\'>(Disk quota can not less than 1GB)" + '</span></b></div>'; 
+		if(mounted_partition == 0)
+			htmlcode += '<tr height="360px"><td colspan="2" class="nohover"><span class="app_name" style="line-height:100%"><#no_usb_found#></span></td></tr>\n';
 
-		htmlcode += '<div class="app_desc"><#Totalspace#>: <b>'+ all_total_size+" GB" + '</b></div>'; 
-		htmlcode += '<div class="app_desc"><b>' + decodeURIComponent(diskArray[i]) + '</b></div>'; 
-		htmlcode += '</div><br/><br/></td></tr>\n';
-		mounted_partition++;
-	}
-
-	if(mounted_partition == 0)
-		htmlcode += '<tr height="360px"><td colspan="2" class="nohover"><span class="app_name" style="line-height:100%"><#no_usb_found#></span></td></tr>\n';
-
-	$("partition_div").innerHTML = htmlcode;
-	$("usbHint").innerHTML = "<#DM_Install_partition#> :";
-	calHeight(1);
+		$("partition_div").innerHTML = htmlcode;
+		$("usbHint").innerHTML = "<#DM_Install_partition#> :";
+		calHeight(1);
+	});
 }
 
-var mounted_partition_old = 0;
 function detectUSBStatusApp(){
-	var mounted_partition = 0;
-	$j.ajax({
-    		url: '/update_diskinfo.asp',
-    		dataType: 'script',
-    		error: function(xhr){
-    			detectUSBStatusApp();
-    		},
-    		success: function(){
-					for(i=0; i<foreign_disk_interface_names().length; i++){
-						if(foreign_disk_total_mounted_number()[i] != 0){
-							mounted_partition += foreign_disk_total_mounted_number()[i];
-						}
-					}
-					if(mounted_partition != mounted_partition_old){
-						show_partition();
-					}
-					mounted_partition_old = mounted_partition;
-					setTimeout("detectUSBStatusApp();", 1000);
-  			}
-  });
+ 	require(['/require/modules/diskList.js'], function(diskList){
+		setInterval(function(){
+			diskList.update(show_partition); 
+		}, 2000);
+	});
 }
 
 function apps_form(_act, _name, _flag){
-	cookie_help.set("apps_last", _name, 1000);
+	cookie.set("apps_last", _name, 1000);
 
 	document.app_form.apps_action.value = _act;
 	document.app_form.apps_name.value = _name;
@@ -774,7 +798,7 @@ function divdisplayctrl(flag1, flag2, flag3, flag4){
 	}
 	else if(flag2 != "none"){ // partition list
 		detectUSBStatusApp();
-		show_partition()
+		show_partition();
 		$("return_btn").style.display = "";
 		calHeight(1);
 	}
@@ -852,9 +876,7 @@ function reloadAPP(){
 <table>
 
   <tr>
-  	<td class="formfonttitle"><!--#Menu_usb_application#>
-			<img id="return_btn" onclick="show_apps();" align="right" style="cursor:pointer;margin-right:10px;margin-top:-10px" title="<#menu5_4#>" src="/images/backprev.png" onMouseOver="this.src='/images/backprevclick.png'" onMouseOut="this.src='/images/backprev.png'"-->
-
+  	<td class="formfonttitle">
 				<div style="width:730px">
 					<table width="730px">
 						<tr>

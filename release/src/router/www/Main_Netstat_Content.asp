@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
@@ -10,12 +10,13 @@
 <title><#Network_Tools#> - Netstat</title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
-
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
+<script language="JavaScript" type="text/javascript" src="/validator.js"></script>
 <script language="JavaScript" type="text/javascript" src="/jquery.js"></script>
+<script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <style>
 #ClientList_Block_PC{
 	border:1px outset #999;
@@ -58,7 +59,7 @@
 <script>
 option_netstat = new Array("<#sockets_all#>","<#sockets_TCP#>","<#sockets_UDP#>","<#sockets_RAW#>","<#sockets_UNIX#>","<#sockets_listening#>","<#Display_routingtable#>");
 optval_netstat = new Array("-a","-t","-u","-w","-x","-l","-r");
-option_netstat_nat = new Array("Connections to NAT", "By source IP", "SNAT connections");
+option_netstat_nat = new Array("<#Netstatnat_option1#>", "<#Netstatnat_option2#>", "<#Netstatnat_option3#>");
 optval_netstat_nat = new Array("-L","-s","-S");
 	
 function key_event(evt){
@@ -75,17 +76,17 @@ function onSubmitCtrl(o, s) {
 }
 
 function init(){
-		show_menu();
-		showLANIPList();
+	show_menu();
+	showLANIPList();
 
-		if(downsize_4m_support){	// rm cmd for downsize //downsize_8m_support
-			for (var i = 0; i < document.form.cmdMethod.options.length; i++) {
-					if (document.form.cmdMethod.options[i].value == "netstat-nat") {
-							document.form.cmdMethod.options.remove(i);
-							break;
-					}
-			}	
+	if(downsize_4m_support){
+		for (var i = 0; i < document.form.cmdMethod.options.length; i++) {
+			if (document.form.cmdMethod.options[i].value == "netstat-nat") {
+				document.form.cmdMethod.options.remove(i);
+				break;
+			}
 		}	
+	}	
 }
 
 function updateOptions(){
@@ -220,27 +221,26 @@ function pullLANIPList(obj){
 }
 
 function showLANIPList(){
-	var code = "";
-	var show_name = "";
-	var client_list_array = '<% get_client_detail_info(); %>';	
-	var client_list_row = client_list_array.split('<');	
+	if(clientList.length == 0){
+		setTimeout("showLANIPList();", 500);
+		return false;
+	}
 
-	for(var i = 1; i < client_list_row.length; i++){
-		var client_list_col = client_list_row[i].split('>');
-		if(client_list_col[1] && client_list_col[1].length > 20)
-			show_name = client_list_col[1].substring(0, 16) + "..";
-		else
-			show_name = client_list_col[1];	
+	var htmlCode = "";
+	for(var i=0; i<clientList.length;i++){
+		var clientObj = clientList[clientList[i]];
 
-		//client_list_col[]  0:type 1:device 2:ip 3:mac 4: 5: 6:
-		code += '<a><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP(\''+client_list_col[2]+'\');"><strong>'+client_list_col[2]+'</strong> ';
-		
-		if(show_name && show_name.length > 0)
-				code += '( '+show_name+')';
-		code += ' </div></a>';
-		}
-	code +='<!--[if lte IE 6.5]><iframe class="hackiframe2"></iframe><![endif]-->';	
-	$("ClientList_Block_PC").innerHTML = code;
+		if(clientObj.ip == "offline") clientObj.ip = "";
+		if(clientObj.name.length > 20) clientObj.name = clientObj.name.substring(0, 16) + "..";
+
+		htmlCode += '<a><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setClientIP(\'';
+		htmlCode += clientObj.ip;
+		htmlCode += '\');"><strong>';
+		htmlCode += clientObj.name;
+		htmlCode += '</strong></div></a><!--[if lte IE 6.5]><iframe class="hackiframe2"></iframe><![endif]-->';	
+	}
+
+	$("ClientList_Block_PC").innerHTML = htmlCode;
 }
 
 function setClientIP(ipaddr){
@@ -326,7 +326,7 @@ function validForm(){
 										<tr id="targetip_tr" style="display:none;">
 											<th width="20%"><#NetworkTools_target#> IP</th>
 											<td>
-													<input type="text" id="targetip" class="input_15_table" maxlength="15" name="targetip" onKeyPress="return is_ipaddr(this,event)" onClick="hideClients_Block();">
+													<input type="text" id="targetip" class="input_15_table" maxlength="15" name="targetip" onKeyPress="return validator.isIPAddr(this,event)" onClick="hideClients_Block();">
 												<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullLANIPList(this);" title="<#select_device_name#>" onmouseover="over_var=1;" onmouseout="over_var=0;">
 												<div id="ClientList_Block_PC" class="ClientList_Block_PC"></div>
 											</td>										
@@ -335,11 +335,11 @@ function validForm(){
 											<th width="20%"><#NetworkTools_extended_option#></th>
 											<td>
 												<select id="ExtOption" class="input_option" name="ExtOption">
-													<option value="-r state" selected>Sort by state</option>
-													<option value="-r src">Sort by src</option>
-													<option value="-r dst">Sort by dst</option>
-													<option value="-r src-port">Sort by src-port</option>
-													<option value="-r dst-port">Sort by dst-port</option>
+													<option value="-r state" selected><#Netstatnat_sort_state#></option>
+													<option value="-r src"><#Netstatnat_sort_src#></option>
+													<option value="-r dst"><#Netstatnat_sort_dst#></option>
+													<option value="-r src-port"><#Netstatnat_sort_src_port#></option>
+													<option value="-r dst-port"><#Netstatnat_sort_dst_port#></option>
  												</select>
 											</td>										
 										</tr>						

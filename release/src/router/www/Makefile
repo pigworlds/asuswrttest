@@ -3,6 +3,8 @@ include ../common.mak
 ASUSWRTTOOLSDIR = $(SRCBASE)/router/tools/Lnx_AsusWrtDictPrep
 ASUSWRTTOOLSDIR2 = $(SRCBASE)/router/tools/Lnx_ToolHelp
 
+MODELS_HAVE_USB3 = "DSL-AC68U RT-AC3200 RT-AC87U RT-AC69U RT-AC68U RT-AC56S RT-AC56U RT-AC55U RT-N18U TM-AC1900 RT-N65U"
+
 all:
 
 clean:
@@ -61,17 +63,29 @@ ifeq ($(RTCONFIG_SFP),y)
 	rm -rf $(INSTALLDIR)/www/images/appinstall
 endif
 ifeq ($(RTCONFIG_8M_SFP),y)
+	rm -rf $(INSTALLDIR)/www/images/cloudsync/invite_model.jpg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/network_config.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/TimeLimits.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/QoS.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/parental-control.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/rt.jpg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/re.jpg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/ap.jpg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/mb.jpg
+	rm -rf $(INSTALLDIR)/www/images/wl_device/wl_devices.png
+	rm -rf $(INSTALLDIR)/www/images/backtohome.png
+	rm -rf $(INSTALLDIR)/www/images/backtohomeclick.png
+	rm -rf $(INSTALLDIR)/www/images/wifi_hw_sw.png
+	rm -rf $(INSTALLDIR)/www/images/qis/security_key.png
+	rm -rf $(INSTALLDIR)/www/images/qis/select_wireless.jpg
+	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/client-listover.png
+	cd $(INSTALLDIR)/www/images/New_ui/networkmap && ln -sf client-list.png client-listover.png && cd $(TOP)/www
 endif
 ifeq ($(RTCONFIG_4M_SFP),y)
+	rm -rf $(INSTALLDIR)/www/images/cloudsync/invite_model.jpg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/bg.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/client-list.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/client-listover.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/client.png
 	rm -rf $(INSTALLDIR)/www/Main_ConnStatus_Content.asp
 	rm -rf $(INSTALLDIR)/www/svghtc
@@ -108,12 +122,12 @@ ifeq ($(RTCONFIG_4M_SFP),y)
 	rm -rf $(INSTALLDIR)/www/fan.svg
 #	rm -rf $(INSTALLDIR)/www/detect_firmware.asp
 	rm -rf $(INSTALLDIR)/www/ajax_coretmp.asp
-	rm -rf $(INSTALLDIR)/www/qis/QIS_tutorial.htm
 	rm -rf $(INSTALLDIR)/www/qis/QIS_internet_ruisp.htm
 	rm -rf $(INSTALLDIR)/www/qis/ruisp.js
 	rm -rf $(INSTALLDIR)/www/images/New_ui/network_config.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/TimeLimits.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/QoS.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/parental-control.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/rt.jpg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/re.jpg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/ap.jpg
@@ -122,24 +136,28 @@ endif
 ifneq ($(RTCONFIG_PROXYSTA),y)
 	rm -rf $(INSTALLDIR)/www/images/New_ui/mb.jpg
 endif
-# Replace png file for RTCONFIG_TMOBILE
-ifeq ($(RTCONFIG_TMOBILE), y)
-	mv $(INSTALLDIR)/www/images/tmo_modem_plug.png $(INSTALLDIR)/www/images/modem_plug.png
-	mv $(INSTALLDIR)/www/images/tmo_modem_unplug.png $(INSTALLDIR)/www/images/modem_unplug.png
-else
+	rm -rf $(INSTALLDIR)/www/MobileQIS_Login.asp
+	rm -rf $(INSTALLDIR)/www/AjaxLogin.asp
 	rm -rf $(INSTALLDIR)/www/Passpoint_hidden.asp
 	rm -rf $(INSTALLDIR)/www/Advanced_WAdvPassPoint_Content.asp
-	rm -rf $(INSTALLDIR)/www/Advanced_WPassPoint_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_WPasspoint_Content.asp
 	rm -rf $(INSTALLDIR)/www/SMTP_Client.asp
 	rm -rf $(INSTALLDIR)/www/images/tmo_modem_plug.png
 	rm -rf $(INSTALLDIR)/www/images/tmo_modem_unplug.png
+	rm -rf $(INSTALLDIR)/www/iui/cellspot_logo.png
+	rm -rf $(INSTALLDIR)/www/iui/default.css
+	rm -rf $(INSTALLDIR)/www/iui/registerEvent.js
+	rm -rf $(INSTALLDIR)/www/iui/tmo-logo.png
+ifneq ($(RTCONFIG_SNMPD),y)
+	rm -rf $(INSTALLDIR)/www/Advanced_SNMP_Content.asp
 endif
 ifeq ($(RTCONFIG_DSL),y)
-	rm -rf $(INSTALLDIR)/www/images/Model_producticon.png
+	rm -rf $(INSTALLDIR)/www/images/Model_product.png
 	rm -rf $(INSTALLDIR)/www/qis/QIS_welcome.htm
 	rm -rf $(INSTALLDIR)/www/images/New_ui/rt.jpg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/ap.jpg
 else
+	rm -rf $(INSTALLDIR)/www/images/New_ui/export/line_export_notif.png
 	rm -rf $(INSTALLDIR)/www/Main_Spectrum_Content.asp
 	rm -rf $(INSTALLDIR)/www/SNR.svg
 	rm -rf $(INSTALLDIR)/www/BPC.svg
@@ -255,12 +273,12 @@ endif
 ifeq ($(RTCONFIG_OPENVPN), y)
 	cd $(INSTALLDIR)/www && ln -sf ../etc/openvpn/server1/client.ovpn && cd $(TOP)/www
 else
-ifneq ($(RTCONFIG_ACCEL_PPTPD), y)
-	rm -rf $(INSTALLDIR)/www/images/New_ui/vpnstatus.png
 	rm -rf $(INSTALLDIR)/www/merlin.js
 	rm -rf $(INSTALLDIR)/www/ajax_openvpn_server.asp
-	rm -rf $(INSTALLDIR)/www/Advanced_VPNAdvanced_Content.asp
-	rm -rf $(INSTALLDIR)/www/Advanced_VPN_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_VPN_OpenVPN.asp
+ifneq ($(RTCONFIG_ACCEL_PPTPD), y)
+	rm -rf $(INSTALLDIR)/www/images/New_ui/vpnstatus.png
+	rm -rf $(INSTALLDIR)/www/Advanced_VPN_PPTP.asp
 endif
 ifneq ($(RTCONFIG_VPNC), y)	
 	rm -rf $(INSTALLDIR)/www/Advanced_VPNClient_Content.asp
@@ -287,50 +305,63 @@ ifneq ($(RTCONFIG_KYIVSTAR),y)
 	rm -rf $(INSTALLDIR)/www/userRpm/SoftwareUpgradeRpm.htm
 endif
 
-ifeq ($(RTCONFIG_ODMPID),y)
-	@if [ ! -e $(INSTALLDIR)/www/images/$(subst U,R,$(BUILD_NAME))Model_producticon.png ] ; then \
-		 ln -sf Model_producticon.png $(INSTALLDIR)/www/images/$(subst U,R,$(BUILD_NAME))Model_producticon.png ; \
-	fi
-endif
-
 ifneq ($(RTCONFIG_BWDPI),y)
-	rm -rf $(INSTALLDIR)/www/AiStream_Intelligence.asp
-	rm -rf $(INSTALLDIR)/www/AiStream_Live.asp
-	rm -rf $(INSTALLDIR)/www/AiStream_TrafficControl.asp
-	rm -rf $(INSTALLDIR)/www/AiStream_WebHistory.asp
-	rm -rf $(INSTALLDIR)/www/Home_Security.asp
-	rm -rf $(INSTALLDIR)/www/ParentalControl_Group.asp
-	rm -rf $(INSTALLDIR)/www/ParentalControl_HomeSecurity.asp
-	rm -rf $(INSTALLDIR)/www/ParentalControl_WebProtector.asp
+	rm -rf $(INSTALLDIR)/www/AdaptiveQoS_Adaptive.asp
+	rm -rf $(INSTALLDIR)/www/AdaptiveQoS_Bandwidth_Monitor.asp
+	rm -rf $(INSTALLDIR)/www/AdaptiveQoS_WebHistory.asp
+	rm -rf $(INSTALLDIR)/www/AiProtection_HomeSecurity.asp
+	rm -rf $(INSTALLDIR)/www/AiProtection_Group.asp
+	rm -rf $(INSTALLDIR)/www/AiProtection_HomeProtection.asp
+	rm -rf $(INSTALLDIR)/www/AiProtection_WebProtector.asp
 	rm -rf $(INSTALLDIR)/www/blocking.asp
 	rm -rf $(INSTALLDIR)/www/getTraffic.asp
 	rm -rf $(INSTALLDIR)/www/getWebHistory.asp
-	rm -rf $(INSTALLDIR)/www/tm_eula.html
+	rm -rf $(INSTALLDIR)/www/getAppTraffic.asp
+	rm -rf $(INSTALLDIR)/www/getWanTraffic.asp
+	rm -rf $(INSTALLDIR)/www/tm_eula.htm
+	rm -rf $(INSTALLDIR)/www/JP_tm_eula.htm
 	rm -rf $(INSTALLDIR)/www/images/New_ui/HomeProtection.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/TimeLimits.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/Web_Apps_Restriction.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/AiProtection.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/Home_Protection_Scenario.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/left-light.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/left-dark.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/right-light.png
-	rm -rf $(INSTALLDIR)/www/images/New_ui/right-dark.png	
 	rm -rf $(INSTALLDIR)/www/images/New_ui/tm_logo.png	
 	rm -rf $(INSTALLDIR)/www/images/New_ui/tm_logo_power.png	
 	rm -rf $(INSTALLDIR)/www/images/New_ui/TM_product.png	
 	rm -rf $(INSTALLDIR)/www/images/New_ui/sample_35.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/app_icons
 ifneq ($(RTCONFIG_ROG),y)
 	rm -rf $(INSTALLDIR)/www/images/New_ui/indicator.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/speedmeter.png
 endif
-else
-	rm -rf $(INSTALLDIR)/www/Main_TrafficMonitor_daily.asp
-	rm -rf $(INSTALLDIR)/www/Main_TrafficMonitor_last24.asp
-	rm -rf $(INSTALLDIR)/www/Main_TrafficMonitor_realtime.asp
-	rm -rf $(INSTALLDIR)/www/tmmenu.js
 endif
 
 ifneq ($(RTCONFIG_ROG),y)
-	rm -rf $(INSTALLDIR)/www/AiStream_ROG.asp
+	rm -rf $(INSTALLDIR)/www/images/ROG_Logo.png
+	rm -rf $(INSTALLDIR)/www/rog.css
+	rm -rf $(INSTALLDIR)/www/AdaptiveQoS_ROG.asp
 	rm -rf $(INSTALLDIR)/www/api.asp
+endif
+
+ifeq ($(findstring $(BUILD_NAME),$(MODELS_HAVE_USB3)),)
+	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/USB3.png
+endif
+
+ifneq ($(RTCONFIG_DROPBOXCLIENT),y)
+	rm -rf $(INSTALLDIR)/www/images/cloudsync/dropbox.png
+	rm -rf $(INSTALLDIR)/www/dropbox_callback.htm
+endif
+
+ifneq ($(RTCONFIG_FTPCLIENT),y)
+ifneq ($(RTCONFIG_SAMBACLIENT),y)
+	rm -rf $(INSTALLDIR)/www/images/cloudsync/ftp_server.png
+endif
+endif
+
+ifneq ($(RTCONFIG_SNMPD), y)	
+	rm -rf $(INSTALLDIR)/www/Advanced_SNMP_Content.asp
+endif
+
+ifneq ($(RTCONFIG_OLD_PARENTALCTRL), y)	
+	rm -rf $(INSTALLDIR)/www/Advanced_MACFilter_Content.asp
 endif

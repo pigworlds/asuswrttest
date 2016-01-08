@@ -1,76 +1,4 @@
-﻿/* get client info form dhcp lease log */
-loadXMLDoc("/getdhcpLeaseInfo.asp");
-var _xmlhttp;
-function loadXMLDoc(url){
-	if(parent.sw_mode != 1) return false;
-	var ie = window.ActiveXObject;
-	if(ie)
-		_loadXMLDoc_ie(url);
-	else
-		_loadXMLDoc(url);
-}
-
-var _xmlDoc_ie;
-function _loadXMLDoc_ie(file){
-	_xmlDoc_ie = new ActiveXObject("Microsoft.XMLDOM");
-	_xmlDoc_ie.async = false;
-	if (_xmlDoc_ie.readyState==4){
-		_xmlDoc_ie.load(file);
-		setTimeout("parsedhcpLease(_xmlDoc_ie);", 1000);
-	}
-}
-
-function _loadXMLDoc(url) {
-	_xmlhttp = new XMLHttpRequest();
-	if (_xmlhttp && _xmlhttp.overrideMimeType)
-		_xmlhttp.overrideMimeType('text/xml');
-	else
-		return false;
-
-	_xmlhttp.onreadystatechange = state_Change;
-	_xmlhttp.open('GET', url, true);
-	_xmlhttp.send(null);
-}
-
-function state_Change(){
-	if(_xmlhttp.readyState==4){// 4 = "loaded"
-		if(_xmlhttp.status==200){// 200 = OK
-			parsedhcpLease(_xmlhttp.responseXML);    
-		}
-		else{
-			return false;
-		}
-	}
-}
-
-var leasehostname;
-var leasemac;
-function parsedhcpLease(xmldoc){
-	var dhcpleaseXML = xmldoc.getElementsByTagName("dhcplease");
-	leasehostname = dhcpleaseXML[0].getElementsByTagName("hostname");
-	leasemac = dhcpleaseXML[0].getElementsByTagName("mac");
-
-	genClientList();
-}
-
-var retHostName = function(_mac){
-	if(parent.sw_mode != 1 || !leasemac) return _mac;
-	for(var idx=0; idx<leasemac.length; idx++){
-		if(!(leasehostname[idx].childNodes[0].nodeValue.split("value=")[1]) || !(leasemac[idx].childNodes[0].nodeValue.split("value=")[1]))
-			continue;
-
-		if( _mac.toLowerCase() == leasemac[idx].childNodes[0].nodeValue.split("value=")[1].toLowerCase()){
-			if(leasehostname[idx].childNodes[0].nodeValue.split("value=")[1] != "*")
-				return leasehostname[idx].childNodes[0].nodeValue.split("value=")[1];
-			else
-				return _mac;
-		}
-	}
-	return _mac;
-}
-/* end */
-
-/* Plugin */
+﻿/* Plugin */
 var isJsonChanged = function(objNew, objOld){
 	for(var i in objOld){	
 		if(typeof objOld[i] == "object"){
@@ -108,16 +36,58 @@ function convType(str){
 
 	return 0;
 }
-/* End */
 
 <% login_state_hook(); %>
-var networkmap_fullscan = '<% nvram_get("networkmap_fullscan"); %>'
+/* End */
+
+/* get client info form dhcp lease log */
+var leaseArray = {
+	hostname: [],
+	mac: []
+};
+
+(function(){
+	if(parent.sw_mode == 1){
+		var xmlHttp = new XMLHttpRequest();
+		if(!xmlHttp) return false;
+
+		xmlHttp.onreadystatechange = function(){
+			if(xmlHttp.readyState == 4 && xmlHttp.status == 200){
+				var dhcpleaseXML = xmlHttp.responseXML.getElementsByTagName("dhcplease");
+				var leaseMac = dhcpleaseXML[0].getElementsByTagName("mac");
+				for(var i=0; i<leaseMac.length-1; i++){
+					leaseArray.mac.push(leaseMac[i].childNodes[0].nodeValue.split("value=")[1].toUpperCase());
+					leaseArray.hostname.push(
+						dhcpleaseXML[0]
+							.getElementsByTagName("hostname")[i]
+							.childNodes[0].nodeValue
+							.split("value=")[1]
+							.replace("*", leaseArray.mac[leaseArray.mac.length-1])
+					);
+				}
+				genClientList();
+			}
+		};
+
+		xmlHttp.open('GET', "/getdhcpLeaseInfo.xml", true);
+		xmlHttp.send(null);
+	}
+})();
+
+var retHostName = function(_mac){
+	return leaseArray.hostname[leaseArray.mac.indexOf(_mac.toUpperCase())] || _mac;
+}
+/* end */
+
+var networkmap_fullscan = '<% nvram_get("networkmap_fullscan"); %>';
+var fromNetworkmapdCache = '<% nvram_get("client_info_tmp"); %>'.replace(/&#62/g, ">").replace(/&#60/g, "<").split('<');
 
 var originDataTmp;
 var originData = {
 	customList: decodeURIComponent('<% nvram_char_to_ascii("", "custom_clientlist"); %>').replace(/&#62/g, ">").replace(/&#60/g, "<").split('<'),
 	asusDevice: decodeURIComponent('<% nvram_char_to_ascii("", "asus_device_list"); %>').replace(/&#62/g, ">").replace(/&#60/g, "<").split('<'),
 	fromDHCPLease: '',
+	staticList: decodeURIComponent('<% nvram_char_to_ascii("", "dhcp_staticlist"); %>').replace(/&#62/g, ">").replace(/&#60/g, "<").split('<'),
 	fromNetworkmapd: '<% get_client_detail_info(); %>'.replace(/&#62/g, ">").replace(/&#60/g, "<").split('<'),
 	fromBWDPI: '<% bwdpi_device_info(); %>'.replace(/&#62/g, ">").replace(/&#60/g, "<").split('<'),
 	wlList_2g: [<% wl_sta_list_2g(); %>],
@@ -137,11 +107,13 @@ var setClientAttr = function(){
 	this.name = "";
 	this.ip = "offline";
 	this.mac = "";
+	this.from = "";
+	this.macRepeat = 1;
 	this.group = "";
 	this.dpiType = "";
 	this.rssi = "";
 	this.ssid = "";
-	this.isWL = 0; // 0:wired, 1:2.4g, 2:5g.
+	this.isWL = 0; // 0: wired, 1: 2.4GHz, 2: 5GHz.
 	this.qosLevel = "";
 	this.curTx = "";
 	this.curRx = "";
@@ -156,13 +128,16 @@ var setClientAttr = function(){
 	this.isASUS = false;
 	this.isLogin = false;
 	this.isOnline = false;
-	this.isCustom = false;
+	this.isStaticIP = false;
 }
 
 var clientList = new Array(0);
 function genClientList(){
 	clientList = [];
 	totalClientNum.wireless = 0;
+
+	if(fromNetworkmapdCache.length > 1 && networkmap_fullscan == 1)
+		originData.fromNetworkmapd = fromNetworkmapdCache;
 
 	for(var i=0; i<originData.asusDevice.length; i++){
 		var thisClient = originData.asusDevice[i].split(">");
@@ -172,9 +147,18 @@ function genClientList(){
 			continue;
 		}
 
-		clientList.push(thisClientMacAddr);
-		clientList[thisClientMacAddr] = new setClientAttr();
-
+		if(typeof clientList[thisClientMacAddr] == "undefined"){
+			clientList.push(thisClientMacAddr);
+			clientList[thisClientMacAddr] = new setClientAttr();
+			clientList[thisClientMacAddr].from = "asusDevice";
+		}
+		else{
+			if(clientList[thisClientMacAddr].from == "asusDevice")
+				clientList[thisClientMacAddr].macRepeat++;
+			else
+				clientList[thisClientMacAddr].from = "asusDevice";
+		}
+		
 		clientList[thisClientMacAddr].type = thisClient[0];
 		clientList[thisClientMacAddr].name = thisClient[1];
 		clientList[thisClientMacAddr].ip = thisClient[2];
@@ -199,6 +183,13 @@ function genClientList(){
 		if(typeof clientList[thisClientMacAddr] == "undefined"){
 			clientList.push(thisClientMacAddr);
 			clientList[thisClientMacAddr] = new setClientAttr();
+			clientList[thisClientMacAddr].from = "networkmapd";
+		}
+		else{
+			if(clientList[thisClientMacAddr].from == "networkmapd")
+				clientList[thisClientMacAddr].macRepeat++;
+			else
+				clientList[thisClientMacAddr].from = "networkmapd";
 		}
 
 		if(clientList[thisClientMacAddr].type == "")
@@ -252,6 +243,7 @@ function genClientList(){
 		if(typeof clientList[thisClientMacAddr] == "undefined"){
 			clientList.push(thisClientMacAddr);
 			clientList[thisClientMacAddr] = new setClientAttr();
+			clientList[thisClientMacAddr].from = "customList";
 		}
 
 		clientList[thisClientMacAddr].name = thisClient[0];
@@ -259,7 +251,6 @@ function genClientList(){
 		clientList[thisClientMacAddr].group = thisClient[2];
 		clientList[thisClientMacAddr].type = thisClient[3];
 		clientList[thisClientMacAddr].callback = thisClient[4];
-		clientList[thisClientMacAddr].isCustom = true;
 	}
 
 	for(var i=0; i<originData.wlList_2g.length; i++){
@@ -305,6 +296,19 @@ function genClientList(){
 
 		if(typeof clientList[thisClientMacAddr] != "undefined"){
 			clientList[thisClientMacAddr].qosLevel = thisClient[5];
+		}
+	}
+
+	for(var i=0; i<originData.staticList.length; i++){
+		var thisClient = originData.staticList[i].split(">");
+		var thisClientMacAddr = (typeof thisClient[0] == "undefined") ? false : thisClient[0].toUpperCase();
+
+		if(!thisClientMacAddr || typeof clientList[thisClientMacAddr] == "undefined"){
+			continue;
+		}
+
+		if(typeof clientList[thisClientMacAddr] != "undefined"){
+			clientList[thisClientMacAddr].isStaticIP = true;
 		}
 	}
 

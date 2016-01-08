@@ -109,13 +109,16 @@ int init_gpio(void)
 	/* led output */
 	for(i = 0; i < ASIZE(led_list); i++)
 	{
-#ifdef RTN14U
-		if (!strcmp(led_list[i],"led_2g_gpio"))
-			continue;
-#endif
 		use_gpio = nvram_get_int(led_list[i]);
+
 		if((gpio_pin = use_gpio & 0xff) == 0xff)
 			continue;
+
+#if defined(RTCONFIG_RALINK_MT7620)
+		if(gpio_pin == 72)	//skip 2g wifi led NOT to be gpio LED
+			continue;
+#endif
+
 		disable = (use_gpio&GPIO_ACTIVE_LOW)==0 ? 0: 1;
 		gpio_dir(gpio_pin, GPIO_DIR_OUT);
 		set_gpio(gpio_pin, disable);
@@ -405,9 +408,12 @@ int wanport_status(int wan_unit)
 	char wan_ports[16];
 
 	memset(wan_ports, 0, 16);
+#ifndef RTN53
 	if(nvram_get_int("sw_mode") == SW_MODE_AP)
 		strcpy(wan_ports, "lanports");
-	else if(wan_unit == 1)
+	else
+#endif 
+	if(wan_unit == 1)
 		strcpy(wan_ports, "wan1ports");
 	else
 		strcpy(wan_ports, "wanports");

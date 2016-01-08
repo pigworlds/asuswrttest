@@ -10,6 +10,11 @@
 #include "web-qtn.h"
 #include "net80211/ieee80211_dfs_reentry.h"
 
+#ifdef RTCONFIG_JFFS2ND_BACKUP
+#include <sys/mount.h>
+#include <sys/statfs.h>
+#endif
+
 static int lock_qtn_apscan = -1;
 
 extern int isValidCountryCode(const char *Ccode);
@@ -194,7 +199,7 @@ int setAllLedOn_qtn(void)
 		fprintf(stderr, "ATE command error\n");
 		return -1;
 	}
-	ret = qcsapi_wifi_run_script("set_test_mode", "lan4_led_ctrl on");
+	ret = qcsapi_wifi_run_script("router_command.sh", "lan4_led_ctrl on");
 	if (ret < 0) {
 		fprintf(stderr, "ATE command error\n");
 		return -1;
@@ -222,7 +227,7 @@ int setAllLedOff_qtn(void)
 		return -1;
 	}
 
-	ret = qcsapi_wifi_run_script("set_test_mode", "lan4_led_ctrl off");
+	ret = qcsapi_wifi_run_script("router_command.sh", "lan4_led_ctrl off");
 	if (ret < 0) {
 		fprintf(stderr, "ATE command error\n");
 		return -1;
@@ -457,11 +462,11 @@ int GetPhyStatus_qtn(void)
 		fprintf(stderr, "ATE command error\n");
 		return -1;
 	}
-	ret = qcsapi_wifi_run_script("set_test_mode", "get_eth_1000m");
+	ret = qcsapi_wifi_run_script("router_command.sh", "get_eth_1000m");
 	if (ret < 0) {
-		ret = qcsapi_wifi_run_script("set_test_mode", "get_eth_100m");
+		ret = qcsapi_wifi_run_script("router_command.sh", "get_eth_100m");
 		if (ret < 0) {
-			ret = qcsapi_wifi_run_script("set_test_mode", "get_eth_10m");
+			ret = qcsapi_wifi_run_script("router_command.sh", "get_eth_10m");
 			if (ret < 0) {
 				// fprintf(stderr, "ATE command error\n");
 				return 0;
@@ -693,36 +698,24 @@ int enable_qtn_telnetsrv(int enable_flag)
 		return -1;
 	}
 	if(enable_flag == 0){
-		ret = qcsapi_wifi_run_script("set_test_mode", "enable_telnet_srv 0");
+		nvram_set("QTNTELNETSRV", "0");
+		ret = qcsapi_wifi_run_script("router_command.sh", "enable_telnet_srv 0");
 	}else{
-		ret = qcsapi_wifi_run_script("set_test_mode", "enable_telnet_srv 1");
+		nvram_set("QTNTELNETSRV", "1");
+		ret = qcsapi_wifi_run_script("router_command.sh", "enable_telnet_srv 1");
 	}
 	if (ret < 0) {
 		fprintf(stderr, "[ate] set telnet server error\n");
 		return -1;
 	}
+	nvram_commit();
 	return 0;
 }
 
 int getstatus_qtn_telnetsrv(void)
 {
-	int ret;
-	char value[20] = {0};
+	puts(nvram_safe_get("QTNTELNETSRV"));
 
-	if (!rpc_qtn_ready()) {
-		fprintf(stderr, "ATE command error\n");
-		return -1;
-	}
-
-	ret = qcsapi_bootcfg_get_parameter("QTNTELNETSRV", value, sizeof(value));
-	if (ret < 0) {
-		fprintf(stderr, "[ate] get telnet server status error\n");
-		puts("0");
-		return -1;
-	}else{
-		fprintf(stderr, "[ate] get telnet server status:[%s]\n", value);
-		puts("1");
-	}
 	return 0;
 }
 
@@ -734,7 +727,7 @@ int del_qtn_cal_files(void)
 		fprintf(stderr, "ATE command error\n");
 		return -1;
 	}
-	ret = qcsapi_wifi_run_script("set_test_mode", "del_cal_files");
+	ret = qcsapi_wifi_run_script("router_command.sh", "del_cal_files");
 	if (ret < 0) {
 		fprintf(stderr, "[ate] delete calibration files error\n");
 		return -1;
@@ -939,6 +932,7 @@ int gen_rpc_qcsapi_ip(void)
 	struct ifreq ifr;
 	struct in_addr start, addr;
 	int hw_len;
+	FILE *fp_qcsapi_conf;
 
 	/* BRCM */
 	ether_atoe(nvram_safe_get("lan_hwaddr"), (unsigned char *)&ifr.ifr_hwaddr.sa_data);
@@ -959,9 +953,58 @@ int gen_rpc_qcsapi_ip(void)
 	start.s_addr = htonl(ntohl(0x127fea9 /* start */) +
 		((j + 0 /* c->addr_epoch */) % (1 + ntohl(0xfe27fea9 /* end */) - ntohl(0x127fea9 /* start */))));
 	nvram_set("QTN_RPC_SERVER", inet_ntoa(start));
+	if ((fp_qcsapi_conf = fopen("/etc/qcsapi_target_ip.conf", "w")) == NULL){
+		logmessage("qcsapi", "write qcsapi conf error");
+	}else{
+		fprintf(fp_qcsapi_conf, "%s", nvram_safe_get("QTN_RPC_SERVER"));
+		fclose(fp_qcsapi_conf);
+		logmessage("qcsapi", "write qcsapi conf ok");
+	}
 
 #if 0
 	do_ping_detect(); /* refer wanduck.c */
 #endif
 }
 
+#if defined(RTCONFIG_JFFS2ND_BACKUP)
+#define JFFS_NAME	"jffs2"
+#define SECOND_JFFS2_PARTITION  "asus"
+#define SECOND_JFFS2_PATH	"/asus_jffs"
+void check_2nd_jffs(void)
+{
+	char s[256];
+	int size;
+	int part;
+	struct statfs sf;
+
+	_dprintf("2nd jffs2: %s\n", SECOND_JFFS2_PARTITION);
+
+	if (!mtd_getinfo(SECOND_JFFS2_PARTITION, &part, &size)) {
+		_dprintf("Can not get 2nd jffs2 information!");
+		return;
+	}
+	mount_2nd_jffs2();
+
+	if(access("/asus_jffs/bootcfg.tgz", R_OK ) != -1 ) {
+		logmessage("qtn", "bootcfg.tgz exists");
+	} else {
+		logmessage("qtn", "bootcfg.tgz does not exist");
+		sprintf(s, MTD_BLKDEV(%d), part);
+		umount("/asus_jffs");
+		if (mount(s, SECOND_JFFS2_PATH , JFFS_NAME, MS_NOATIME, "") != 0) {
+			logmessage("qtn", "cannot store bootcfg.tgz");
+		}else{
+			system("cp /tmp/bootcfg.tgz /asus_jffs");
+			logmessage("qtn", "backup bootcfg.tgz ok");
+		}
+	}
+
+	if (umount(SECOND_JFFS2_PATH)){
+		dbG("umount asus_jffs failed\n");
+	}else{
+		dbG("umount asus_jffs ok\n");
+	}
+
+	// format_mount_2nd_jffs2();
+}
+#endif

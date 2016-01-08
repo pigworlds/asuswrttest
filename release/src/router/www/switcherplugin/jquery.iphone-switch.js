@@ -41,7 +41,7 @@ jQuery.fn.iphoneSwitch = function(start_state, switched_on_callback, switched_of
 
 		// click handling
 		jQuery(this).click(function() {
-			if((this.id == "radio_clouddisk_enable" || this.id == "radio_web_restrict_enable" || this.id == "apps_analysis_enable") && typeof(curState))
+			if((this.id == "radio_clouddisk_enable" || this.id == "radio_web_restrict_enable" || this.id == "apps_analysis_enable" || this.id == "radio_wps_enable") && typeof(curState))
 				state = curState;
 
 			if(state == '1') {

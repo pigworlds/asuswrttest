@@ -108,7 +108,7 @@ int get_device_type_by_device(const char *device_name)
 	if(!strncmp(device_name, "sr", 2)){
 		return DEVICE_TYPE_CD;
 	}
-	if(isSerialNode(device_name) || isACMNode(device_name)){
+	if(isTTYNode(device_name)){
 		return DEVICE_TYPE_MODEM;
 	}
 #endif
@@ -150,7 +150,7 @@ char *get_device_type_by_node(const char *usb_node, char *buf, const int buf_siz
 		else
 #endif
 #ifdef RTCONFIG_USB_MODEM
-		if(isSerialInterface(interface_name) || isACMInterface(interface_name))
+		if(isSerialInterface(interface_name, 0, 0, 0) || isACMInterface(interface_name, 0, 0, 0))
 			++got_modem;
 		else
 #endif
@@ -975,6 +975,14 @@ int hadGCTModule(void){
 }
 #endif
 
+int isTTYNode(const char *device_name)
+{
+	if(strncmp(device_name, "tty", 3))
+		return 0;
+
+	return 1;
+}
+
 int isSerialNode(const char *device_name)
 {
 	if(strstr(device_name, "ttyUSB") == NULL)
@@ -1001,9 +1009,15 @@ int isBeceemNode(const char *device_name)
 }
 #endif
 
-int isSerialInterface(const char *interface_name)
+int isSerialInterface(const char *interface_name, const int specifics, const unsigned int vid, const unsigned int pid)
 {
 	char interface_class[4];
+
+	if(specifics){
+		// HTC M8
+		if(vid == 0x0bb4 && (pid == 0x0f64 || pid == 0x0f60))
+			return 0;
+	}
 
 	if(get_usb_interface_class(interface_name, interface_class, 4) == NULL)
 		return 0;
@@ -1014,9 +1028,15 @@ int isSerialInterface(const char *interface_name)
 	return 1;
 }
 
-int isACMInterface(const char *interface_name)
+int isACMInterface(const char *interface_name, const int specifics, const unsigned int vid, const unsigned int pid)
 {
 	char interface_class[4], interface_subclass[4];
+
+	if(specifics){
+		// HTC M8
+		if(vid == 0x0bb4 && (pid == 0x0f64 || pid == 0x0f60))
+			return 0;
+	}
 
 	if(get_usb_interface_class(interface_name, interface_class, 4) == NULL)
 		return 0;
@@ -1132,7 +1152,7 @@ int is_usb_modem_ready(void)
 	char prefix[32], tmp[32];
 	char usb_act[8];
 	char usb_node[32], port_path[8];
-	char modem_type[16];
+	char modem_type[32];
 
 	if(nvram_match("modem_enable", "0"))
 		return 0;
@@ -1146,14 +1166,15 @@ int is_usb_modem_ready(void)
 
 	snprintf(prefix, 32, "usb_path%s", port_path);
 	snprintf(usb_act, 8, "%s", nvram_safe_get(strcat_r(prefix, "_act", tmp)));
-	snprintf(modem_type, 16, "%s", nvram_safe_get("usb_modem_act_type"));
+
+	if(!strcmp(nvram_safe_get("usb_modem_act_type"), ""))
+		eval("find_modem_type.sh");
+	snprintf(modem_type, 32, "%s", nvram_safe_get("usb_modem_act_type"));
 
 	if(nvram_match(prefix, "modem") && strlen(usb_act) != 0){
 		// for the router dongle: Huawei E353, E3131.
 		if(!strncmp(usb_act, "eth", 3) ||
-				(!strncmp(usb_act, "usb", 3) &&
-						(strcmp(modem_type, "qmi") && strcmp(modem_type, "rndis"))
-						)
+				(!strncmp(usb_act, "usb", 3) && !strcmp(modem_type, "ncm"))
 				){
 			if(!strncmp(nvram_safe_get("lan_ipaddr"), "192.168.1.", 10))
 				return 2;

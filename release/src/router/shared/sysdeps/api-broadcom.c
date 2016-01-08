@@ -485,9 +485,6 @@ int check_imagefile(char *fname)
 		uint8_t ver[4];			/* Firmware version */
 		uint8_t pid[MAX_PID_LEN];	/* Product Id */
 		uint8_t hw[MAX_HW_COUNT][4];	/* Compatible hw list lo maj.min, hi maj.min */
-#ifdef RTCONFIG_TMOBILE
-		uint8_t brand[MAX_PID_LEN];	/* Brand name for ODM */
-#endif
 		uint8_t	pad[0];			/* Padding up to MAX_VERSION_LEN */
 	} version;
 	int i, model;
@@ -515,11 +512,7 @@ int check_imagefile(char *fname)
 		_dprintf("check crc error!!!\n");
 		return 0;
 	}
-#ifdef RTCONFIG_TMOBILE
-	doSystem("nvram set odmpid=`cat /dev/mtd0 | grep odmpid | cut -d \"=\" -f 2`");
-	if (!nvram_match("odmpid", "TM-AC1900"))
-		return 0;
-#endif
+
 	model = get_model();
 
 	/* compare up to the first \0 or MAX_PID_LEN
@@ -527,14 +520,7 @@ int check_imagefile(char *fname)
 	if (strncmp(nvram_safe_get("productid"), (char *) version.pid, MAX_PID_LEN) == 0 ||
 	    strncmp(get_modelid(model), (char *) (char *) version.pid, MAX_PID_LEN) == 0)
 	{
-#ifdef RTCONFIG_TMOBILE
-		if (strncmp("elibom-t", (char *) version.brand, MAX_PID_LEN))
-			return 0;
-		else
-			return 1;
-#else
 		return 1;
-#endif
 	}
 
 	/* common RT-N12 productid FW image */
@@ -627,11 +613,16 @@ void set_radio(int on, int unit, int subunit)
 #if defined(RTAC66U) || defined(BCM4352)
 	if ((unit == 1) & (subunit < 1)) {
 		if (on) {
+#ifndef RTCONFIG_LED_BTN
+			if (!(nvram_get_int("sw_mode")==SW_MODE_AP && nvram_get_int("wlc_psta")==1 && nvram_get_int("wlc_band")==0)) {
+				nvram_set("led_5g", "1");
+				led_control(LED_5G, LED_ON);
+			}
+#else
 			nvram_set("led_5g", "1");
-#ifdef RTCONFIG_LED_BTN
 			if (nvram_get_int("AllLED"))
+				led_control(LED_5G, LED_ON);
 #endif
-			led_control(LED_5G, LED_ON);
 		}
 		else {
 			nvram_set("led_5g", "0");

@@ -28,6 +28,10 @@
 #include "shutils.h"
 #include "shared.h"
 
+#include <linux/version.h>
+#ifndef LINUX_KERNEL_VERSION
+#define LINUX_KERNEL_VERSION LINUX_VERSION_CODE
+#endif
 
 /* Serialize using fcntl() calls 
  */
@@ -126,12 +130,6 @@ char *detect_fs_type(char *device)
 			return "apple_efi";
 		else
 			return "vfat";
-	}
-	/* detect exfat */
-	else if (buf[510] == 0x55 && buf[511] == 0xAA && /* signature */
-		 !memcmp(buf + 3, "EXFAT   ", 8))
-	{
-		return "exfat";
 	}
 
 	return "unknown";
@@ -260,7 +258,11 @@ int exec_for_host(int host, int obsolete, uint flags, host_exec func)
 		    !strcmp(dp->d_name, "..")
 		   )
 			continue;
+#if LINUX_KERNEL_VERSION >= KERNEL_VERSION(3,3,0)
+		snprintf(device_path, sizeof(device_path), "/sys/block/%s", dp->d_name);
+#else
 		snprintf(device_path, sizeof(device_path), "/sys/block/%s/device", dp->d_name);
+#endif
 		if (readlink(device_path, linkbuf, sizeof(linkbuf)) == -1)
 			continue;
 		h = strstr(linkbuf, "/host");
@@ -500,7 +502,6 @@ extern int volume_id_probe_vfat();
 extern int volume_id_probe_ntfs();
 extern int volume_id_probe_linux_swap();
 extern int volume_id_probe_hfs_hfsplus(struct volume_id *id);
-extern int volume_id_probe_exfat(struct volume_id *id);
 
 /* Put the label in *label and uuid in *uuid.
  * Return 0 if no label/uuid found, NZ if there is a label or uuid.
@@ -527,10 +528,6 @@ int find_label_or_uuid(char *dev_name, char *label, char *uuid)
 		goto ret;
 #if defined(RTCONFIG_HFS)
 	if(volume_id_probe_hfs_hfsplus(&id) == 0 || id.error)
-		goto ret;
-#endif
-#if defined(RTCONFIG_EXFAT)
-	if(volume_id_probe_exfat(&id) == 0 || id.error)
 		goto ret;
 #endif
 ret:
