@@ -15,6 +15,8 @@ export ARCH := mips
 export HOST := mipsel-linux
 export KERNELCC := /opt/buildroot-gcc342/bin/mipsel-linux-uclibc-gcc
 export KERNELLD := /opt/buildroot-gcc342/bin/mipsel-linux-uclibc-ld
+export KERNELAR := /opt/buildroot-gcc342/bin/mipsel-linux-uclibc-ar
+export KERNELNM := /opt/buildroot-gcc342/bin/mipsel-linux-uclibc-nm
 export TOOLS := $(SRCBASE)/../../tools/brcm/hndtools-mipsel-linux
 export RTVER := 0.9.30.1
 
